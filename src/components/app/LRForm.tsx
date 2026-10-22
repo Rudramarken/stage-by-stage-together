@@ -32,7 +32,7 @@ export function blankLR(tripId?: string): LRValues {
 export function LRForm({ initial }: { initial: LRValues }) {
   const nav = useNavigate();
   const qc = useQueryClient();
-  const parties = useParties(); const transporters = useTransporters(); const drivers = useDrivers();
+  const parties = useParties(); const drivers = useDrivers();
   const trips = useQuery({
     queryKey: ["trips-pick"],
     queryFn: async () => {
