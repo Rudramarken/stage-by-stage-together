@@ -64,6 +64,13 @@
       "when": 1792683378138,
       "tag": "0008_transporter_from_party",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792690000000,
+      "tag": "0009_transporter_party_link_hardening",
+      "breakpoints": true
     }
   ]
 }
