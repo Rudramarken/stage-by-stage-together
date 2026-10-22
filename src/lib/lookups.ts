@@ -36,3 +36,18 @@ export const PAYMENT_TYPE: Record<string, string> = {
 };
 export const EXPENSE_CATEGORIES = ["Diesel/Fuel", "Toll", "Driver Food", "Loading/Unloading", "Parking", "Repairs", "Other"];
 export const PAY_MODES = [{ value: "cash", label: "Cash" }, { value: "upi", label: "UPI" }, { value: "neft", label: "NEFT/RTGS/IMPS" }, { value: "cheque", label: "Cheque" }, { value: "other", label: "Other" }];
+
+export async function createPartyInline(name: string, role: string): Promise<string> {
+  const clean = name.trim();
+  const { data: existing } = await supabase.from("parties").select("id").ilike("name", clean).maybeSingle();
+  if (existing) return existing.id;
+  const { data, error } = await supabase.from("parties").insert({ name: clean, roles: [role] } as never).select("id").single();
+  if (error) throw error;
+  return data.id;
+}
+
+export async function createTransporterInline(name: string): Promise<string> {
+  const { data, error } = await supabase.rpc("get_or_create_transporter", { p_name: name });
+  if (error) throw error;
+  return data as string;
+}
