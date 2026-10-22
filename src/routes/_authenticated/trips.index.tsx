@@ -1,5 +1,6 @@
 import { DocumentActions } from "@/components/app/DocumentActions";
 import { actionCell } from "@/components/app/RowActions";
+import { MobileCards, MobileCard, dateRangeCls } from "@/components/app/MobileCards";
 import { pageHead } from "@/lib/page-head";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -56,12 +57,22 @@ function TripsList() {
         <select className={selectCls} value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })}><option value="">All statuses</option>{Object.entries(TRIP_STATUS).map(([k, s]) => <option key={k} value={k}>{s.label}</option>)}</select>
         <select className={selectCls} value={f.transporter} onChange={(e) => setF({ ...f, transporter: e.target.value })}><option value="">All transporters</option>{transporters.data?.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
         <select className={selectCls} value={f.driver} onChange={(e) => setF({ ...f, driver: e.target.value })}><option value="">All drivers</option>{drivers.data?.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
-        <div className="flex gap-1"><Input type="date" value={f.from} onChange={(e) => setF({ ...f, from: e.target.value })} title="From" /><Input type="date" value={f.to} onChange={(e) => setF({ ...f, to: e.target.value })} title="To" /></div>
+        <div className={dateRangeCls}><Input type="date" value={f.from} onChange={(e) => setF({ ...f, from: e.target.value })} title="From" aria-label="From date" /><Input type="date" value={f.to} onChange={(e) => setF({ ...f, to: e.target.value })} title="To" aria-label="To date" /></div>
       </div>
       {q.isPending ? <LoadingState /> : q.isError ? <ErrorState error={q.error} onRetry={() => q.refetch()} /> : rows.length === 0 ? (
         <EmptyState title={q.data.length ? "No trips match these filters" : "No trips yet"} action={!q.data.length ? <Button asChild><Link to="/trips/new">Create first trip</Link></Button> : undefined} />
       ) : (
-        <div className="overflow-x-auto rounded-lg border bg-card">
+        <div className="rounded-lg sm:border sm:bg-card">
+          <MobileCards>{paged.map((t: any) => (
+            <MobileCard key={t.id} muted={t.status === "cancelled"}
+              title={<><Link to="/trips/$id" params={{ id: t.id }} className="text-info">{t.trip_number}</Link>{t.parent_trip_id && <span className="ml-1 text-xs text-muted-foreground">({t.leg_label || "leg"})</span>}</>}
+              aside={<StatusBadge tone={TRIP_STATUS[t.status]?.tone}>{TRIP_STATUS[t.status]?.label}</StatusBadge>} actions={<DocumentActions kind="trip" row={t} />}>
+              <div>{formatDate(t.trip_date)} · {t.lrs.length} LR(s)</div>
+              <div className="text-foreground">{[...t.trip_stops].sort((a: any, b: any) => a.seq - b.seq).map((s: any) => s.location).join(" → ")}</div>
+              <div>{t.vehicle_mode === "own" ? nameOf(vehicles.data, t.vehicle_id, "registration_number") || "—" : `${t.market_vehicle_number ?? ""} (market)`} · {nameOf(drivers.data, t.driver_id) || t.driver_name || "No driver"}</div>
+              {t.transporter_id && <div>{nameOf(transporters.data, t.transporter_id)}</div>}
+            </MobileCard>))}</MobileCards>
+          <div className="hidden overflow-x-auto sm:block">
           <Table>
             <TableHeader><TableRow><TableHead>Trip</TableHead><TableHead>Date</TableHead><TableHead>Route</TableHead><TableHead>Vehicle</TableHead><TableHead>Transporter</TableHead><TableHead>Driver</TableHead><TableHead>LRs</TableHead><TableHead>Status</TableHead><TableHead className={actionCell}>Actions</TableHead></TableRow></TableHeader>
             <TableBody>{paged.map((t: any) => (
@@ -76,9 +87,9 @@ function TripsList() {
                 <TableCell><StatusBadge tone={TRIP_STATUS[t.status]?.tone}>{TRIP_STATUS[t.status]?.label}</StatusBadge></TableCell>
                 <TableCell className={actionCell}><DocumentActions kind="trip" row={t} /></TableCell>
               </TableRow>))}</TableBody>
-          </Table>
-          <div className="flex items-center justify-between border-t px-3 py-2 text-sm text-muted-foreground"><span>{rows.length} trip(s)</span>
-            <div className="flex gap-2"><Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(page - 1)}>Previous</Button><Button variant="outline" size="sm" disabled={(page + 1) * PAGE >= rows.length} onClick={() => setPage(page + 1)}>Next</Button></div></div>
+          </Table></div>
+          <div className="flex flex-col gap-2 py-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:border-t sm:px-3"><span>{rows.length} trip(s)</span>
+            <div className="grid grid-cols-2 gap-2 sm:flex"><Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(page - 1)}>Previous</Button><Button variant="outline" size="sm" disabled={(page + 1) * PAGE >= rows.length} onClick={() => setPage(page + 1)}>Next</Button></div></div>
         </div>
       )}
     </div>
