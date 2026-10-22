@@ -1,3 +1,5 @@
+import { DocumentActions } from "@/components/app/DocumentActions";
+import { DocumentPrint } from "@/components/app/DocumentPrint";
 import { pageHead } from "@/lib/page-head";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -146,16 +148,18 @@ function TripDetail() {
 
   return (
     <div className="space-y-4">
+      <DocumentPrint id={id} />
       <Button asChild variant="ghost" size="sm" className="no-print"><Link to="/trips"><ArrowLeft className="mr-1 h-4 w-4" />All trips</Link></Button>
       <PageHeader title={`${t.trip_number}${t.leg_label ? ` · ${t.leg_label}` : ""}`} description={`${formatDate(t.trip_date)} · ${route}`}
         actions={<>
+          <DocumentActions kind="trip" row={t} />
           <Button variant="outline" onClick={() => window.print()}><Printer className="mr-1 h-4 w-4" />Print</Button>
           <Button variant="outline" asChild><Link to="/trips/new" search={{ parent: q.data.root, kind: "return" }}><Plus className="mr-1 h-4 w-4" />Create return leg</Link></Button>
           <Button variant="outline" asChild><Link to="/trips/new" search={{ parent: q.data.root, kind: "leg" }}><Plus className="mr-1 h-4 w-4" />Linked leg (vehicle/driver change)</Link></Button>
           <Button asChild><Link to="/trips/$id/edit" params={{ id }}><Pencil className="mr-1 h-4 w-4" />Edit</Link></Button>
         </>} />
       <div className="grid gap-3 rounded-lg border bg-card p-4 text-sm sm:grid-cols-4">
-        <div><p className="text-muted-foreground">Status</p><StatusBadge tone={TRIP_STATUS[t.status]?.tone}>{TRIP_STATUS[t.status]?.label}</StatusBadge>{t.cancel_reason && <p className="text-xs">Reason: {t.cancel_reason}</p>}</div>
+        <div><p className="text-muted-foreground">Status</p><StatusBadge tone={TRIP_STATUS[t.status]?.tone}>{TRIP_STATUS[t.status]?.label}</StatusBadge>{t.cancel_reason && <p className="text-xs">Cancelled by {t.cancelled_by} · {formatDateTime(t.cancelled_at)} · Reason: {t.cancel_reason}</p>}</div>
         <div><p className="text-muted-foreground">Vehicle</p><p>{t.vehicle_mode === "own" ? nameOf(vehicles.data, t.vehicle_id, "registration_number") || "—" : `${t.market_vehicle_number} (market truck${t.market_vehicle_type ? ", " + t.market_vehicle_type : ""})`}</p></div>
         <div><p className="text-muted-foreground">Transporter</p><p>{nameOf(transporters.data, t.transporter_id) || "—"}</p></div>
         <div><p className="text-muted-foreground">Driver</p><p>{nameOf(drivers.data, t.driver_id) || t.driver_name || "—"}</p></div>

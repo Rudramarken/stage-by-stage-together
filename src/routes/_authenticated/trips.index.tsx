@@ -1,3 +1,5 @@
+import { DocumentActions } from "@/components/app/DocumentActions";
+import { actionCell } from "@/components/app/RowActions";
 import { pageHead } from "@/lib/page-head";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -61,17 +63,18 @@ function TripsList() {
       ) : (
         <div className="overflow-x-auto rounded-lg border bg-card">
           <Table>
-            <TableHeader><TableRow><TableHead>Trip</TableHead><TableHead>Date</TableHead><TableHead>Route</TableHead><TableHead>Vehicle</TableHead><TableHead>Transporter</TableHead><TableHead>Driver</TableHead><TableHead>LRs</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Trip</TableHead><TableHead>Date</TableHead><TableHead>Route</TableHead><TableHead>Vehicle</TableHead><TableHead>Transporter</TableHead><TableHead>Driver</TableHead><TableHead>LRs</TableHead><TableHead>Status</TableHead><TableHead className={actionCell}>Actions</TableHead></TableRow></TableHeader>
             <TableBody>{paged.map((t: any) => (
               <TableRow key={t.id}>
                 <TableCell><Link to="/trips/$id" params={{ id: t.id }} className="font-medium text-info hover:underline">{t.trip_number}</Link>{t.parent_trip_id && <span className="ml-1 text-xs text-muted-foreground">({t.leg_label || "leg"})</span>}</TableCell>
                 <TableCell>{formatDate(t.trip_date)}</TableCell>
-                <TableCell>{[...t.trip_stops].sort((a: any, b: any) => a.seq - b.seq).map((s: any) => s.location).join(" → ")}</TableCell>
+                <TableCell className="max-w-48 whitespace-normal">{[...t.trip_stops].sort((a: any, b: any) => a.seq - b.seq).map((s: any) => s.location).join(" → ")}</TableCell>
                 <TableCell>{t.vehicle_mode === "own" ? nameOf(vehicles.data, t.vehicle_id, "registration_number") || "—" : <>{t.market_vehicle_number} <span className="text-xs text-muted-foreground">market</span></>}</TableCell>
                 <TableCell>{nameOf(transporters.data, t.transporter_id) || "—"}</TableCell>
                 <TableCell>{nameOf(drivers.data, t.driver_id) || t.driver_name || "—"}</TableCell>
                 <TableCell>{t.lrs.length}</TableCell>
                 <TableCell><StatusBadge tone={TRIP_STATUS[t.status]?.tone}>{TRIP_STATUS[t.status]?.label}</StatusBadge></TableCell>
+                <TableCell className={actionCell}><DocumentActions kind="trip" row={t} /></TableCell>
               </TableRow>))}</TableBody>
           </Table>
           <div className="flex items-center justify-between border-t px-3 py-2 text-sm text-muted-foreground"><span>{rows.length} trip(s)</span>

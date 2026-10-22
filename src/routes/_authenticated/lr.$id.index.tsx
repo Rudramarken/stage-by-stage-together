@@ -1,5 +1,9 @@
+import { useState } from "react";
+import { RemovalDialog, type RemovalTarget } from "@/components/app/RemovalDialog";
+import { DocumentPrint } from "@/components/app/DocumentPrint";
+import { Trash2 } from "lucide-react";
 import { pageHead } from "@/lib/page-head";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ArrowLeft, Pencil, Printer, Ban } from "lucide-react";
@@ -12,7 +16,7 @@ import { loadLR } from "@/lib/lr-load";
 import { useBusiness } from "@/lib/business";
 import { useTransporters, nameOf, FREIGHT_TYPE, LR_DELIVERY } from "@/lib/lookups";
 import { RATE_UNIT_LABEL } from "@/lib/freight";
-import { formatDate, formatINR } from "@/lib/format";
+import { formatDate, formatDateTime, formatINR } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/lr/$id/")({
   head: () => pageHead("LR details — Gokul Cargo Movers", "LR details records for Gokul Cargo Movers transport management."),
@@ -22,7 +26,9 @@ export const Route = createFileRoute("/_authenticated/lr/$id/")({
 function LRDetail() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
-  const { settings } = useBusiness();
+  const { settings, role } = useBusiness();
+  const navigate = useNavigate();
+  const [removal, setRemoval] = useState<RemovalTarget | null>(null);
   const transporters = useTransporters();
   const q = useQuery({ queryKey: ["lr", id], queryFn: () => loadLR(id) });
   const upd = useMutation({
@@ -43,14 +49,18 @@ function LRDetail() {
 
   return (
     <div className="space-y-4">
+      <DocumentPrint id={id} />
+      <RemovalDialog target={removal} onClose={() => setRemoval(null)} onDone={() => { if (removal?.action === "delete") navigate({ to: "/lr" }); }} />
       <div className="no-print flex flex-wrap gap-2">
         <Button asChild variant="ghost" size="sm"><Link to="/lr"><ArrowLeft className="mr-1 h-4 w-4" />LR register</Link></Button>
         <div className="ml-auto flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => window.print()}><Printer className="mr-1 h-4 w-4" />Print</Button>
-          {lr.status === "active" && <Button variant="outline" disabled={upd.isPending} onClick={() => { const r = window.prompt("Reason for cancelling this LR (required):"); if (r?.trim()) upd.mutate({ status: "cancelled", cancel_reason: r.trim() }); }}><Ban className="mr-1 h-4 w-4" />Cancel LR</Button>}
+          {lr.status === "active" && <Button variant="outline" disabled={upd.isPending} onClick={() => setRemoval({ table: "lrs", id, label: lr.lr_number, action: "cancel" })}><Ban className="mr-1 h-4 w-4" />Cancel LR</Button>}
           {lr.status === "active" && <Button asChild><Link to="/lr/$id/edit" params={{ id }}><Pencil className="mr-1 h-4 w-4" />Edit</Link></Button>}
+          {role === "owner" && <Button variant="destructive" onClick={() => setRemoval({ table: "lrs", id, label: lr.lr_number, action: "delete" })}><Trash2 className="mr-1 h-4 w-4" />Delete permanently</Button>}
         </div>
       </div>
+      {lr.status === "cancelled" && <p className="text-sm text-destructive">Cancelled by {lr.cancelled_by} · {formatDateTime(lr.cancelled_at)} · {lr.cancel_reason}</p>}
 
       <div className="mx-auto max-w-[210mm] rounded-lg border bg-card p-6 text-sm print:border-0 print:p-0">
         <div className="flex items-start justify-between border-b-2 border-primary pb-3">

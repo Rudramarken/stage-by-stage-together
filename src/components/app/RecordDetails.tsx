@@ -1,0 +1,4 @@
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+export function RecordDetails({ title, values, onClose }: { title: string; values: [string, unknown][]; onClose: () => void }) {
+  return <Dialog open onOpenChange={(open) => !open && onClose()}><DialogContent><DialogHeader><DialogTitle>{title}</DialogTitle></DialogHeader><dl className="grid grid-cols-2 gap-3 text-sm">{values.map(([name, value]) => <div key={name} className="min-w-0"><dt className="text-muted-foreground">{name}</dt><dd className="break-words">{Array.isArray(value) ? value.join(", ") : String(value ?? "—")}</dd></div>)}</dl></DialogContent></Dialog>;
+}

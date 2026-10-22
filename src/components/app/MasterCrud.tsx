@@ -1,3 +1,8 @@
+import { Eye, Trash2 } from "lucide-react";
+import { useBusiness } from "@/lib/business";
+import { RowActions, actionCell } from "./RowActions";
+import { RemovalDialog, type RemovalTarget } from "./RemovalDialog";
+import { RecordDetails } from "./RecordDetails";
 import { useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -9,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PageHeader, StatusBadge, Field, ConfirmDialog } from "./ui";
+import { PageHeader, StatusBadge, Field } from "./ui";
 import { LoadingState, ErrorState, EmptyState, errorMessage } from "./states";
 
 export type FieldDef = {
@@ -48,13 +53,15 @@ const PAGE = 25;
 
 export function MasterCrud(p: Props) {
   const qc = useQueryClient();
+  const { role } = useBusiness();
+  const [removal, setRemoval] = useState<RemovalTarget | null>(null);
+  const [viewing, setViewing] = useState<Record<string, any> | null>(null);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"active" | "archived" | "all">("active");
   const [page, setPage] = useState(0);
   const [editing, setEditing] = useState<Record<string, any> | null>(null);
   const [form, setForm] = useState<Record<string, any>>({});
   const [formErr, setFormErr] = useState<string | null>(null);
-  const [confirm, setConfirm] = useState<Record<string, any> | null>(null);
 
   const q = useQuery({
     queryKey: [p.table],
@@ -96,15 +103,6 @@ export function MasterCrud(p: Props) {
       qc.invalidateQueries({ queryKey: [p.table] });
     },
     onError: (e) => setFormErr(friendly(errorMessage(e), p.singular)),
-  });
-
-  const archive = useMutation({
-    mutationFn: async (row: Record<string, any>) => {
-      const { error } = await supabase.from(p.table).update({ is_active: !row.is_active } as never).eq("id", row.id);
-      if (error) throw error;
-    },
-    onSuccess: () => { toast.success("Updated"); qc.invalidateQueries({ queryKey: [p.table] }); },
-    onError: (e) => toast.error(errorMessage(e)),
   });
 
   function openForm(row?: Record<string, any>) {
@@ -167,21 +165,20 @@ export function MasterCrud(p: Props) {
             <Table>
               <TableHeader><TableRow>
                 {p.columns.map((c) => <TableHead key={c.label}>{c.label}</TableHead>)}
-                <TableHead>Status</TableHead><TableHead className="text-right no-print">Actions</TableHead>
+                <TableHead>Status</TableHead><TableHead className={actionCell}>Actions</TableHead>
               </TableRow></TableHeader>
               <TableBody>
                 {paged.map((r) => (
                   <TableRow key={r.id}>
                     {p.columns.map((c) => <TableCell key={c.label}>{c.render(r)}</TableCell>)}
                     <TableCell>{r.is_active ? <StatusBadge tone="success">Active</StatusBadge> : <StatusBadge>Archived</StatusBadge>}</TableCell>
-                    <TableCell className="whitespace-nowrap text-right no-print">
-                      {p.rowLink?.(r)}
-                      <Button variant="ghost" size="sm" onClick={() => openForm(r)}><Pencil className="h-4 w-4" /></Button>
-                      {(p.canArchive?.(r) ?? true) && (
-                        <Button variant="ghost" size="sm" title={r.is_active ? "Archive" : "Restore"} onClick={() => setConfirm(r)}>
-                          {r.is_active ? <Archive className="h-4 w-4" /> : <ArchiveRestore className="h-4 w-4" />}
-                        </Button>
-                      )}
+                    <TableCell className={actionCell}>
+                      <RowActions label={String(r.name ?? r.registration_number ?? `${r.origin} → ${r.destination}`)} actions={[
+                        { label: "View", icon: Eye, onClick: () => setViewing(r) },
+                        { label: "Edit", icon: Pencil, onClick: () => openForm(r) },
+                        ...((p.canArchive?.(r) ?? true) ? [{ label: r.is_active ? "Archive" : "Restore", icon: r.is_active ? Archive : ArchiveRestore, onClick: () => setRemoval({ table: p.table, id: r.id, label: String(r.name ?? r.registration_number ?? `${r.origin} → ${r.destination}`), action: r.is_active ? "archive" : "restore" }) }] : []),
+                        ...(role === "owner" && p.table !== "payment_accounts" ? [{ label: "Delete permanently", icon: Trash2, destructive: true, onClick: () => setRemoval({ table: p.table, id: r.id, label: String(r.name ?? r.registration_number ?? `${r.origin} → ${r.destination}`), action: "delete" as const }) }] : []),
+                      ]} />{p.rowLink?.(r)}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -218,11 +215,8 @@ export function MasterCrud(p: Props) {
         </DialogContent>
       </Dialog>
 
-      <ConfirmDialog open={!!confirm} onOpenChange={(o) => !o && setConfirm(null)}
-        title={confirm?.is_active ? `Archive this ${p.singular.toLowerCase()}?` : `Restore this ${p.singular.toLowerCase()}?`}
-        description={confirm?.is_active ? "It will be hidden from pickers but all history is kept. Nothing is deleted." : "It will appear in pickers again."}
-        confirmLabel={confirm?.is_active ? "Archive" : "Restore"}
-        onConfirm={() => { if (confirm) archive.mutate(confirm); setConfirm(null); }} />
+      <RemovalDialog target={removal} onClose={() => setRemoval(null)} />
+      {viewing && <RecordDetails title={p.singular} values={p.fields.map((f) => [f.label, viewing[f.name]])} onClose={() => setViewing(null)} />}
     </div>
   );
 }
