@@ -11,11 +11,13 @@
 - Turning another commission off twice retained one ₹1,000 due and one ₹1,000 offsetting reversal with reason; net zero.
 - Commission report shows ₹1,200 received, ₹0 pending for the TEST LR. Cash report shows ₹1,200, excluding ₹1,000 salary recovery and consignee direct payments.
 - Signed-in driver ledger, reports and outstanding screens rendered without browser errors.
+- Receipt and salary reversals were each applied twice through the signed-in app client: receipt pending restored by ₹400, salary commission pending restored by ₹1,000, without duplicate reversals. The ₹400 receipt was restored with a new history record.
+- A 5% trip commission recalculated to ₹1,000 when a ₹20,000 LR with its own commission OFF was linked. Trip summary rendered successfully. Corrected the refresh path for linked LRs without their own commission.
 - 17 automated tests passed across commission, freight, date/currency and routing tests; preview build reported OK.
 
 ## Built but not tested
-- Simultaneous writes from two users, cross-business denial, receipt reversal and salary-payment reversal.
-- Trip percentage recalculation, full trip-family totals and all form fields using manual input.
+- Simultaneous writes from two users and cross-business denial.
+- Full trip-family totals and all form fields using manual input; reversals were checked through the app's signed-in client rather than clicking every reversal action.
 
 ### Manual checks
 1. On a TEST trip, set commission to 5%; link a ₹20,000 LR and check ₹1,000 commission in the trip summary.
