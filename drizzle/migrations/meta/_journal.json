@@ -43,6 +43,20 @@
       "when": 1792672732563,
       "tag": "0005_guarded_list_actions",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792673987500,
+      "tag": "0006_preserve_edit_identity_and_payment_safety",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792674196860,
+      "tag": "0007_retain_payment_account_archive_actions",
+      "breakpoints": true
     }
   ]
 }

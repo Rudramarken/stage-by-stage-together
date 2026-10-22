@@ -1,3 +1,4 @@
+import { CancelledBy } from "@/components/app/CancelledBy";
 import { useState } from "react";
 import { RemovalDialog, type RemovalTarget } from "@/components/app/RemovalDialog";
 import { DocumentPrint } from "@/components/app/DocumentPrint";
@@ -60,7 +61,7 @@ function LRDetail() {
           {role === "owner" && <Button variant="destructive" onClick={() => setRemoval({ table: "lrs", id, label: lr.lr_number, action: "delete" })}><Trash2 className="mr-1 h-4 w-4" />Delete permanently</Button>}
         </div>
       </div>
-      {lr.status === "cancelled" && <p className="text-sm text-destructive">Cancelled by {lr.cancelled_by} · {formatDateTime(lr.cancelled_at)} · {lr.cancel_reason}</p>}
+      {lr.status === "cancelled" && <p className="text-sm text-destructive">Cancelled by <CancelledBy userId={lr.cancelled_by} /> · {formatDateTime(lr.cancelled_at)} · {lr.cancel_reason}</p>}
 
       <div className="mx-auto max-w-[210mm] rounded-lg border bg-card p-6 text-sm print:border-0 print:p-0">
         <div className="flex items-start justify-between border-b-2 border-primary pb-3">

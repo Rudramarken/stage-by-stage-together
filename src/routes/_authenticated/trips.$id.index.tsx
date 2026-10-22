@@ -1,3 +1,4 @@
+import { CancelledBy } from "@/components/app/CancelledBy";
 import { DocumentActions } from "@/components/app/DocumentActions";
 import { DocumentPrint } from "@/components/app/DocumentPrint";
 import { pageHead } from "@/lib/page-head";
@@ -159,7 +160,7 @@ function TripDetail() {
           <Button asChild><Link to="/trips/$id/edit" params={{ id }}><Pencil className="mr-1 h-4 w-4" />Edit</Link></Button>
         </>} />
       <div className="grid gap-3 rounded-lg border bg-card p-4 text-sm sm:grid-cols-4">
-        <div><p className="text-muted-foreground">Status</p><StatusBadge tone={TRIP_STATUS[t.status]?.tone}>{TRIP_STATUS[t.status]?.label}</StatusBadge>{t.cancel_reason && <p className="text-xs">Cancelled by {t.cancelled_by} · {formatDateTime(t.cancelled_at)} · Reason: {t.cancel_reason}</p>}</div>
+        <div><p className="text-muted-foreground">Status</p><StatusBadge tone={TRIP_STATUS[t.status]?.tone}>{TRIP_STATUS[t.status]?.label}</StatusBadge>{t.cancel_reason && <p className="text-xs">Cancelled by <CancelledBy userId={t.cancelled_by} /> · {formatDateTime(t.cancelled_at)} · Reason: {t.cancel_reason}</p>}</div>
         <div><p className="text-muted-foreground">Vehicle</p><p>{t.vehicle_mode === "own" ? nameOf(vehicles.data, t.vehicle_id, "registration_number") || "—" : `${t.market_vehicle_number} (market truck${t.market_vehicle_type ? ", " + t.market_vehicle_type : ""})`}</p></div>
         <div><p className="text-muted-foreground">Transporter</p><p>{nameOf(transporters.data, t.transporter_id) || "—"}</p></div>
         <div><p className="text-muted-foreground">Driver</p><p>{nameOf(drivers.data, t.driver_id) || t.driver_name || "—"}</p></div>
