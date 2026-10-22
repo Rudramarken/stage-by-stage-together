@@ -35,7 +35,7 @@ function Reports() {
   const q = useQuery({
     queryKey: ["reports-data"],
     queryFn: async () => {
-      const [trips, lrs, exps, advs, pays, bal, sal, salp] = await Promise.all([
+      const [trips, lrs, exps, advs, pays, bal, sal, salp, commissions, receipts] = await Promise.all([
         supabase.from("trips").select("*, trip_stops(location, seq), lrs(final_freight, freight_payable, status)"),
         supabase.from("lrs").select("*, trips(trip_number, trip_stops(location, seq)), lr_parties(role, parties(name))"),
         supabase.from("expenses").select("*").eq("is_cancelled", false),
@@ -44,9 +44,11 @@ function Reports() {
         supabase.from("account_balances").select("*"),
         supabase.from("salary_entries").select("*").eq("is_cancelled", false),
         supabase.from("salary_payments").select("*").eq("is_reversed", false),
+        supabase.from("commission_balances").select("*"),
+        supabase.from("commission_receipts").select("*").eq("is_reversed", false),
       ]);
-      for (const r of [trips, lrs, exps, advs, pays, bal, sal, salp]) if (r.error) throw r.error;
-      return { trips: trips.data as any[], lrs: lrs.data as any[], exps: exps.data!, advs: advs.data!, pays: pays.data!, bal: bal.data!, sal: sal.data!, salp: salp.data! };
+      for (const r of [trips, lrs, exps, advs, pays, bal, sal, salp, commissions, receipts]) if (r.error) throw r.error;
+      return { trips: trips.data as any[], lrs: lrs.data as any[], exps: exps.data ?? [], advs: advs.data ?? [], pays: pays.data ?? [], bal: bal.data ?? [], sal: sal.data ?? [], salp: salp.data ?? [], commissions: commissions.data ?? [], receipts: receipts.data ?? [] };
     },
   });
 
@@ -78,27 +80,27 @@ function Reports() {
         rows: D.bal.filter((b) => b.account_type === "party" && Number(b.balance) > 0).map((b) => [nameOf(parties.data, b.account_id), Number(b.balance)]) };
       case "driver_advances": return { cols: [{ label: "Date" }, { label: "Driver" }, { label: "Trip" }, { label: "Method" }, { label: "Paid", money: true, total: true }],
         rows: D.advs.filter((a) => a.recipient_type === "driver" && inR(a.advance_date)).map((a) => [formatDate(a.advance_date), nameOf(drivers.data, a.driver_id), D.trips.find((t) => t.id === a.trip_id)?.trip_number ?? "", a.payment_method ?? "", Number(a.amount)]) };
-      case "driver_salary": return { cols: [{ label: "Driver" }, { label: "Month" }, { label: "Salary", money: true, total: true }, { label: "Paid", money: true, total: true }, { label: "Advance recovered", money: true, total: true }, { label: "Outstanding", money: true, total: true }],
-        rows: D.sal.map((s) => { const p = D.salp.filter((x) => x.salary_entry_id === s.id); const paid = p.reduce((a, x) => a + Number(x.amount), 0); const rec = p.reduce((a, x) => a + Number(x.recovered_advance), 0); return [nameOf(drivers.data, s.driver_id), s.period, Number(s.amount), paid, rec, Number(s.amount) - paid - rec]; }) };
+      case "driver_salary": return { cols: [{ label: "Driver" }, { label: "Month" }, { label: "Salary", money: true, total: true }, { label: "Paid", money: true, total: true }, { label: "Advance recovered", money: true, total: true }, { label: "Commission recovered", money: true, total: true }, { label: "Outstanding", money: true, total: true }],
+        rows: D.sal.map((s) => { const p = D.salp.filter((x) => x.salary_entry_id === s.id); const paid = p.reduce((a, x) => a + Number(x.amount), 0); const rec = p.reduce((a, x) => a + Number(x.recovered_advance), 0); const com = p.reduce((a, x) => a + Number(x.recovered_commission), 0); return [nameOf(drivers.data, s.driver_id), s.period, Number(s.amount), paid, rec, com, Number(s.amount) - paid - rec - com]; }) };
       case "commission": return { cols: [{ label: "LR" }, { label: "Date" }, { label: "Payer" }, { label: "Status" }, { label: "Pending", money: true, total: true }, { label: "Received", money: true, total: true }],
-        rows: lrs.filter((l) => l.commission_enabled).map((l) => [l.lr_number, formatDate(l.commission_date ?? l.lr_date), nameOf(parties.data, l.commission_payer_party_id), l.commission_status, l.commission_status === "pending" ? Number(l.commission_amount) : 0, l.commission_status === "received" ? Number(l.commission_amount) : 0]) };
+        rows: D.commissions.filter((c) => inR(c.commission_date)).map((c) => [c.document_number ?? "", formatDate(c.commission_date), nameOf(drivers.data, c.driver_id), c.is_cancelled ? "Cancelled" : Number(c.pending_amount) > 0 ? "Pending" : "Received", Number(c.pending_amount), Number(c.received_amount)]), note: "Driver commission balances. Received includes confirmed salary recovery; cash/bank receipts use actual receipt dates." };
       case "third_party": return { cols: [{ label: "Date" }, { label: "Original party" }, { label: "Paid by" }, { label: "Reference" }, { label: "Received", money: true, total: true }],
         rows: D.pays.filter((p) => p.payment_type === "third_party_receipt" && inR(p.payment_date)).map((p) => [formatDate(p.payment_date), nameOf(parties.data, p.party_id), p.payer_name ?? "", p.reference ?? "", Number(p.amount)]) };
       case "by_account": { const isIn = (t: string) => ["customer_receipt", "advance_received", "third_party_receipt"].includes(t);
         return { cols: [{ label: "Account" }, { label: "Received", money: true, total: true }, { label: "Paid", money: true, total: true }], note: "Payments & receipts only (trip expenses/salary are listed in their own reports). No account balances are kept.",
-          rows: (accounts.data ?? []).map((a) => { const ps = D.pays.filter((p) => p.account_id === a.id && inR(p.payment_date)); return [a.kind === "cash" ? "Cash" : a.display_name, ps.filter((p) => isIn(p.payment_type)).reduce((s, p) => s + Number(p.amount), 0), ps.filter((p) => !isIn(p.payment_type)).reduce((s, p) => s + Number(p.amount), 0)]; }) }; }
+          rows: (accounts.data ?? []).map((a) => { const ps = D.pays.filter((p) => p.account_id === a.id && inR(p.payment_date)); const cr = D.receipts.filter((r) => !r.salary_payment_id && r.account_id === a.id && inR(r.receipt_date)); return [a.kind === "cash" ? "Cash" : a.display_name, ps.filter((p) => isIn(p.payment_type)).reduce((s, p) => s + Number(p.amount), 0) + cr.reduce((s, r) => s + Number(r.amount), 0), ps.filter((p) => !isIn(p.payment_type)).reduce((s, p) => s + Number(p.amount), 0)]; }) }; }
       case "vehicle_trips": return { cols: [{ label: "Vehicle" }, { label: "Trips" }, { label: "Freight billed", money: true, total: true }],
         rows: (() => { const m = new Map<string, [number, number]>(); for (const t of D.trips.filter((t) => t.status !== "cancelled" && inR(t.trip_date))) { const k = t.vehicle_mode === "own" ? nameOf(vehicles.data, t.vehicle_id, "registration_number") || "(none)" : `${t.market_vehicle_number} (market)`; const x = m.get(k) ?? [0, 0]; m.set(k, [x[0] + 1, x[1] + t.lrs.filter((l: any) => l.status === "active").reduce((s: number, l: any) => s + Number(l.final_freight), 0)]); } return [...m.entries()].map(([k, [n, a]]) => [k, n, a]); })() };
       case "route_freight": return { cols: [{ label: "Route" }, { label: "Freight billed", money: true, total: true }],
         rows: group(lrs, (l) => (l.trips ? routeOf(l.trips.trip_stops) : `${l.loading_point ?? "?"} → ${l.delivery_point ?? "?"}`), (l) => Number(l.final_freight)).map(([k, v]) => [k, v]) };
-      case "monthly": { const months = new Set<string>([...lrs.map((l) => l.lr_date.slice(0, 7)), ...D.pays.map((p) => p.payment_date.slice(0, 7)), ...D.exps.map((e) => e.expense_date.slice(0, 7))]);
+      case "monthly": { const months = new Set<string>([...lrs.map((l) => l.lr_date.slice(0, 7)), ...D.pays.map((p) => p.payment_date.slice(0, 7)), ...D.exps.map((e) => e.expense_date.slice(0, 7)), ...D.receipts.map((r) => r.receipt_date.slice(0, 7))]);
         return { cols: [{ label: "Month" }, { label: "Freight billed", money: true, total: true }, { label: "Receipts received", money: true, total: true }, { label: "Payments made", money: true, total: true }, { label: "Expenses incurred", money: true, total: true }, { label: "Commission received", money: true, total: true }],
           rows: [...months].sort().reverse().filter((m) => inR(m + "-01") || inR(m + "-28")).map((m) => [m,
             lrs.filter((l) => l.lr_date.startsWith(m)).reduce((s, l) => s + Number(l.final_freight), 0),
-            D.pays.filter((p) => p.payment_date.startsWith(m) && ["customer_receipt", "third_party_receipt", "advance_received"].includes(p.payment_type)).reduce((s, p) => s + Number(p.amount), 0),
+            D.pays.filter((p) => p.payment_date.startsWith(m) && inR(p.payment_date) && ["customer_receipt", "third_party_receipt", "advance_received"].includes(p.payment_type)).reduce((s, p) => s + Number(p.amount), 0) + D.receipts.filter((r) => !r.salary_payment_id && r.receipt_date.startsWith(m) && inR(r.receipt_date)).reduce((s, r) => s + Number(r.amount), 0),
             D.pays.filter((p) => p.payment_date.startsWith(m) && ["transporter_payment", "advance_paid"].includes(p.payment_type)).reduce((s, p) => s + Number(p.amount), 0),
             D.exps.filter((e) => e.expense_date.startsWith(m)).reduce((s, e) => s + Number(e.amount), 0),
-            lrs.filter((l) => l.lr_date.startsWith(m) && l.commission_enabled && l.commission_status === "received").reduce((s, l) => s + Number(l.commission_amount), 0)]) }; }
+            D.receipts.filter((r) => r.receipt_date.startsWith(m) && inR(r.receipt_date)).reduce((s, r) => s + Number(r.amount), 0)]) }; }
       default: return null;
     }
   }, [q.data, rep, from, to, parties.data, transporters.data, drivers.data, vehicles.data, accounts.data]);
@@ -109,7 +111,7 @@ function Reports() {
     <div className="space-y-4">
       <PageHeader title="Reports" actions={out && <>
         <Button variant="outline" onClick={() => window.print()}>Print</Button>
-        <Button variant="outline" onClick={() => downloadCSV(`${rep}.csv`, [out.cols.map((c) => c.label), ...out.rows.map((r) => r.map((x, i) => (out.cols[i].money ? Number(x).toFixed(2) : x))), totals!.map((t, i) => (i === 0 ? "Total" : t == null ? "" : t.toFixed(2)))])}>Download CSV</Button></>} />
+            <Button variant="outline" onClick={() => downloadCSV(`${rep}.csv`, [out.cols.map((c) => c.label), ...out.rows.map((r) => r.map((x, i) => (out.cols[i].money ? Number(x).toFixed(2) : x))), (totals ?? []).map((t, i) => (i === 0 ? "Total" : t == null ? "" : t.toFixed(2)))])}>Download CSV</Button></>} />
       <div className="no-print grid gap-3 sm:grid-cols-4">
         <div className="sm:col-span-2"><Field label="Report"><select className={selectCls} value={rep} onChange={(e) => setRep(e.target.value)}>{REPORTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field></div>
         <Field label="From"><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></Field>
@@ -121,7 +123,7 @@ function Reports() {
         <div className="overflow-x-auto rounded-lg border bg-card"><Table>
           <TableHeader><TableRow>{out.cols.map((c) => <TableHead key={c.label} className={c.money ? "text-right" : ""}>{c.label}</TableHead>)}</TableRow></TableHeader>
           <TableBody>{out.rows.map((r, i) => <TableRow key={i}>{r.map((x, j) => <TableCell key={j} className={out.cols[j].money ? "text-right tabular" : ""}>{out.cols[j].money ? formatINR(x) : x}</TableCell>)}</TableRow>)}</TableBody>
-          <TableFooter><TableRow>{totals!.map((t, i) => <TableCell key={i} className={out.cols[i].money ? "text-right" : ""}>{i === 0 ? "Total" : t == null ? "" : formatINR(t)}</TableCell>)}</TableRow></TableFooter>
+          <TableFooter><TableRow>{(totals ?? []).map((t, i) => <TableCell key={i} className={out.cols[i].money ? "text-right" : ""}>{i === 0 ? "Total" : t == null ? "" : formatINR(t)}</TableCell>)}</TableRow></TableFooter>
         </Table></div>
       )}
     </div>
