@@ -10,3 +10,6 @@
 - [x] Driver-paid commission: safe ledger postings, normalized driver linking, partial receipts and cancellation
 - [x] Commission screens, reports, outstanding and trip totals; confirmed salary recovery
 - [x] Commission TEST record checks and honest verification report (core flows, reversals and trip percentage verified; simultaneous-user stress and cross-business denial remain unverified)
+- [ ] Visible sticky actions on LR, trips, masters and money lists
+- [ ] Guarded cancellation and owner-only unused-record deletion with audit history
+- [ ] Verify LR edits preserve records and amounts; TEST-only checks and honest report

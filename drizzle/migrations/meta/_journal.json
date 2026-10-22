@@ -36,6 +36,13 @@
       "when": 1792655310447,
       "tag": "0004_refresh_trip_percentage_without_lr_commission",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792672732563,
+      "tag": "0005_guarded_list_actions",
+      "breakpoints": true
     }
   ]
 }
