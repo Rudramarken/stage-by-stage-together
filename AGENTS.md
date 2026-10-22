@@ -16,3 +16,5 @@
 - Doc numbers come from `next_doc_number(p_business_id, p_doc_type)`. Why: concurrency-safe, prefix-from-settings.
 - Server functions live in `src/lib/api/*.functions.ts` (not `src/server/`, which is blocked from client imports).
 - Master list pages use `src/components/app/MasterCrud.tsx`; keep `src/lib/schema-smoke.ts` in sync with every column the UI reads.
+- Multi-row money saves (LR with parties/adjustments/expenses, trip with stops) go through `save_lr(jsonb)` / `save_trip(jsonb)`; ledger lines are posted by AFTER triggers on lrs/expenses/advances/payments/salary tables via `ledger_set()`. Why: one atomic, idempotent path.
+- Self sign-up creates an account with no business access; an Owner approves it (server fn `approveUser`). Why: no one sees data without approval.
