@@ -77,7 +77,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Brand /><div className="flex-1 overflow-y-auto"><NavList /></div>{footer}
       </aside>
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="left" className="flex w-72 flex-col border-sidebar-border bg-sidebar p-0">
+        <SheetContent side="left" className="flex w-72 flex-col border-sidebar-border bg-sidebar p-0 text-sidebar-foreground">
           <SheetTitle className="sr-only">Main navigation</SheetTitle>
           <SheetDescription className="sr-only">Gokul Cargo Movers pages and account menu.</SheetDescription>
           <Brand /><div className="flex-1 overflow-y-auto"><NavList onNavigate={() => setOpen(false)} /></div>{footer}
@@ -85,7 +85,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </Sheet>
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="no-print sticky top-0 z-30 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-b bg-card px-4 py-3 lg:hidden">
-          <Button variant="ghost" size="icon" onClick={() => setOpen(true)} aria-label="Open menu"><Menu /></Button>
+          <Button variant="ghost" size="icon" onClick={() => setOpen(true)} aria-label="Open menu" aria-expanded={open}><Menu /></Button>
           <span className="min-w-0 truncate font-display font-semibold text-primary">Gokul Cargo Movers</span>
         </header>
         <main id="main-content" tabIndex={-1} className="mx-auto w-full min-w-0 max-w-7xl flex-1 p-4 outline-none sm:p-6 lg:p-8">{children}</main>
