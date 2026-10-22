@@ -1,3 +1,6 @@
+import { PaymentsList } from "@/components/app/PaymentsList";
+import { RowActions, actionCell } from "@/components/app/RowActions";
+import { Eye } from "lucide-react";
 import { pageHead } from "@/lib/page-head";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -64,12 +67,12 @@ function Settlements() {
         bal.isPending || transporters.isPending ? <LoadingState /> : bal.isError ? <ErrorState error={bal.error} onRetry={() => bal.refetch()} /> :
           (transporters.data ?? []).length === 0 ? <EmptyState title="No transporters yet" hint="They are added when you type one on a trip or LR." /> : (
             <div className="overflow-x-auto rounded-lg border bg-card"><Table>
-              <TableHeader><TableRow><TableHead>Transporter</TableHead><TableHead className="text-right">Freight payable</TableHead><TableHead className="text-right">Advances + payments + direct</TableHead><TableHead className="text-right">Remaining</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
-              <TableBody>{transporters.data!.map((x) => { const b = bal.data!.get(x.id) ?? { payable: 0, settled: 0 }; const s = statusOf(b.payable, b.settled); return (
+              <TableHeader><TableRow><TableHead>Transporter</TableHead><TableHead className="text-right">Freight payable</TableHead><TableHead className="text-right">Advances + payments + direct</TableHead><TableHead className="text-right">Remaining</TableHead><TableHead>Status</TableHead><TableHead className={actionCell}>Actions</TableHead></TableRow></TableHeader>
+              <TableBody>{(transporters.data ?? []).map((x) => { const b = bal.data?.get(x.id) ?? { payable: 0, settled: 0 }; const s = statusOf(b.payable, b.settled); return (
                 <TableRow key={x.id} className="cursor-pointer" onClick={() => setTid(x.id)}>
                   <TableCell className="font-medium text-info">{x.name}</TableCell><TableCell className="text-right"><Money value={b.payable} /></TableCell>
                   <TableCell className="text-right"><Money value={b.settled} /></TableCell><TableCell className="text-right font-semibold"><Money value={b.payable - b.settled} /></TableCell>
-                  <TableCell><StatusBadge tone={s.tone}>{s.label}</StatusBadge></TableCell></TableRow>); })}</TableBody>
+                  <TableCell><StatusBadge tone={s.tone}>{s.label}</StatusBadge></TableCell><TableCell className={actionCell}><RowActions label={x.name} actions={[{ label: "View", icon: Eye, onClick: () => setTid(x.id) }]} /></TableCell></TableRow>); })}</TableBody>
             </Table></div>)
       ) : (
         <>
@@ -94,6 +97,7 @@ function Settlements() {
               <TableFooter><TableRow><TableCell colSpan={4}>Total</TableCell><TableCell className="text-right"><Money value={detail.data.filter((l) => l.status === "active").reduce((s, l) => s + Number(l.freight_payable), 0)} /></TableCell><TableCell colSpan={2} /></TableRow></TableFooter>
             </Table></div>
           )}
+          <PaymentsList transporterId={tid} />
           <h3 className="font-semibold">Transporter ledger</h3>
           <p className="text-xs text-muted-foreground">Here "Payable" = Gokul still owes this transporter. Each advance and payment appears once.</p>
           <LedgerTable accountType="transporter" accountId={tid} title={`transporter-${t?.name}`} />
