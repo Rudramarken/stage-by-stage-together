@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useBusiness } from "@/lib/business";
-import { addOwner } from "@/server/admin.functions";
+import { addOwner } from "@/lib/api/admin.functions";
 import { PageHeader, Field, StatusBadge } from "@/components/app/ui";
 import { LoadingState, ErrorState, errorMessage } from "@/components/app/states";
 import { MasterCrud } from "@/components/app/MasterCrud";
