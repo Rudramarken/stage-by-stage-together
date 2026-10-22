@@ -833,6 +833,8 @@ export type Database = {
           billing_party_id: string | null
           business_id: string
           cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           commission_amount: number
           commission_cancel_reason: string | null
           commission_date: string | null
@@ -881,6 +883,8 @@ export type Database = {
           billing_party_id?: string | null
           business_id: string
           cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           commission_amount?: number
           commission_cancel_reason?: string | null
           commission_date?: string | null
@@ -929,6 +933,8 @@ export type Database = {
           billing_party_id?: string | null
           business_id?: string
           cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           commission_amount?: number
           commission_cancel_reason?: string | null
           commission_date?: string | null
@@ -1659,6 +1665,8 @@ export type Database = {
         Row: {
           business_id: string
           cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           commission_amount: number
           commission_cancel_reason: string | null
           commission_date: string | null
@@ -1690,6 +1698,8 @@ export type Database = {
         Insert: {
           business_id: string
           cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           commission_amount?: number
           commission_cancel_reason?: string | null
           commission_date?: string | null
@@ -1721,6 +1731,8 @@ export type Database = {
         Update: {
           business_id?: string
           cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           commission_amount?: number
           commission_cancel_reason?: string | null
           commission_date?: string | null
@@ -1960,6 +1972,20 @@ export type Database = {
         Returns: undefined
       }
       record_commission_receipt: { Args: { p: Json }; Returns: string }
+      removal_blockers: {
+        Args: { p_history?: boolean; p_id: string; p_table: string }
+        Returns: string
+      }
+      remove_record: {
+        Args: {
+          p_action: string
+          p_confirmation?: string
+          p_id: string
+          p_reason?: string
+          p_table: string
+        }
+        Returns: undefined
+      }
       resolve_driver: {
         Args: { p_business: string; p_name: string }
         Returns: string
