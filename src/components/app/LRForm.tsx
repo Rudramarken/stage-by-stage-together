@@ -41,6 +41,7 @@ export function LRForm({ initial }: { initial: LRValues }) {
     },
   });
   const [v, setV] = useState<LRValues>(initial);
+  const isNew = !initial.id;
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const set = (k: string, val: unknown) => setV((p) => ({ ...p, [k]: val }));
@@ -78,7 +79,7 @@ export function LRForm({ initial }: { initial: LRValues }) {
       nav({ to: "/lr/$id", params: { id: data as string } });
     } catch (e) {
       const m = errorMessage(e);
-      setErr(/lrs_business_id_lr_number_key|duplicate/i.test(m) ? "This LR number is already used. Choose a different number or leave it blank for automatic." : m);
+      setErr(/lrs_business_id_lr_number_key|duplicate/i.test(m) ? "Could not get a new LR number. Please try saving again." : m);
     } finally { setBusy(false); }
   }
 
@@ -130,13 +131,13 @@ export function LRForm({ initial }: { initial: LRValues }) {
     <div className="space-y-4">
       <Section n={1} title="LR details">
         <div className="grid gap-4 sm:grid-cols-4">
-          <Field label="LR number" hint="Leave blank for automatic"><Input value={v.lr_number ?? ""} onChange={(e) => set("lr_number", e.target.value)} /></Field>
+          {!isNew && <Field label="LR number"><Input value={v.lr_number ?? ""} readOnly disabled /></Field>}
           <Field label="LR date" required><Input type="date" value={v.lr_date ?? ""} onChange={(e) => set("lr_date", e.target.value)} /></Field>
-          <Field label="Delivery status"><select className={selectCls} value={v.delivery_status} onChange={(e) => set("delivery_status", e.target.value)}>{Object.entries(LR_DELIVERY).map(([k, s]) => <option key={k} value={k}>{s.label}</option>)}</select></Field>
-          <Field label="Link to trip (optional)">
+          {!isNew && <Field label="Delivery status"><select className={selectCls} value={v.delivery_status} onChange={(e) => set("delivery_status", e.target.value)}>{Object.entries(LR_DELIVERY).map(([k, s]) => <option key={k} value={k}>{s.label}</option>)}</select></Field>}
+          {!isNew && <Field label="Link to trip (optional)">
             <SearchSelect value={v.trip_id} onChange={(x) => setV({ ...v, trip_id: x, loading_stop_id: "", unloading_stop_id: "" })} placeholder="No trip"
-              options={(trips.data ?? []).map((t) => ({ value: t.id, label: t.trip_number, hint: [...t.trip_stops].sort((a: any, b: any) => a.seq - b.seq).map((s: any) => s.location).join("→") }))} /></Field>
-          {trip && <>
+              options={(trips.data ?? []).map((t) => ({ value: t.id, label: t.trip_number, hint: [...t.trip_stops].sort((a: any, b: any) => a.seq - b.seq).map((s: any) => s.location).join("→") }))} /></Field>}
+          {trip && !isNew && <>
             <Field label="Loading stop"><select className={selectCls} value={v.loading_stop_id ?? ""} onChange={(e) => set("loading_stop_id", e.target.value)}><option value="">—</option>{stops.map((s: any) => <option key={s.id} value={s.id}>{s.location}</option>)}</select></Field>
             <Field label="Unloading stop"><select className={selectCls} value={v.unloading_stop_id ?? ""} onChange={(e) => set("unloading_stop_id", e.target.value)}><option value="">—</option>{stops.map((s: any) => <option key={s.id} value={s.id}>{s.location}</option>)}</select></Field>
           </>}
