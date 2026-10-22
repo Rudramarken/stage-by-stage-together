@@ -71,7 +71,7 @@ export function NotBuiltYet({ title }: { title: string }) {
 
 export function Field({ label, required, hint, error, children }: { label: string; required?: boolean; hint?: string; error?: string; children: ReactNode }) {
   return (
-    <label className="flex flex-col gap-1.5">
+    <label className="flex min-w-0 flex-col gap-1.5">
       <span className="text-sm font-medium">{label}{required && <span className="text-destructive"> *</span>}</span>
       {children}
       {hint && !error && <span className="text-xs text-muted-foreground">{hint}</span>}
