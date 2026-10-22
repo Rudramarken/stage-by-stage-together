@@ -18,9 +18,11 @@ import { Route as AuthenticatedAuditRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDriversRouteImport } from './routes/_authenticated/drivers'
 import { Route as AuthenticatedPartyLedgerRouteImport } from './routes/_authenticated/party-ledger'
+import { Route as AuthenticatedPaymentsRouteImport } from './routes/_authenticated/payments'
 import { Route as AuthenticatedRoutesRouteImport } from './routes/_authenticated/routes'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedSystemCheckRouteImport } from './routes/_authenticated/system-check'
+import { Route as AuthenticatedThirdPartyRouteImport } from './routes/_authenticated/third-party'
 import { Route as AuthenticatedVehiclesRouteImport } from './routes/_authenticated/vehicles'
 import { Route as AuthenticatedLrIndexRouteImport } from './routes/_authenticated/lr.index'
 import { Route as AuthenticatedLrNewRouteImport } from './routes/_authenticated/lr.new'
@@ -78,6 +80,11 @@ const AuthenticatedPartyLedgerRoute =
     path: '/party-ledger',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPaymentsRoute = AuthenticatedPaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedRoutesRoute = AuthenticatedRoutesRouteImport.update({
   id: '/routes',
   path: '/routes',
@@ -94,6 +101,11 @@ const AuthenticatedSystemCheckRoute =
     path: '/system-check',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedThirdPartyRoute = AuthenticatedThirdPartyRouteImport.update({
+  id: '/third-party',
+  path: '/third-party',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedVehiclesRoute = AuthenticatedVehiclesRouteImport.update({
   id: '/vehicles',
   path: '/vehicles',
@@ -162,9 +174,11 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/drivers': typeof AuthenticatedDriversRoute
   '/party-ledger': typeof AuthenticatedPartyLedgerRoute
+  '/payments': typeof AuthenticatedPaymentsRoute
   '/routes': typeof AuthenticatedRoutesRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/system-check': typeof AuthenticatedSystemCheckRoute
+  '/third-party': typeof AuthenticatedThirdPartyRoute
   '/vehicles': typeof AuthenticatedVehiclesRoute
   '/lr/new': typeof AuthenticatedLrNewRoute
   '/parties/$id': typeof AuthenticatedPartiesIdRoute
@@ -186,9 +200,11 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/drivers': typeof AuthenticatedDriversRoute
   '/party-ledger': typeof AuthenticatedPartyLedgerRoute
+  '/payments': typeof AuthenticatedPaymentsRoute
   '/routes': typeof AuthenticatedRoutesRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/system-check': typeof AuthenticatedSystemCheckRoute
+  '/third-party': typeof AuthenticatedThirdPartyRoute
   '/vehicles': typeof AuthenticatedVehiclesRoute
   '/lr/new': typeof AuthenticatedLrNewRoute
   '/parties/$id': typeof AuthenticatedPartiesIdRoute
@@ -212,9 +228,11 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/drivers': typeof AuthenticatedDriversRoute
   '/_authenticated/party-ledger': typeof AuthenticatedPartyLedgerRoute
+  '/_authenticated/payments': typeof AuthenticatedPaymentsRoute
   '/_authenticated/routes': typeof AuthenticatedRoutesRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/system-check': typeof AuthenticatedSystemCheckRoute
+  '/_authenticated/third-party': typeof AuthenticatedThirdPartyRoute
   '/_authenticated/vehicles': typeof AuthenticatedVehiclesRoute
   '/_authenticated/lr/new': typeof AuthenticatedLrNewRoute
   '/_authenticated/parties/$id': typeof AuthenticatedPartiesIdRoute
@@ -238,9 +256,11 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/drivers'
     | '/party-ledger'
+    | '/payments'
     | '/routes'
     | '/settings'
     | '/system-check'
+    | '/third-party'
     | '/vehicles'
     | '/lr/new'
     | '/parties/$id'
@@ -262,9 +282,11 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/drivers'
     | '/party-ledger'
+    | '/payments'
     | '/routes'
     | '/settings'
     | '/system-check'
+    | '/third-party'
     | '/vehicles'
     | '/lr/new'
     | '/parties/$id'
@@ -287,9 +309,11 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/drivers'
     | '/_authenticated/party-ledger'
+    | '/_authenticated/payments'
     | '/_authenticated/routes'
     | '/_authenticated/settings'
     | '/_authenticated/system-check'
+    | '/_authenticated/third-party'
     | '/_authenticated/vehicles'
     | '/_authenticated/lr/new'
     | '/_authenticated/parties/$id'
@@ -376,6 +400,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPartyLedgerRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/payments': {
+      id: '/_authenticated/payments'
+      path: '/payments'
+      fullPath: '/payments'
+      preLoaderRoute: typeof AuthenticatedPaymentsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/routes': {
       id: '/_authenticated/routes'
       path: '/routes'
@@ -395,6 +426,13 @@ declare module '@tanstack/react-router' {
       path: '/system-check'
       fullPath: '/system-check'
       preLoaderRoute: typeof AuthenticatedSystemCheckRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/third-party': {
+      id: '/_authenticated/third-party'
+      path: '/third-party'
+      fullPath: '/third-party'
+      preLoaderRoute: typeof AuthenticatedThirdPartyRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/vehicles': {
@@ -482,9 +520,11 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDriversRoute: typeof AuthenticatedDriversRoute
   AuthenticatedPartyLedgerRoute: typeof AuthenticatedPartyLedgerRoute
+  AuthenticatedPaymentsRoute: typeof AuthenticatedPaymentsRoute
   AuthenticatedRoutesRoute: typeof AuthenticatedRoutesRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSystemCheckRoute: typeof AuthenticatedSystemCheckRoute
+  AuthenticatedThirdPartyRoute: typeof AuthenticatedThirdPartyRoute
   AuthenticatedVehiclesRoute: typeof AuthenticatedVehiclesRoute
   AuthenticatedLrNewRoute: typeof AuthenticatedLrNewRoute
   AuthenticatedPartiesIdRoute: typeof AuthenticatedPartiesIdRoute
@@ -503,9 +543,11 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDriversRoute: AuthenticatedDriversRoute,
   AuthenticatedPartyLedgerRoute: AuthenticatedPartyLedgerRoute,
+  AuthenticatedPaymentsRoute: AuthenticatedPaymentsRoute,
   AuthenticatedRoutesRoute: AuthenticatedRoutesRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSystemCheckRoute: AuthenticatedSystemCheckRoute,
+  AuthenticatedThirdPartyRoute: AuthenticatedThirdPartyRoute,
   AuthenticatedVehiclesRoute: AuthenticatedVehiclesRoute,
   AuthenticatedLrNewRoute: AuthenticatedLrNewRoute,
   AuthenticatedPartiesIdRoute: AuthenticatedPartiesIdRoute,
