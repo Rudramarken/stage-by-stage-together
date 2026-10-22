@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -15,7 +16,7 @@ import { useDrivers, useTransporters, useVehicles, nameOf, TRIP_STATUS, LR_DELIV
 import { formatDate, formatDateTime } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/trips/$id/")({
-  head: () => ({ meta: [{ title: "Trip details — Gokul Cargo Movers" }] }),
+  head: () => pageHead("Trip details — Gokul Cargo Movers", "Trip details records for Gokul Cargo Movers transport management."),
   component: TripDetail,
 });
 

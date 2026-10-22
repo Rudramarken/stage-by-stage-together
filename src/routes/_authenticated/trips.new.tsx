@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { PageHeader } from "@/components/app/ui";
@@ -6,7 +7,7 @@ import { todayIST } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/trips/new")({
   validateSearch: z.object({ parent: z.string().optional(), kind: z.enum(["return", "leg"]).optional() }),
-  head: () => ({ meta: [{ title: "New trip — Gokul Cargo Movers" }] }),
+  head: () => pageHead("New trip — Gokul Cargo Movers", "New trip records for Gokul Cargo Movers transport management."),
   component: NewTrip,
 });
 

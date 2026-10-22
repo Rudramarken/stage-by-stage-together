@@ -10,6 +10,8 @@ import { errorMessage } from "@/components/app/states";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { title: "Sign in — Gokul Cargo Movers" },
       { name: "description", content: "Sign in to Gokul Cargo Movers transport management." },
       { property: "og:title", content: "Sign in — Gokul Cargo Movers" },

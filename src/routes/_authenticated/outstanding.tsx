@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +10,7 @@ import { useDrivers, useParties, useTransporters, nameOf } from "@/lib/lookups";
 import { downloadCSV } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/outstanding")({
-  head: () => ({ meta: [{ title: "Outstanding Balances — Gokul Cargo Movers" }] }),
+  head: () => pageHead("Outstanding Balances — Gokul Cargo Movers", "Outstanding Balances records for Gokul Cargo Movers transport management."),
   component: Outstanding,
 });
 

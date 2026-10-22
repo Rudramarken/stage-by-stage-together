@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -15,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { maskAccount } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/settings")({
-  head: () => ({ meta: [{ title: "Business Settings — Gokul Cargo Movers" }] }),
+  head: () => pageHead("Business Settings — Gokul Cargo Movers", "Business Settings records for Gokul Cargo Movers transport management."),
   component: SettingsPage,
 });
 

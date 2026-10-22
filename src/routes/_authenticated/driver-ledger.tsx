@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -21,7 +22,7 @@ import { z } from "zod";
 
 export const Route = createFileRoute("/_authenticated/driver-ledger")({
   validateSearch: z.object({ driver: z.string().optional() }),
-  head: () => ({ meta: [{ title: "Driver Ledger — Gokul Cargo Movers" }] }),
+  head: () => pageHead("Driver Ledger — Gokul Cargo Movers", "Driver Ledger records for Gokul Cargo Movers transport management."),
   component: DriverLedger,
 });
 

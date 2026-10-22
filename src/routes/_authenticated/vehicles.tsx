@@ -1,8 +1,9 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { MasterCrud } from "@/components/app/MasterCrud";
 
 export const Route = createFileRoute("/_authenticated/vehicles")({
-  head: () => ({ meta: [{ title: "Vehicles — Gokul Cargo Movers" }] }),
+  head: () => pageHead("Vehicles — Gokul Cargo Movers", "Vehicles records for Gokul Cargo Movers transport management."),
   component: () => (
     <MasterCrud table="vehicles" title="Vehicles" singular="Vehicle" orderBy="registration_number"
       description="Only Gokul's own trucks. Market trucks are typed directly on a trip."

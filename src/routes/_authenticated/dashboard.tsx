@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -10,7 +11,7 @@ import { TRIP_STATUS, PAYMENT_TYPE, useParties, useTransporters, nameOf } from "
 import { formatDate, todayIST } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
-  head: () => ({ meta: [{ title: "Dashboard — Gokul Cargo Movers" }] }),
+  head: () => pageHead("Dashboard — Gokul Cargo Movers", "Dashboard records for Gokul Cargo Movers transport management."),
   component: Dashboard,
 });
 

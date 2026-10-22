@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -14,7 +15,7 @@ import { RATE_UNIT_LABEL } from "@/lib/freight";
 import { formatDate, formatINR } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/lr/$id/")({
-  head: () => ({ meta: [{ title: "LR details — Gokul Cargo Movers" }] }),
+  head: () => pageHead("LR details — Gokul Cargo Movers", "LR details records for Gokul Cargo Movers transport management."),
   component: LRDetail,
 });
 

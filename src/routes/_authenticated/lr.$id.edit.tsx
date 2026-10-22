@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/app/ui";
@@ -6,7 +7,7 @@ import { LRForm } from "@/components/app/LRForm";
 import { loadLR, lrToForm } from "@/lib/lr-load";
 
 export const Route = createFileRoute("/_authenticated/lr/$id/edit")({
-  head: () => ({ meta: [{ title: "Edit LR — Gokul Cargo Movers" }] }),
+  head: () => pageHead("Edit LR — Gokul Cargo Movers", "Edit LR records for Gokul Cargo Movers transport management."),
   component: () => {
     const { id } = Route.useParams();
     const q = useQuery({ queryKey: ["lr-edit", id], queryFn: () => loadLR(id), gcTime: 0 });

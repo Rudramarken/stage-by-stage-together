@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,7 +7,7 @@ import { LoadingState, ErrorState } from "@/components/app/states";
 import { TripForm, tripToForm } from "@/components/app/TripForm";
 
 export const Route = createFileRoute("/_authenticated/trips/$id/edit")({
-  head: () => ({ meta: [{ title: "Edit trip — Gokul Cargo Movers" }] }),
+  head: () => pageHead("Edit trip — Gokul Cargo Movers", "Edit trip records for Gokul Cargo Movers transport management."),
   component: EditTrip,
 });
 
