@@ -7,7 +7,7 @@ import { PageHeader, StatusBadge } from "@/components/app/ui";
 import { LoadingState, ErrorState, EmptyState } from "@/components/app/states";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, formatINR } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/audit")({
   head: () => pageHead("Audit Log — Gokul Cargo Movers", "Audit Log records for Gokul Cargo Movers transport management."),
@@ -47,7 +47,7 @@ function AuditPage() {
               <TableBody>
                 {q.data.rows.map((r) => {
                   const d = (r.new_data ?? r.old_data) as Record<string, unknown> | null;
-                  const label = d ? String(d.name ?? d.registration_number ?? d.display_name ?? d.origin ?? "") : "";
+                  const label = d ? String(d.lr_number ?? d.trip_number ?? d.name ?? d.registration_number ?? d.display_name ?? d.origin ?? "") : "";
                   const changed = r.action === "UPDATE" && r.old_data && r.new_data
                     ? Object.keys(r.new_data as object).filter((k) => !["updated_at"].includes(k) && JSON.stringify((r.old_data as any)[k]) !== JSON.stringify((r.new_data as any)[k]))
                     : [];
@@ -57,7 +57,7 @@ function AuditPage() {
                       <TableCell>{who(r.user_id)}</TableCell>
                       <TableCell><StatusBadge tone={r.action === "INSERT" ? "success" : r.action === "DELETE" ? "danger" : "info"}>{r.action === "INSERT" ? "Created" : r.action === "UPDATE" ? "Changed" : r.action}</StatusBadge></TableCell>
                       <TableCell>{r.table_name.replace(/_/g, " ")} {label && <b>· {label}</b>}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{changed.length ? `Changed: ${changed.join(", ")}` : ""}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{changed.length ? `Changed: ${changed.join(", ")}` : r.action === "DELETE_PERMANENTLY" && d ? `Freight ${formatINR(Number(d.final_freight ?? 0))} · Payable ${formatINR(Number(d.freight_payable ?? 0))} · Commission ${formatINR(Number(d.commission_amount ?? 0))}` : ""}</TableCell>
                     </TableRow>
                   );
                 })}
