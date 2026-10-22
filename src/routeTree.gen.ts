@@ -22,10 +22,14 @@ import { Route as AuthenticatedRoutesRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedSystemCheckRouteImport } from './routes/_authenticated/system-check'
 import { Route as AuthenticatedVehiclesRouteImport } from './routes/_authenticated/vehicles'
+import { Route as AuthenticatedLrIndexRouteImport } from './routes/_authenticated/lr.index'
+import { Route as AuthenticatedLrNewRouteImport } from './routes/_authenticated/lr.new'
 import { Route as AuthenticatedPartiesIndexRouteImport } from './routes/_authenticated/parties.index'
 import { Route as AuthenticatedPartiesIdRouteImport } from './routes/_authenticated/parties.$id'
 import { Route as AuthenticatedTripsIndexRouteImport } from './routes/_authenticated/trips.index'
 import { Route as AuthenticatedTripsNewRouteImport } from './routes/_authenticated/trips.new'
+import { Route as AuthenticatedLrIdIndexRouteImport } from './routes/_authenticated/lr.$id.index'
+import { Route as AuthenticatedLrIdEditRouteImport } from './routes/_authenticated/lr.$id.edit'
 import { Route as AuthenticatedTripsIdIndexRouteImport } from './routes/_authenticated/trips.$id.index'
 import { Route as AuthenticatedTripsIdEditRouteImport } from './routes/_authenticated/trips.$id.edit'
 
@@ -95,6 +99,16 @@ const AuthenticatedVehiclesRoute = AuthenticatedVehiclesRouteImport.update({
   path: '/vehicles',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedLrIndexRoute = AuthenticatedLrIndexRouteImport.update({
+  id: '/lr/',
+  path: '/lr/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedLrNewRoute = AuthenticatedLrNewRouteImport.update({
+  id: '/lr/new',
+  path: '/lr/new',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPartiesIndexRoute =
   AuthenticatedPartiesIndexRouteImport.update({
     id: '/parties/',
@@ -114,6 +128,16 @@ const AuthenticatedTripsIndexRoute = AuthenticatedTripsIndexRouteImport.update({
 const AuthenticatedTripsNewRoute = AuthenticatedTripsNewRouteImport.update({
   id: '/trips/new',
   path: '/trips/new',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedLrIdIndexRoute = AuthenticatedLrIdIndexRouteImport.update({
+  id: '/lr/$id/',
+  path: '/lr/$id/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedLrIdEditRoute = AuthenticatedLrIdEditRouteImport.update({
+  id: '/lr/$id/edit',
+  path: '/lr/$id/edit',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedTripsIdIndexRoute =
@@ -142,11 +166,15 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/system-check': typeof AuthenticatedSystemCheckRoute
   '/vehicles': typeof AuthenticatedVehiclesRoute
+  '/lr/new': typeof AuthenticatedLrNewRoute
   '/parties/$id': typeof AuthenticatedPartiesIdRoute
   '/trips/new': typeof AuthenticatedTripsNewRoute
+  '/lr/': typeof AuthenticatedLrIndexRoute
   '/parties/': typeof AuthenticatedPartiesIndexRoute
   '/trips/': typeof AuthenticatedTripsIndexRoute
+  '/lr/$id/edit': typeof AuthenticatedLrIdEditRoute
   '/trips/$id/edit': typeof AuthenticatedTripsIdEditRoute
+  '/lr/$id/': typeof AuthenticatedLrIdIndexRoute
   '/trips/$id/': typeof AuthenticatedTripsIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -162,11 +190,15 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/system-check': typeof AuthenticatedSystemCheckRoute
   '/vehicles': typeof AuthenticatedVehiclesRoute
+  '/lr/new': typeof AuthenticatedLrNewRoute
   '/parties/$id': typeof AuthenticatedPartiesIdRoute
   '/trips/new': typeof AuthenticatedTripsNewRoute
+  '/lr': typeof AuthenticatedLrIndexRoute
   '/parties': typeof AuthenticatedPartiesIndexRoute
   '/trips': typeof AuthenticatedTripsIndexRoute
+  '/lr/$id/edit': typeof AuthenticatedLrIdEditRoute
   '/trips/$id/edit': typeof AuthenticatedTripsIdEditRoute
+  '/lr/$id': typeof AuthenticatedLrIdIndexRoute
   '/trips/$id': typeof AuthenticatedTripsIdIndexRoute
 }
 export interface FileRoutesById {
@@ -184,11 +216,15 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/system-check': typeof AuthenticatedSystemCheckRoute
   '/_authenticated/vehicles': typeof AuthenticatedVehiclesRoute
+  '/_authenticated/lr/new': typeof AuthenticatedLrNewRoute
   '/_authenticated/parties/$id': typeof AuthenticatedPartiesIdRoute
   '/_authenticated/trips/new': typeof AuthenticatedTripsNewRoute
+  '/_authenticated/lr/': typeof AuthenticatedLrIndexRoute
   '/_authenticated/parties/': typeof AuthenticatedPartiesIndexRoute
   '/_authenticated/trips/': typeof AuthenticatedTripsIndexRoute
+  '/_authenticated/lr/$id/edit': typeof AuthenticatedLrIdEditRoute
   '/_authenticated/trips/$id/edit': typeof AuthenticatedTripsIdEditRoute
+  '/_authenticated/lr/$id/': typeof AuthenticatedLrIdIndexRoute
   '/_authenticated/trips/$id/': typeof AuthenticatedTripsIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -206,11 +242,15 @@ export interface FileRouteTypes {
     | '/settings'
     | '/system-check'
     | '/vehicles'
+    | '/lr/new'
     | '/parties/$id'
     | '/trips/new'
+    | '/lr/'
     | '/parties/'
     | '/trips/'
+    | '/lr/$id/edit'
     | '/trips/$id/edit'
+    | '/lr/$id/'
     | '/trips/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -226,11 +266,15 @@ export interface FileRouteTypes {
     | '/settings'
     | '/system-check'
     | '/vehicles'
+    | '/lr/new'
     | '/parties/$id'
     | '/trips/new'
+    | '/lr'
     | '/parties'
     | '/trips'
+    | '/lr/$id/edit'
     | '/trips/$id/edit'
+    | '/lr/$id'
     | '/trips/$id'
   id:
     | '__root__'
@@ -247,11 +291,15 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/system-check'
     | '/_authenticated/vehicles'
+    | '/_authenticated/lr/new'
     | '/_authenticated/parties/$id'
     | '/_authenticated/trips/new'
+    | '/_authenticated/lr/'
     | '/_authenticated/parties/'
     | '/_authenticated/trips/'
+    | '/_authenticated/lr/$id/edit'
     | '/_authenticated/trips/$id/edit'
+    | '/_authenticated/lr/$id/'
     | '/_authenticated/trips/$id/'
   fileRoutesById: FileRoutesById
 }
@@ -356,6 +404,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedVehiclesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/lr/': {
+      id: '/_authenticated/lr/'
+      path: '/lr'
+      fullPath: '/lr/'
+      preLoaderRoute: typeof AuthenticatedLrIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/lr/new': {
+      id: '/_authenticated/lr/new'
+      path: '/lr/new'
+      fullPath: '/lr/new'
+      preLoaderRoute: typeof AuthenticatedLrNewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/parties/': {
       id: '/_authenticated/parties/'
       path: '/parties'
@@ -384,6 +446,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTripsNewRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/lr/$id/': {
+      id: '/_authenticated/lr/$id/'
+      path: '/lr/$id'
+      fullPath: '/lr/$id/'
+      preLoaderRoute: typeof AuthenticatedLrIdIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/lr/$id/edit': {
+      id: '/_authenticated/lr/$id/edit'
+      path: '/lr/$id/edit'
+      fullPath: '/lr/$id/edit'
+      preLoaderRoute: typeof AuthenticatedLrIdEditRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/trips/$id/': {
       id: '/_authenticated/trips/$id/'
       path: '/trips/$id'
@@ -410,11 +486,15 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSystemCheckRoute: typeof AuthenticatedSystemCheckRoute
   AuthenticatedVehiclesRoute: typeof AuthenticatedVehiclesRoute
+  AuthenticatedLrNewRoute: typeof AuthenticatedLrNewRoute
   AuthenticatedPartiesIdRoute: typeof AuthenticatedPartiesIdRoute
   AuthenticatedTripsNewRoute: typeof AuthenticatedTripsNewRoute
+  AuthenticatedLrIndexRoute: typeof AuthenticatedLrIndexRoute
   AuthenticatedPartiesIndexRoute: typeof AuthenticatedPartiesIndexRoute
   AuthenticatedTripsIndexRoute: typeof AuthenticatedTripsIndexRoute
+  AuthenticatedLrIdEditRoute: typeof AuthenticatedLrIdEditRoute
   AuthenticatedTripsIdEditRoute: typeof AuthenticatedTripsIdEditRoute
+  AuthenticatedLrIdIndexRoute: typeof AuthenticatedLrIdIndexRoute
   AuthenticatedTripsIdIndexRoute: typeof AuthenticatedTripsIdIndexRoute
 }
 
@@ -427,11 +507,15 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSystemCheckRoute: AuthenticatedSystemCheckRoute,
   AuthenticatedVehiclesRoute: AuthenticatedVehiclesRoute,
+  AuthenticatedLrNewRoute: AuthenticatedLrNewRoute,
   AuthenticatedPartiesIdRoute: AuthenticatedPartiesIdRoute,
   AuthenticatedTripsNewRoute: AuthenticatedTripsNewRoute,
+  AuthenticatedLrIndexRoute: AuthenticatedLrIndexRoute,
   AuthenticatedPartiesIndexRoute: AuthenticatedPartiesIndexRoute,
   AuthenticatedTripsIndexRoute: AuthenticatedTripsIndexRoute,
+  AuthenticatedLrIdEditRoute: AuthenticatedLrIdEditRoute,
   AuthenticatedTripsIdEditRoute: AuthenticatedTripsIdEditRoute,
+  AuthenticatedLrIdIndexRoute: AuthenticatedLrIdIndexRoute,
   AuthenticatedTripsIdIndexRoute: AuthenticatedTripsIdIndexRoute,
 }
 
