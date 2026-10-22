@@ -65,3 +65,42 @@ export const addOwner = createServerFn({ method: "POST" })
     }
     return { ok: true };
   });
+
+async function requireOwner(context: { supabase: any; userId: string }) {
+  const { data: me, error } = await context.supabase.from("business_members").select("business_id, role").eq("user_id", context.userId).maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!me || me.role !== "owner") throw new Error("Only an Owner can do this.");
+  return me as { business_id: string; role: string };
+}
+
+/** Accounts that signed up but are not yet linked to the business. */
+export const listPendingUsers = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await requireOwner(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ perPage: 200 });
+    if (error) throw new Error(error.message);
+    const { data: members, error: mErr } = await supabaseAdmin.from("business_members").select("user_id");
+    if (mErr) throw new Error(mErr.message);
+    const ids = new Set((members ?? []).map((m) => m.user_id));
+    return data.users.filter((u) => !ids.has(u.id)).map((u) => ({
+      id: u.id, email: u.email ?? "", name: (u.user_metadata?.display_name as string) ?? "", confirmed: !!u.email_confirmed_at, created_at: u.created_at,
+    }));
+  });
+
+export const approveUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ userId: z.string().uuid(), role: z.enum(["owner", "admin", "staff"]) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const me = await requireOwner(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: u, error } = await supabaseAdmin.auth.admin.getUserById(data.userId);
+    if (error || !u.user) throw new Error(error?.message ?? "User not found");
+    const { error: iErr } = await supabaseAdmin.from("business_members").insert({
+      business_id: me.business_id, user_id: data.userId, email: u.user.email, role: data.role,
+      display_name: (u.user.user_metadata?.display_name as string) ?? u.user.email,
+    });
+    if (iErr) throw new Error(iErr.message);
+    return { ok: true };
+  });

@@ -18,8 +18,10 @@ import { Route as AuthenticatedAuditRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDriverLedgerRouteImport } from './routes/_authenticated/driver-ledger'
 import { Route as AuthenticatedDriversRouteImport } from './routes/_authenticated/drivers'
+import { Route as AuthenticatedOutstandingRouteImport } from './routes/_authenticated/outstanding'
 import { Route as AuthenticatedPartyLedgerRouteImport } from './routes/_authenticated/party-ledger'
 import { Route as AuthenticatedPaymentsRouteImport } from './routes/_authenticated/payments'
+import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedRoutesRouteImport } from './routes/_authenticated/routes'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedSystemCheckRouteImport } from './routes/_authenticated/system-check'
@@ -82,6 +84,12 @@ const AuthenticatedDriversRoute = AuthenticatedDriversRouteImport.update({
   path: '/drivers',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedOutstandingRoute =
+  AuthenticatedOutstandingRouteImport.update({
+    id: '/outstanding',
+    path: '/outstanding',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPartyLedgerRoute =
   AuthenticatedPartyLedgerRouteImport.update({
     id: '/party-ledger',
@@ -91,6 +99,11 @@ const AuthenticatedPartyLedgerRoute =
 const AuthenticatedPaymentsRoute = AuthenticatedPaymentsRouteImport.update({
   id: '/payments',
   path: '/payments',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedReportsRoute = AuthenticatedReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedRoutesRoute = AuthenticatedRoutesRouteImport.update({
@@ -188,8 +201,10 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/driver-ledger': typeof AuthenticatedDriverLedgerRoute
   '/drivers': typeof AuthenticatedDriversRoute
+  '/outstanding': typeof AuthenticatedOutstandingRoute
   '/party-ledger': typeof AuthenticatedPartyLedgerRoute
   '/payments': typeof AuthenticatedPaymentsRoute
+  '/reports': typeof AuthenticatedReportsRoute
   '/routes': typeof AuthenticatedRoutesRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/system-check': typeof AuthenticatedSystemCheckRoute
@@ -216,8 +231,10 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/driver-ledger': typeof AuthenticatedDriverLedgerRoute
   '/drivers': typeof AuthenticatedDriversRoute
+  '/outstanding': typeof AuthenticatedOutstandingRoute
   '/party-ledger': typeof AuthenticatedPartyLedgerRoute
   '/payments': typeof AuthenticatedPaymentsRoute
+  '/reports': typeof AuthenticatedReportsRoute
   '/routes': typeof AuthenticatedRoutesRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/system-check': typeof AuthenticatedSystemCheckRoute
@@ -246,8 +263,10 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/driver-ledger': typeof AuthenticatedDriverLedgerRoute
   '/_authenticated/drivers': typeof AuthenticatedDriversRoute
+  '/_authenticated/outstanding': typeof AuthenticatedOutstandingRoute
   '/_authenticated/party-ledger': typeof AuthenticatedPartyLedgerRoute
   '/_authenticated/payments': typeof AuthenticatedPaymentsRoute
+  '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/routes': typeof AuthenticatedRoutesRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/system-check': typeof AuthenticatedSystemCheckRoute
@@ -276,8 +295,10 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/driver-ledger'
     | '/drivers'
+    | '/outstanding'
     | '/party-ledger'
     | '/payments'
+    | '/reports'
     | '/routes'
     | '/settings'
     | '/system-check'
@@ -304,8 +325,10 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/driver-ledger'
     | '/drivers'
+    | '/outstanding'
     | '/party-ledger'
     | '/payments'
+    | '/reports'
     | '/routes'
     | '/settings'
     | '/system-check'
@@ -333,8 +356,10 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/driver-ledger'
     | '/_authenticated/drivers'
+    | '/_authenticated/outstanding'
     | '/_authenticated/party-ledger'
     | '/_authenticated/payments'
+    | '/_authenticated/reports'
     | '/_authenticated/routes'
     | '/_authenticated/settings'
     | '/_authenticated/system-check'
@@ -426,6 +451,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDriversRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/outstanding': {
+      id: '/_authenticated/outstanding'
+      path: '/outstanding'
+      fullPath: '/outstanding'
+      preLoaderRoute: typeof AuthenticatedOutstandingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/party-ledger': {
       id: '/_authenticated/party-ledger'
       path: '/party-ledger'
@@ -438,6 +470,13 @@ declare module '@tanstack/react-router' {
       path: '/payments'
       fullPath: '/payments'
       preLoaderRoute: typeof AuthenticatedPaymentsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/reports': {
+      id: '/_authenticated/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof AuthenticatedReportsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/routes': {
@@ -560,8 +599,10 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDriverLedgerRoute: typeof AuthenticatedDriverLedgerRoute
   AuthenticatedDriversRoute: typeof AuthenticatedDriversRoute
+  AuthenticatedOutstandingRoute: typeof AuthenticatedOutstandingRoute
   AuthenticatedPartyLedgerRoute: typeof AuthenticatedPartyLedgerRoute
   AuthenticatedPaymentsRoute: typeof AuthenticatedPaymentsRoute
+  AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedRoutesRoute: typeof AuthenticatedRoutesRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSystemCheckRoute: typeof AuthenticatedSystemCheckRoute
@@ -585,8 +626,10 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDriverLedgerRoute: AuthenticatedDriverLedgerRoute,
   AuthenticatedDriversRoute: AuthenticatedDriversRoute,
+  AuthenticatedOutstandingRoute: AuthenticatedOutstandingRoute,
   AuthenticatedPartyLedgerRoute: AuthenticatedPartyLedgerRoute,
   AuthenticatedPaymentsRoute: AuthenticatedPaymentsRoute,
+  AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedRoutesRoute: AuthenticatedRoutesRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSystemCheckRoute: AuthenticatedSystemCheckRoute,
