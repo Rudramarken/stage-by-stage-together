@@ -1925,6 +1925,10 @@ export type Database = {
     Functions: {
       current_business_id: { Args: never; Returns: string }
       get_or_create_transporter: { Args: { p_name: string }; Returns: string }
+      get_or_create_transporter_for_party: {
+        Args: { p_party_id: string }
+        Returns: string
+      }
       has_business_role: {
         Args: {
           p_business_id: string

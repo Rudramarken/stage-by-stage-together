@@ -12,7 +12,8 @@ import { Field, Money } from "./ui";
 import { Section, selectCls } from "./Section";
 import { SearchSelect } from "./SearchSelect";
 import { errorMessage } from "./states";
-import { useParties, useDrivers, useTransporters, createPartyInline, createTransporterInline, EXPENSE_CATEGORIES, PAY_MODES, FREIGHT_TYPE, LR_DELIVERY } from "@/lib/lookups";
+import { useParties, useDrivers, createPartyInline, EXPENSE_CATEGORIES, PAY_MODES, FREIGHT_TYPE, LR_DELIVERY } from "@/lib/lookups";
+import { TransporterSelect } from "./TransporterSelect";
 import { calcFreight, validateFreight, RATE_UNIT_LABEL, type RateUnit, type WeightUnit } from "@/lib/freight";
 import { formatINR, todayIST } from "@/lib/format";
 
@@ -31,7 +32,7 @@ export function blankLR(tripId?: string): LRValues {
 export function LRForm({ initial }: { initial: LRValues }) {
   const nav = useNavigate();
   const qc = useQueryClient();
-  const parties = useParties(); const transporters = useTransporters(); const drivers = useDrivers();
+  const parties = useParties(); const drivers = useDrivers();
   const trips = useQuery({
     queryKey: ["trips-pick"],
     queryFn: async () => {
@@ -186,9 +187,8 @@ export function LRForm({ initial }: { initial: LRValues }) {
 
       <Section n={5} title="Transporter / freight payable">
         <div className="grid gap-4 sm:grid-cols-4">
-          <Field label="Transporter" hint="Type a new name to add it once">
-            <SearchSelect value={v.transporter_id} onChange={(x) => set("transporter_id", x)} options={(transporters.data ?? []).map((t) => ({ value: t.id, label: t.name }))}
-              onCreate={async (t) => { const id = await createTransporterInline(t); qc.invalidateQueries({ queryKey: ["transporters"] }); return id; }} createLabel="Add transporter" /></Field>
+          <Field label="Transporter" hint="Pick a party or type a new name to add it once">
+            <TransporterSelect value={v.transporter_id} onChange={(x) => set("transporter_id", x)} /></Field>
           <Field label="Vehicle number"><Input value={v.vehicle_number ?? ""} onChange={(e) => set("vehicle_number", e.target.value)} /></Field>
           <Field label="Vehicle name/type"><Input value={v.vehicle_type ?? ""} onChange={(e) => set("vehicle_type", e.target.value)} /></Field>
           <Field label="Registered driver"><SearchSelect value={v.driver_id ?? ""} onChange={(id) => setV({ ...v, driver_id: id, driver_name: drivers.data?.find((d) => d.id === id)?.name ?? "" })} options={(drivers.data ?? []).map((d) => ({ value: d.id, label: d.name }))} placeholder="Choose driver" /></Field>

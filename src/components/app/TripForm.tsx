@@ -12,7 +12,8 @@ import { Field, Money } from "./ui";
 import { Section, selectCls } from "./Section";
 import { SearchSelect } from "./SearchSelect";
 import { errorMessage } from "./states";
-import { useDrivers, useVehicles, useTransporters, useRoutes, createTransporterInline, TRIP_STATUS } from "@/lib/lookups";
+import { useDrivers, useVehicles, useTransporters, useRoutes, TRIP_STATUS } from "@/lib/lookups";
+import { TransporterSelect } from "./TransporterSelect";
 import { todayIST } from "@/lib/format";
 
 export type Stop = { id?: string; location: string; stop_type: string; status: string; planned_arrival?: string; actual_arrival?: string; notes?: string };
@@ -117,9 +118,7 @@ export function TripForm({ initial }: { initial?: TripValues }) {
             </>
           )}
           <Field label="Transporter" hint="Type a new name to add it once">
-            <SearchSelect value={v.transporter_id} onChange={(x) => set("transporter_id", x)} placeholder="Choose or type"
-              options={(transporters.data ?? []).map((x) => ({ value: x.id, label: x.name }))}
-              onCreate={async (t) => { const id = await createTransporterInline(t); qc.invalidateQueries({ queryKey: ["transporters"] }); return id; }} createLabel="Add transporter" />
+            <TransporterSelect value={v.transporter_id} onChange={(x) => set("transporter_id", x)} />
           </Field>
           <Field label="Registered driver">
             <SearchSelect value={v.driver_id} onChange={(x) => setV({ ...v, driver_id: x, driver_name: "" })} placeholder="Choose driver"
