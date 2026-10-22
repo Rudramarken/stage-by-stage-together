@@ -19,14 +19,14 @@ export function SearchSelect({ value, onChange, options, placeholder = "Choose�
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button type="button" variant="outline" role="combobox" disabled={disabled} className="w-full justify-between font-normal">
-          <span className={cn("truncate", !sel && "text-muted-foreground")}>{sel?.label ?? placeholder}</span>
+        <Button type="button" variant="outline" aria-label={placeholder} aria-expanded={open} disabled={disabled} className="w-full min-w-0 justify-between font-normal">
+          <span className={cn("min-w-0 truncate", !sel && "text-muted-foreground")}>{sel?.label ?? placeholder}</span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] min-w-64 p-0" align="start">
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] max-w-[calc(100vw-2rem)] p-0" align="start">
         <Command>
-          <CommandInput placeholder="Type to search…" value={text} onValueChange={setText} />
+          <CommandInput aria-label={`Search ${placeholder}`} placeholder="Type to search…" value={text} onValueChange={setText} />
           <CommandList>
             <CommandEmpty>No match.</CommandEmpty>
             <CommandGroup>

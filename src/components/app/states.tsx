@@ -9,7 +9,7 @@ export function LoadingState({ label = "Loading…", timeoutMs = 15000, onRetry 
     return () => clearTimeout(t);
   }, [timeoutMs]);
   return (
-    <div className="flex min-h-[200px] flex-col items-center justify-center gap-3 p-8 text-muted-foreground">
+    <div role="status" aria-live="polite" className="flex min-h-[200px] flex-col items-center justify-center gap-3 p-8 text-muted-foreground">
       <Loader2 className="h-6 w-6 animate-spin" />
       <p className="text-sm">{slow ? "This is taking longer than usual." : label}</p>
       {slow && (onRetry ? <Button variant="outline" size="sm" onClick={onRetry}>Retry</Button> :
@@ -27,10 +27,10 @@ export function errorMessage(e: unknown): string {
 
 export function ErrorState({ error, onRetry, extra }: { error: unknown; onRetry?: () => void; extra?: ReactNode }) {
   return (
-    <div className="m-4 flex flex-col items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-8 text-center">
+    <div role="alert" className="m-4 flex min-w-0 flex-col items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-6 text-center">
       <AlertTriangle className="h-6 w-6 text-destructive" />
       <p className="font-medium text-destructive">Something went wrong</p>
-      <p className="max-w-lg text-sm text-foreground">{errorMessage(error)}</p>
+      <p className="max-w-lg break-words text-sm text-foreground">{errorMessage(error)}</p>
       <div className="flex gap-3">
         {onRetry && <Button variant="outline" size="sm" onClick={onRetry}>Retry</Button>}
         {extra}

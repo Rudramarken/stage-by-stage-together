@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useBusiness } from "@/lib/business";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -34,15 +34,15 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
   const { role } = useBusiness();
   const items = [...NAV, ...(role === "owner" ? [{ to: "/system-check", label: "System Check", icon: ShieldCheck }] as const : [])];
   return (
-    <nav className="flex flex-col gap-0.5 p-2">
+    <nav aria-label="Main navigation" className="flex flex-col gap-1 p-3">
       {items.map((n) => {
         const active = path === n.to || path.startsWith(n.to + "/");
         const Icon = n.icon;
         return (
-          <Link key={n.to} to={n.to} onClick={onNavigate}
-            className={cn("flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+          <Link key={n.to} to={n.to} onClick={onNavigate} aria-current={active ? "page" : undefined}
+            className={cn("flex min-h-11 items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
               active ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent/60")}>
-            <Icon className={cn("h-4 w-4", active && "text-sidebar-primary")} />{n.label}
+            <Icon aria-hidden="true" className={cn("h-4 w-4 shrink-0", active && "text-sidebar-primary")} /><span className="min-w-0">{n.label}</span>
           </Link>
         );
       })}
@@ -52,9 +52,9 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
 
 function Brand() {
   return (
-    <div className="border-b border-sidebar-border px-4 py-4">
+    <div className="border-b border-sidebar-border px-5 py-6">
       <p className="font-display text-lg font-semibold text-sidebar-accent-foreground">Gokul Cargo Movers</p>
-      <p className="text-xs text-sidebar-foreground/70">Transport Management</p>
+      <p className="mt-1 text-xs text-sidebar-foreground">Transport Management</p>
     </div>
   );
 }
@@ -65,27 +65,30 @@ export function AppShell({ children }: { children: ReactNode }) {
   const footer = (
     <div className="border-t border-sidebar-border p-3 text-xs text-sidebar-foreground/80">
       <p className="truncate">{email}</p>
-      <button className="mt-2 flex items-center gap-2 hover:text-sidebar-accent-foreground" onClick={() => supabase.auth.signOut()}>
+      <Button variant="ghost" className="mt-2 w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" onClick={() => supabase.auth.signOut()}>
         <LogOut className="h-3.5 w-3.5" /> Sign out
-      </button>
+      </Button>
     </div>
   );
   return (
-    <div className="flex min-h-screen">
-      <aside className="no-print sticky top-0 hidden h-screen w-64 shrink-0 flex-col bg-sidebar lg:flex">
+    <div className="flex min-h-dvh">
+      <a href="#main-content" className="skip-link no-print">Skip to main content</a>
+      <aside className="no-print sticky top-0 hidden h-dvh w-64 shrink-0 flex-col bg-sidebar lg:flex">
         <Brand /><div className="flex-1 overflow-y-auto"><NavList /></div>{footer}
       </aside>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="flex w-72 flex-col border-sidebar-border bg-sidebar p-0">
+          <SheetTitle className="sr-only">Main navigation</SheetTitle>
+          <SheetDescription className="sr-only">Gokul Cargo Movers pages and account menu.</SheetDescription>
           <Brand /><div className="flex-1 overflow-y-auto"><NavList onNavigate={() => setOpen(false)} /></div>{footer}
         </SheetContent>
       </Sheet>
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="no-print flex items-center gap-3 border-b bg-card px-4 py-3 lg:hidden">
+        <header className="no-print sticky top-0 z-30 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-b bg-card px-4 py-3 lg:hidden">
           <Button variant="ghost" size="icon" onClick={() => setOpen(true)} aria-label="Open menu"><Menu /></Button>
-          <span className="font-display font-semibold text-primary">Gokul Cargo Movers</span>
+          <span className="min-w-0 truncate font-display font-semibold text-primary">Gokul Cargo Movers</span>
         </header>
-        <main className="mx-auto w-full max-w-7xl flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
+        <main id="main-content" tabIndex={-1} className="mx-auto w-full min-w-0 max-w-7xl flex-1 p-4 outline-none sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>
   );

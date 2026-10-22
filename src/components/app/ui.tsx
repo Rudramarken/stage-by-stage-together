@@ -9,12 +9,12 @@ import {
 
 export function PageHeader({ title, description, actions }: { title: string; description?: string; actions?: ReactNode }) {
   return (
-    <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <h1 className="text-2xl font-semibold text-primary">{title}</h1>
+    <div className="mb-6 grid min-w-0 gap-4 border-b pb-5 sm:flex sm:items-end sm:justify-between">
+      <div className="min-w-0">
+        <h1 className="break-words text-2xl font-semibold text-primary sm:text-3xl">{title}</h1>
         {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
       </div>
-      {actions && <div className="no-print flex flex-wrap gap-2">{actions}</div>}
+      {actions && <div className="no-print grid min-w-0 gap-2 sm:flex sm:shrink-0 sm:flex-wrap [&>button]:whitespace-normal [&>a]:whitespace-normal">{actions}</div>}
     </div>
   );
 }
