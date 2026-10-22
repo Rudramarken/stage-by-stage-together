@@ -20,3 +20,6 @@
 - Self sign-up creates an account with no business access; an Owner approves it (server fn `approveUser`). Why: no one sees data without approval.
 - Driver commission sources sync to driver_commissions; commission_receipts is the single cash/salary-recovery history and commission_balances is the RLS-scoped read model. Why: partial settlements, reporting and driver ledgers share one atomic, idempotent source.
 - Commission cash receipts and confirmed salary recoveries use driver-level transaction locks; receipt request IDs are unique and cancellations retain offsetting ledger rows. Why: concurrent retries cannot over-receive or silently erase financial history.
+
+- List row actions share RowActions and RemovalDialog; destructive document/master operations use remove_record, and money is reversed, never deleted. Why: consistent pending confirmation and server-side dependency/owner checks.
+- LR edits preserve party, expense and adjustment IDs; save RPCs lock the business-scoped document and reject foreign child IDs. Why: editing must update the same records without double amounts.

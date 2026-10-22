@@ -1,3 +1,7 @@
+import { Eye, Pencil } from "lucide-react";
+import { RowActions, actionCell } from "@/components/app/RowActions";
+import { RemovalDialog, type RemovalTarget } from "@/components/app/RemovalDialog";
+import { RecordDetails } from "@/components/app/RecordDetails";
 import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -82,6 +86,9 @@ function Salary({ driver }: { driver: any }) {
       return { entries: e.data ?? [], payments: p.data ?? [], unrecovered: Math.max(0, advTotal - recovered), commissionPending: (com.data ?? []).reduce((s, c) => s + Number(c.pending_amount), 0) };
     },
   });
+  const [removal, setRemoval] = useState<RemovalTarget | null>(null);
+  const [viewing, setViewing] = useState<any>(null);
+  const [editPay, setEditPay] = useState<any>(null);
   const [newEntry, setNewEntry] = useState<Record<string, any> | null>(null);
   const [payFor, setPayFor] = useState<Record<string, any> | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -114,13 +121,12 @@ function Salary({ driver }: { driver: any }) {
     onSuccess: () => { toast.success("Salary payment saved"); setPayFor(null); inv(); },
     onError: (e) => setErr(errorMessage(e)),
   });
-  const reverse = useMutation({
-    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
-      const { error } = await supabase.from("salary_payments").update({ is_reversed: true, reversal_reason: reason }).eq("id", id);
+  const updatePay = useMutation({
+    mutationFn: async () => {
+      if (!editPay || Number(editPay.amount) < 0) throw new Error("Enter a valid amount");
+      const { error } = await supabase.from("salary_payments").update({ amount: Number(editPay.amount), payment_date: editPay.payment_date, payment_method: editPay.payment_method, account_id: editPay.account_id || null, reference: editPay.reference || null, notes: editPay.notes || null }).eq("id", editPay.id).select().single();
       if (error) throw error;
-    },
-    onSuccess: () => { toast.success("Reversed"); inv(); },
-    onError: (e) => toast.error(errorMessage(e)),
+    }, onSuccess: () => { setEditPay(null); toast.success("Salary payment updated"); inv(); }, onError: (e) => setErr(errorMessage(e)),
   });
   if (q.isPending) return <LoadingState />;
   if (q.isError) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
@@ -138,24 +144,36 @@ function Salary({ driver }: { driver: any }) {
       </div>
       {rows.length === 0 ? <p className="text-sm text-muted-foreground">No salary months yet.</p> : (
         <div className="overflow-x-auto"><Table>
-          <TableHeader><TableRow><TableHead>Month</TableHead><TableHead>Due</TableHead><TableHead className="text-right">Salary</TableHead><TableHead className="text-right">Paid</TableHead><TableHead className="text-right">Confirmed recoveries</TableHead><TableHead className="text-right">Outstanding</TableHead><TableHead /></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Month</TableHead><TableHead>Due</TableHead><TableHead className="text-right">Salary</TableHead><TableHead className="text-right">Paid</TableHead><TableHead className="text-right">Confirmed recoveries</TableHead><TableHead className="text-right">Outstanding</TableHead><TableHead className={actionCell}>Actions</TableHead></TableRow></TableHeader>
           <TableBody>{rows.map((r) => (
             <TableRow key={r.id}><TableCell>{r.period}</TableCell><TableCell>{formatDate(r.due_date)}</TableCell><TableCell className="text-right"><Money value={r.amount} /></TableCell>
               <TableCell className="text-right"><Money value={r.paid} /></TableCell><TableCell className="text-right"><Money value={r.rec} /></TableCell>
               <TableCell className="text-right">{r.outstanding > 0.004 ? <StatusBadge tone="warning"><Money value={r.outstanding} /></StatusBadge> : <StatusBadge tone="success">Paid</StatusBadge>}</TableCell>
-              <TableCell>{r.outstanding > 0.004 && <Button size="sm" variant="outline" onClick={() => {
+              <TableCell className={actionCell}>{r.outstanding > 0.004 && <Button size="sm" variant="outline" onClick={() => {
                 setErr(null);
                 const sug = salaryRecovery(r.outstanding, q.data.unrecovered, q.data.commissionPending, true);
                 setPayFor({ entry_id: r.id, outstanding: r.outstanding, salary: Number(r.amount), suggested: sug.advance + sug.commission, useRecovery: false, recovered_advance: sug.advance, recovered_commission: sug.commission, amount: r.outstanding, payment_date: todayIST(), payment_method: "cash" });
               }}>Pay</Button>}</TableCell></TableRow>))}</TableBody>
         </Table></div>
       )}
-      {q.data.payments.length > 0 && <div className="mt-3 text-xs">
-        <p className="mb-1 font-medium">Payment history</p>
-        {q.data.payments.map((p) => <p key={p.id} className={p.is_reversed ? "line-through opacity-60" : ""}>{formatDate(p.payment_date)} · {formatINR(p.amount)} paid{Number(p.recovered_advance) > 0 && ` + ${formatINR(p.recovered_advance)} advance recovered`} · {p.payment_method}
-          {Number(p.recovered_commission) > 0 && ` + ${formatINR(p.recovered_commission)} commission recovered`}
-          {!p.is_reversed && <Button variant="ghost" size="sm" className="ml-2 text-destructive" onClick={() => { const r = window.prompt("Reason for reversing:"); if (r?.trim()) reverse.mutate({ id: p.id, reason: r.trim() }); }}><Undo2 className="inline h-3 w-3" /> reverse</Button>}</p>)}
+      {q.data.payments.length > 0 && <div className="mt-3 overflow-x-auto">
+        <h4 className="mb-2 text-sm font-medium">Payment history</h4><Table>
+          <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Paid</TableHead><TableHead>Advance recovered</TableHead><TableHead>Commission recovered</TableHead><TableHead>Reference</TableHead><TableHead className={actionCell}>Actions</TableHead></TableRow></TableHeader>
+          <TableBody>{q.data.payments.map((p) => <TableRow key={p.id} className={p.is_reversed ? "opacity-60" : ""}><TableCell>{formatDate(p.payment_date)}{p.is_reversed && <StatusBadge tone="danger">Reversed</StatusBadge>}</TableCell><TableCell><Money value={p.amount} /></TableCell><TableCell><Money value={p.recovered_advance} /></TableCell><TableCell><Money value={p.recovered_commission} /></TableCell><TableCell>{p.reference || "—"}</TableCell><TableCell className={actionCell}><RowActions label={p.reference || formatDate(p.payment_date)} actions={[
+            { label: "View", icon: Eye, onClick: () => setViewing(p) },
+            { label: "Edit", icon: Pencil, disabled: p.is_reversed, onClick: () => { setErr(null); setEditPay({ ...p }); } },
+            { label: "Reverse", icon: Undo2, disabled: p.is_reversed, destructive: true, onClick: () => setRemoval({ table: "salary_payments", id: p.id, label: p.reference || `Salary payment ${formatDate(p.payment_date)}`, action: "reverse" }) },
+          ]} /></TableCell></TableRow>)}</TableBody></Table>
       </div>}
+      <RemovalDialog target={removal} onClose={() => setRemoval(null)} />
+      {viewing && <RecordDetails title="Salary payment" values={[["Date", formatDate(viewing.payment_date)], ["Paid", formatINR(viewing.amount)], ["Advance recovery", formatINR(viewing.recovered_advance)], ["Commission recovery", formatINR(viewing.recovered_commission)], ["Reference", viewing.reference], ["Notes", viewing.notes], ["Reversal reason", viewing.reversal_reason]]} onClose={() => setViewing(null)} />}
+      <Dialog open={!!editPay} onOpenChange={(o) => !o && !updatePay.isPending && setEditPay(null)}><DialogContent><DialogHeader><DialogTitle>Edit salary payment</DialogTitle></DialogHeader>{editPay && <div className="grid gap-3">
+        <Field label="Cash/bank amount (₹)"><Input type="number" min="0" value={editPay.amount} onChange={(e) => setEditPay({ ...editPay, amount: e.target.value })} /></Field>
+        <Field label="Date"><Input type="date" value={editPay.payment_date} onChange={(e) => setEditPay({ ...editPay, payment_date: e.target.value })} /></Field>
+        <Field label="Reference"><Input value={editPay.reference ?? ""} onChange={(e) => setEditPay({ ...editPay, reference: e.target.value })} /></Field>
+        <Field label="Notes"><Input value={editPay.notes ?? ""} onChange={(e) => setEditPay({ ...editPay, notes: e.target.value })} /></Field>
+        {err && <p role="alert" className="text-destructive">{err}</p>}
+      </div>}<DialogFooter><Button disabled={updatePay.isPending} onClick={() => updatePay.mutate()}>{updatePay.isPending ? "Saving…" : err ? "Retry" : "Save"}</Button></DialogFooter></DialogContent></Dialog>
 
       <Dialog open={!!newEntry} onOpenChange={(o) => !o && setNewEntry(null)}>
         <DialogContent><DialogHeader><DialogTitle>Add salary month</DialogTitle></DialogHeader>

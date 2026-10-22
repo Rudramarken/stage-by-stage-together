@@ -18,7 +18,7 @@ import { formatINR, todayIST } from "@/lib/format";
 
 type Exp = Record<string, any>;
 type LP = { id?: string; role: "consignor" | "consignee"; party_id: string; goods_description?: string; quantity?: string; weight?: string; loading_point?: string; delivery_point?: string; expenses: Exp[] };
-export type LRValues = Record<string, any> & { parties: LP[]; adjustments: { kind: "add" | "deduct"; amount: string; reason: string }[] };
+export type LRValues = Record<string, any> & { parties: LP[]; adjustments: { id?: string; kind: "add" | "deduct"; amount: string; reason: string }[] };
 
 export function blankLR(tripId?: string): LRValues {
   return {

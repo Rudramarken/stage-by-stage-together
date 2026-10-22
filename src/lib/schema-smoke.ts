@@ -30,3 +30,6 @@ export const SCHEMA_COLUMNS: Record<string, string[]> = {
 };
 SCHEMA_COLUMNS.lrs.push("driver_id", "commission_cancel_reason", "commission_reference", "commission_notes");
 SCHEMA_COLUMNS.trips.push("commission_enabled", "commission_mode", "commission_value", "commission_amount", "commission_date", "commission_reference", "commission_notes", "commission_cancel_reason");
+
+SCHEMA_COLUMNS.lrs.push("cancelled_by", "cancelled_at");
+SCHEMA_COLUMNS.trips.push("cancelled_by", "cancelled_at");

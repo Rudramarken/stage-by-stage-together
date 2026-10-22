@@ -29,6 +29,6 @@ export function lrToForm({ lr, expenses }: Awaited<ReturnType<typeof loadLR>>): 
       loading_point: s(p.loading_point), delivery_point: s(p.delivery_point),
       expenses: expenses.filter((e) => e.lr_party_id === p.id).map((e) => ({ ...e, amount: s(e.amount) })),
     })),
-    adjustments: lr_adjustments.map((a: any) => ({ kind: a.kind, amount: s(a.amount), reason: a.reason })),
+    adjustments: lr_adjustments.map((a: any) => ({ id: a.id, kind: a.kind, amount: s(a.amount), reason: a.reason })),
   } as LRValues;
 }
