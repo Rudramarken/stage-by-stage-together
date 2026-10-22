@@ -149,8 +149,8 @@ export function LRForm({ initial }: { initial: LRValues }) {
         </div>
       </Section>
 
-      <Section n={2} title="Consignors (and their expenses)"><PartyBlock role="consignor" /></Section>
-      <Section n={3} title="Consignees (and their expenses)"><PartyBlock role="consignee" /></Section>
+      <Section n={2} title="Consignors (and their expenses)">{PartyBlock({ role: "consignor" })}</Section>
+      <Section n={3} title="Consignees (and their expenses)">{PartyBlock({ role: "consignee" })}</Section>
 
       <Section n={4} title="Customer freight">
         <div className="grid gap-4 sm:grid-cols-4">
