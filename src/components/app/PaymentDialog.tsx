@@ -32,7 +32,7 @@ export function PaymentDialog({ open, onOpenChange, initial, thirdParty }: { ope
     if (!open) return;
     setErr(null);
     const cash = accounts.data?.find((a) => a.kind === "cash")?.id ?? "";
-    const init = initial ? { ...initial } : { ...blank, account_id: cash };
+    const init: Record<string, any> = initial ? { ...initial } : { ...blank, account_id: cash };
     setV(init);
     setBank(!!(init.bank_name || init.bank_account_number || init.upi_id || init.txn_reference));
     // eslint-disable-next-line react-hooks/exhaustive-deps

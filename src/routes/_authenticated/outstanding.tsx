@@ -38,7 +38,7 @@ function Outstanding() {
   const sum = (a: { amt: number }[]) => a.reduce((s, x) => s + x.amt, 0);
   const comTotal = q.data.com.reduce((s, c) => s + Number(c.commission_amount), 0);
 
-  const T = ({ title, rows, link }: { title: string; rows: { name: string; amt: number; kind?: string; id?: string }[]; link?: "party" | "driver" }) => (
+  const T = ({ title, rows, link }: { title: string; rows: { name: string; amt: number; kind?: string; id?: string | null }[]; link?: "party" | "driver" }) => (
     <div className="rounded-lg border bg-card">
       <div className="flex items-center justify-between border-b px-4 py-3"><h2 className="font-semibold">{title}</h2>
         <Button size="sm" variant="outline" className="no-print" onClick={() => downloadCSV(`${title}.csv`, [["Name", "Type", "Amount"], ...rows.map((r) => [r.name, r.kind ?? "", r.amt.toFixed(2)]), ["Total", "", sum(rows).toFixed(2)]])}>CSV</Button></div>
