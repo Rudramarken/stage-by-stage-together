@@ -12,7 +12,7 @@ import { Field, Money } from "./ui";
 import { Section, selectCls } from "./Section";
 import { SearchSelect } from "./SearchSelect";
 import { errorMessage } from "./states";
-import { useParties, useDrivers, createPartyInline, EXPENSE_CATEGORIES, PAY_MODES, FREIGHT_TYPE, LR_DELIVERY } from "@/lib/lookups";
+import { useParties, useDrivers, createPartyInline, EXPENSE_CATEGORIES, PAY_MODES, FREIGHT_TYPE } from "@/lib/lookups";
 import { TransporterSelect } from "./TransporterSelect";
 import { calcFreight, validateFreight, RATE_UNIT_LABEL, type RateUnit, type WeightUnit } from "@/lib/freight";
 import { formatINR, todayIST } from "@/lib/format";
@@ -132,12 +132,7 @@ export function LRForm({ initial }: { initial: LRValues }) {
     <div className="space-y-4">
       <Section n={1} title="LR details">
         <div className="grid gap-4 sm:grid-cols-4">
-          {!isNew && <Field label="LR number"><Input value={v.lr_number ?? ""} readOnly disabled /></Field>}
           <Field label="LR date" required><Input type="date" value={v.lr_date ?? ""} onChange={(e) => set("lr_date", e.target.value)} /></Field>
-          {!isNew && <Field label="Delivery status"><select className={selectCls} value={v.delivery_status} onChange={(e) => set("delivery_status", e.target.value)}>{Object.entries(LR_DELIVERY).map(([k, s]) => <option key={k} value={k}>{s.label}</option>)}</select></Field>}
-          {!isNew && <Field label="Link to trip (optional)">
-            <SearchSelect value={v.trip_id} onChange={(x) => setV({ ...v, trip_id: x, loading_stop_id: "", unloading_stop_id: "" })} placeholder="No trip"
-              options={(trips.data ?? []).map((t) => ({ value: t.id, label: t.trip_number, hint: [...t.trip_stops].sort((a: any, b: any) => a.seq - b.seq).map((s: any) => s.location).join("→") }))} /></Field>}
           {trip && !isNew && <>
             <Field label="Loading stop"><select className={selectCls} value={v.loading_stop_id ?? ""} onChange={(e) => set("loading_stop_id", e.target.value)}><option value="">—</option>{stops.map((s: any) => <option key={s.id} value={s.id}>{s.location}</option>)}</select></Field>
             <Field label="Unloading stop"><select className={selectCls} value={v.unloading_stop_id ?? ""} onChange={(e) => set("unloading_stop_id", e.target.value)}><option value="">—</option>{stops.map((s: any) => <option key={s.id} value={s.id}>{s.location}</option>)}</select></Field>
