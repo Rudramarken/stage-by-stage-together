@@ -14,6 +14,115 @@ export type Database = {
   }
   public: {
     Tables: {
+      advances: {
+        Row: {
+          account_id: string | null
+          advance_date: string
+          amount: number
+          business_id: string
+          cancel_reason: string | null
+          created_at: string
+          created_by: string | null
+          driver_id: string | null
+          id: string
+          is_cancelled: boolean
+          notes: string | null
+          other_name: string | null
+          party_id: string | null
+          payment_method: string | null
+          recipient_type: string
+          reference: string | null
+          transporter_id: string | null
+          trip_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_id?: string | null
+          advance_date?: string
+          amount: number
+          business_id: string
+          cancel_reason?: string | null
+          created_at?: string
+          created_by?: string | null
+          driver_id?: string | null
+          id?: string
+          is_cancelled?: boolean
+          notes?: string | null
+          other_name?: string | null
+          party_id?: string | null
+          payment_method?: string | null
+          recipient_type: string
+          reference?: string | null
+          transporter_id?: string | null
+          trip_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string | null
+          advance_date?: string
+          amount?: number
+          business_id?: string
+          cancel_reason?: string | null
+          created_at?: string
+          created_by?: string | null
+          driver_id?: string | null
+          id?: string
+          is_cancelled?: boolean
+          notes?: string | null
+          other_name?: string | null
+          party_id?: string | null
+          payment_method?: string | null
+          recipient_type?: string
+          reference?: string | null
+          transporter_id?: string | null
+          trip_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "advances_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "payment_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "advances_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "advances_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "advances_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "parties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "advances_transporter_id_fkey"
+            columns: ["transporter_id"]
+            isOneToOne: false
+            referencedRelation: "transporters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "advances_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -238,6 +347,127 @@ export type Database = {
           },
         ]
       }
+      expenses: {
+        Row: {
+          account_id: string | null
+          amount: number
+          business_id: string
+          cancel_reason: string | null
+          category: string
+          created_at: string
+          created_by: string | null
+          expense_date: string
+          id: string
+          is_cancelled: boolean
+          lr_id: string | null
+          lr_party_id: string | null
+          notes: string | null
+          paid_by: string | null
+          paid_to: string | null
+          payment_method: string | null
+          payment_status: string
+          reference: string | null
+          responsible: string
+          responsible_party_id: string | null
+          scope: string
+          trip_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_id?: string | null
+          amount: number
+          business_id: string
+          cancel_reason?: string | null
+          category: string
+          created_at?: string
+          created_by?: string | null
+          expense_date?: string
+          id?: string
+          is_cancelled?: boolean
+          lr_id?: string | null
+          lr_party_id?: string | null
+          notes?: string | null
+          paid_by?: string | null
+          paid_to?: string | null
+          payment_method?: string | null
+          payment_status?: string
+          reference?: string | null
+          responsible?: string
+          responsible_party_id?: string | null
+          scope?: string
+          trip_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          business_id?: string
+          cancel_reason?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          expense_date?: string
+          id?: string
+          is_cancelled?: boolean
+          lr_id?: string | null
+          lr_party_id?: string | null
+          notes?: string | null
+          paid_by?: string | null
+          paid_to?: string | null
+          payment_method?: string | null
+          payment_status?: string
+          reference?: string | null
+          responsible?: string
+          responsible_party_id?: string | null
+          scope?: string
+          trip_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "payment_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_lr_id_fkey"
+            columns: ["lr_id"]
+            isOneToOne: false
+            referencedRelation: "lrs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_lr_party_id_fkey"
+            columns: ["lr_party_id"]
+            isOneToOne: false
+            referencedRelation: "lr_parties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_responsible_party_id_fkey"
+            columns: ["responsible_party_id"]
+            isOneToOne: false
+            referencedRelation: "parties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ledger_entries: {
         Row: {
           account_id: string
@@ -300,6 +530,315 @@ export type Database = {
             columns: ["reversal_of"]
             isOneToOne: false
             referencedRelation: "ledger_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_adjustments: {
+        Row: {
+          amount: number
+          business_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          lr_id: string
+          reason: string
+        }
+        Insert: {
+          amount: number
+          business_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind: string
+          lr_id: string
+          reason: string
+        }
+        Update: {
+          amount?: number
+          business_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          lr_id?: string
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_adjustments_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_adjustments_lr_id_fkey"
+            columns: ["lr_id"]
+            isOneToOne: false
+            referencedRelation: "lrs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lr_parties: {
+        Row: {
+          business_id: string
+          created_at: string
+          created_by: string | null
+          delivery_point: string | null
+          goods_description: string | null
+          id: string
+          loading_point: string | null
+          lr_id: string
+          party_id: string
+          quantity: number | null
+          role: string
+          seq: number
+          weight: number | null
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          created_by?: string | null
+          delivery_point?: string | null
+          goods_description?: string | null
+          id?: string
+          loading_point?: string | null
+          lr_id: string
+          party_id: string
+          quantity?: number | null
+          role: string
+          seq?: number
+          weight?: number | null
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          created_by?: string | null
+          delivery_point?: string | null
+          goods_description?: string | null
+          id?: string
+          loading_point?: string | null
+          lr_id?: string
+          party_id?: string
+          quantity?: number | null
+          role?: string
+          seq?: number
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_parties_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_parties_lr_id_fkey"
+            columns: ["lr_id"]
+            isOneToOne: false
+            referencedRelation: "lrs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_parties_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lrs: {
+        Row: {
+          additions_total: number
+          base_freight: number
+          billing_party_id: string | null
+          business_id: string
+          cancel_reason: string | null
+          commission_amount: number
+          commission_date: string | null
+          commission_enabled: boolean
+          commission_mode: string
+          commission_notes: string | null
+          commission_payer_party_id: string | null
+          commission_reference: string | null
+          commission_status: string
+          commission_value: number
+          created_at: string
+          created_by: string | null
+          deductions_total: number
+          delivery_point: string | null
+          delivery_status: string
+          direct_payment_amount: number
+          direct_payment_enabled: boolean
+          driver_name: string | null
+          final_freight: number
+          freight_payable: number
+          freight_type: string
+          goods_description: string | null
+          id: string
+          loading_point: string | null
+          loading_stop_id: string | null
+          lr_date: string
+          lr_number: string
+          notes: string | null
+          quantity: number | null
+          rate: number | null
+          rate_unit: string
+          status: string
+          transporter_id: string | null
+          trip_id: string | null
+          unloading_stop_id: string | null
+          updated_at: string
+          vehicle_number: string | null
+          vehicle_type: string | null
+          weight: number | null
+          weight_unit: string
+        }
+        Insert: {
+          additions_total?: number
+          base_freight?: number
+          billing_party_id?: string | null
+          business_id: string
+          cancel_reason?: string | null
+          commission_amount?: number
+          commission_date?: string | null
+          commission_enabled?: boolean
+          commission_mode?: string
+          commission_notes?: string | null
+          commission_payer_party_id?: string | null
+          commission_reference?: string | null
+          commission_status?: string
+          commission_value?: number
+          created_at?: string
+          created_by?: string | null
+          deductions_total?: number
+          delivery_point?: string | null
+          delivery_status?: string
+          direct_payment_amount?: number
+          direct_payment_enabled?: boolean
+          driver_name?: string | null
+          final_freight?: number
+          freight_payable?: number
+          freight_type?: string
+          goods_description?: string | null
+          id?: string
+          loading_point?: string | null
+          loading_stop_id?: string | null
+          lr_date?: string
+          lr_number: string
+          notes?: string | null
+          quantity?: number | null
+          rate?: number | null
+          rate_unit?: string
+          status?: string
+          transporter_id?: string | null
+          trip_id?: string | null
+          unloading_stop_id?: string | null
+          updated_at?: string
+          vehicle_number?: string | null
+          vehicle_type?: string | null
+          weight?: number | null
+          weight_unit?: string
+        }
+        Update: {
+          additions_total?: number
+          base_freight?: number
+          billing_party_id?: string | null
+          business_id?: string
+          cancel_reason?: string | null
+          commission_amount?: number
+          commission_date?: string | null
+          commission_enabled?: boolean
+          commission_mode?: string
+          commission_notes?: string | null
+          commission_payer_party_id?: string | null
+          commission_reference?: string | null
+          commission_status?: string
+          commission_value?: number
+          created_at?: string
+          created_by?: string | null
+          deductions_total?: number
+          delivery_point?: string | null
+          delivery_status?: string
+          direct_payment_amount?: number
+          direct_payment_enabled?: boolean
+          driver_name?: string | null
+          final_freight?: number
+          freight_payable?: number
+          freight_type?: string
+          goods_description?: string | null
+          id?: string
+          loading_point?: string | null
+          loading_stop_id?: string | null
+          lr_date?: string
+          lr_number?: string
+          notes?: string | null
+          quantity?: number | null
+          rate?: number | null
+          rate_unit?: string
+          status?: string
+          transporter_id?: string | null
+          trip_id?: string | null
+          unloading_stop_id?: string | null
+          updated_at?: string
+          vehicle_number?: string | null
+          vehicle_type?: string | null
+          weight?: number | null
+          weight_unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lrs_billing_party_id_fkey"
+            columns: ["billing_party_id"]
+            isOneToOne: false
+            referencedRelation: "parties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lrs_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lrs_commission_payer_party_id_fkey"
+            columns: ["commission_payer_party_id"]
+            isOneToOne: false
+            referencedRelation: "parties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lrs_loading_stop_id_fkey"
+            columns: ["loading_stop_id"]
+            isOneToOne: false
+            referencedRelation: "trip_stops"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lrs_transporter_id_fkey"
+            columns: ["transporter_id"]
+            isOneToOne: false
+            referencedRelation: "transporters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lrs_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lrs_unloading_stop_id_fkey"
+            columns: ["unloading_stop_id"]
+            isOneToOne: false
+            referencedRelation: "trip_stops"
             referencedColumns: ["id"]
           },
         ]
@@ -431,6 +970,188 @@ export type Database = {
           },
         ]
       }
+      payment_allocations: {
+        Row: {
+          amount: number
+          business_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          lr_id: string
+          payment_id: string
+          target: string
+        }
+        Insert: {
+          amount: number
+          business_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lr_id: string
+          payment_id: string
+          target: string
+        }
+        Update: {
+          amount?: number
+          business_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lr_id?: string
+          payment_id?: string
+          target?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_allocations_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_lr_id_fkey"
+            columns: ["lr_id"]
+            isOneToOne: false
+            referencedRelation: "lrs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          account_id: string
+          amount: number
+          bank_account_number: string | null
+          bank_holder: string | null
+          bank_ifsc: string | null
+          bank_name: string | null
+          business_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_reversed: boolean
+          lr_id: string | null
+          mode: string
+          notes: string | null
+          party_id: string | null
+          payer_name: string | null
+          payment_date: string
+          payment_type: string
+          reference: string | null
+          reversal_reason: string | null
+          transporter_id: string | null
+          trip_id: string | null
+          txn_reference: string | null
+          updated_at: string
+          upi_id: string | null
+        }
+        Insert: {
+          account_id: string
+          amount: number
+          bank_account_number?: string | null
+          bank_holder?: string | null
+          bank_ifsc?: string | null
+          bank_name?: string | null
+          business_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_reversed?: boolean
+          lr_id?: string | null
+          mode?: string
+          notes?: string | null
+          party_id?: string | null
+          payer_name?: string | null
+          payment_date?: string
+          payment_type: string
+          reference?: string | null
+          reversal_reason?: string | null
+          transporter_id?: string | null
+          trip_id?: string | null
+          txn_reference?: string | null
+          updated_at?: string
+          upi_id?: string | null
+        }
+        Update: {
+          account_id?: string
+          amount?: number
+          bank_account_number?: string | null
+          bank_holder?: string | null
+          bank_ifsc?: string | null
+          bank_name?: string | null
+          business_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_reversed?: boolean
+          lr_id?: string | null
+          mode?: string
+          notes?: string | null
+          party_id?: string | null
+          payer_name?: string | null
+          payment_date?: string
+          payment_type?: string
+          reference?: string | null
+          reversal_reason?: string | null
+          transporter_id?: string | null
+          trip_id?: string | null
+          txn_reference?: string | null
+          updated_at?: string
+          upi_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "payment_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_lr_id_fkey"
+            columns: ["lr_id"]
+            isOneToOne: false
+            referencedRelation: "lrs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "parties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_transporter_id_fkey"
+            columns: ["transporter_id"]
+            isOneToOne: false
+            referencedRelation: "transporters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       routes: {
         Row: {
           business_id: string
@@ -474,6 +1195,149 @@ export type Database = {
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salary_entries: {
+        Row: {
+          amount: number
+          business_id: string
+          created_at: string
+          created_by: string | null
+          driver_id: string
+          due_date: string | null
+          id: string
+          is_cancelled: boolean
+          notes: string | null
+          period: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          business_id: string
+          created_at?: string
+          created_by?: string | null
+          driver_id: string
+          due_date?: string | null
+          id?: string
+          is_cancelled?: boolean
+          notes?: string | null
+          period: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          business_id?: string
+          created_at?: string
+          created_by?: string | null
+          driver_id?: string
+          due_date?: string | null
+          id?: string
+          is_cancelled?: boolean
+          notes?: string | null
+          period?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salary_entries_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salary_entries_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salary_payments: {
+        Row: {
+          account_id: string | null
+          amount: number
+          business_id: string
+          created_at: string
+          created_by: string | null
+          driver_id: string
+          id: string
+          is_reversed: boolean
+          notes: string | null
+          payment_date: string
+          payment_method: string | null
+          recovered_advance: number
+          reference: string | null
+          reversal_reason: string | null
+          salary_entry_id: string
+          updated_at: string
+        }
+        Insert: {
+          account_id?: string | null
+          amount?: number
+          business_id: string
+          created_at?: string
+          created_by?: string | null
+          driver_id: string
+          id?: string
+          is_reversed?: boolean
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          recovered_advance?: number
+          reference?: string | null
+          reversal_reason?: string | null
+          salary_entry_id: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          business_id?: string
+          created_at?: string
+          created_by?: string | null
+          driver_id?: string
+          id?: string
+          is_reversed?: boolean
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          recovered_advance?: number
+          reference?: string | null
+          reversal_reason?: string | null
+          salary_entry_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salary_payments_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "payment_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salary_payments_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salary_payments_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salary_payments_salary_entry_id_fkey"
+            columns: ["salary_entry_id"]
+            isOneToOne: false
+            referencedRelation: "salary_entries"
             referencedColumns: ["id"]
           },
         ]
@@ -531,6 +1395,180 @@ export type Database = {
             columns: ["party_id"]
             isOneToOne: false
             referencedRelation: "parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trip_stops: {
+        Row: {
+          actual_arrival: string | null
+          actual_departure: string | null
+          business_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          location: string
+          notes: string | null
+          planned_arrival: string | null
+          planned_departure: string | null
+          seq: number
+          status: string
+          stop_type: string
+          trip_id: string
+        }
+        Insert: {
+          actual_arrival?: string | null
+          actual_departure?: string | null
+          business_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          location: string
+          notes?: string | null
+          planned_arrival?: string | null
+          planned_departure?: string | null
+          seq?: number
+          status?: string
+          stop_type?: string
+          trip_id: string
+        }
+        Update: {
+          actual_arrival?: string | null
+          actual_departure?: string | null
+          business_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          location?: string
+          notes?: string | null
+          planned_arrival?: string | null
+          planned_departure?: string | null
+          seq?: number
+          status?: string
+          stop_type?: string
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_stops_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_stops_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trips: {
+        Row: {
+          business_id: string
+          cancel_reason: string | null
+          created_at: string
+          created_by: string | null
+          direction: string
+          driver_id: string | null
+          driver_name: string | null
+          id: string
+          journey_type: string
+          leg_label: string | null
+          market_vehicle_number: string | null
+          market_vehicle_type: string | null
+          notes: string | null
+          parent_trip_id: string | null
+          status: string
+          transporter_id: string | null
+          trip_date: string
+          trip_number: string
+          updated_at: string
+          vehicle_id: string | null
+          vehicle_mode: string
+        }
+        Insert: {
+          business_id: string
+          cancel_reason?: string | null
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          driver_id?: string | null
+          driver_name?: string | null
+          id?: string
+          journey_type?: string
+          leg_label?: string | null
+          market_vehicle_number?: string | null
+          market_vehicle_type?: string | null
+          notes?: string | null
+          parent_trip_id?: string | null
+          status?: string
+          transporter_id?: string | null
+          trip_date?: string
+          trip_number: string
+          updated_at?: string
+          vehicle_id?: string | null
+          vehicle_mode?: string
+        }
+        Update: {
+          business_id?: string
+          cancel_reason?: string | null
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          driver_id?: string | null
+          driver_name?: string | null
+          id?: string
+          journey_type?: string
+          leg_label?: string | null
+          market_vehicle_number?: string | null
+          market_vehicle_type?: string | null
+          notes?: string | null
+          parent_trip_id?: string | null
+          status?: string
+          transporter_id?: string | null
+          trip_date?: string
+          trip_number?: string
+          updated_at?: string
+          vehicle_id?: string | null
+          vehicle_mode?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trips_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_parent_trip_id_fkey"
+            columns: ["parent_trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_transporter_id_fkey"
+            columns: ["transporter_id"]
+            isOneToOne: false
+            referencedRelation: "transporters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trips_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
         ]
@@ -618,6 +1656,25 @@ export type Database = {
         Returns: boolean
       }
       is_business_member: { Args: { p_business_id: string }; Returns: boolean }
+      ledger_set: {
+        Args: {
+          p_account_id: string
+          p_account_type: string
+          p_business_id: string
+          p_credit: number
+          p_debit: number
+          p_description: string
+          p_entry_date: string
+          p_line_kind: string
+          p_source_id: string
+          p_source_table: string
+        }
+        Returns: undefined
+      }
+      lr_billing_party: {
+        Args: { p_lr: Database["public"]["Tables"]["lrs"]["Row"] }
+        Returns: string
+      }
       next_doc_number: {
         Args: { p_business_id: string; p_doc_type: string }
         Returns: string
@@ -637,6 +1694,8 @@ export type Database = {
         }
         Returns: undefined
       }
+      save_lr: { Args: { p: Json }; Returns: string }
+      save_trip: { Args: { p: Json }; Returns: string }
       setup_available: { Args: never; Returns: boolean }
       system_rls_status: {
         Args: never
