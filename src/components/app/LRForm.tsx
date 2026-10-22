@@ -12,7 +12,7 @@ import { Field, Money } from "./ui";
 import { Section, selectCls } from "./Section";
 import { SearchSelect } from "./SearchSelect";
 import { errorMessage } from "./states";
-import { useParties, useTransporters, createPartyInline, createTransporterInline, EXPENSE_CATEGORIES, PAY_MODES, FREIGHT_TYPE, LR_DELIVERY } from "@/lib/lookups";
+import { useParties, useDrivers, useTransporters, createPartyInline, createTransporterInline, EXPENSE_CATEGORIES, PAY_MODES, FREIGHT_TYPE, LR_DELIVERY } from "@/lib/lookups";
 import { calcFreight, validateFreight, RATE_UNIT_LABEL, type RateUnit, type WeightUnit } from "@/lib/freight";
 import { formatINR, todayIST } from "@/lib/format";
 
@@ -31,11 +31,11 @@ export function blankLR(tripId?: string): LRValues {
 export function LRForm({ initial }: { initial: LRValues }) {
   const nav = useNavigate();
   const qc = useQueryClient();
-  const parties = useParties(); const transporters = useTransporters();
+  const parties = useParties(); const transporters = useTransporters(); const drivers = useDrivers();
   const trips = useQuery({
     queryKey: ["trips-pick"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("trips").select("id, trip_number, trip_date, status, transporter_id, market_vehicle_number, driver_name, trip_stops(id, location, seq)").neq("status", "cancelled").order("trip_date", { ascending: false }).limit(300);
+      const { data, error } = await supabase.from("trips").select("id, trip_number, trip_date, status, transporter_id, market_vehicle_number, driver_id, driver_name, trip_stops(id, location, seq)").neq("status", "cancelled").order("trip_date", { ascending: false }).limit(300);
       if (error) throw error;
       return data;
     },
@@ -66,13 +66,15 @@ export function LRForm({ initial }: { initial: LRValues }) {
     if (v.parties.some((p) => !p.party_id)) return setErr("Choose a party for every consignor/consignee row (or remove the empty row)");
     if (Number(v.freight_payable) < 0) return setErr("Freight payable cannot be negative");
     if (v.direct_payment_enabled && !(Number(v.direct_payment_amount) > 0)) return setErr("Enter the amount the consignee paid the driver directly");
+    if (v.commission_enabled && !v.driver_id && !v.driver_name?.trim() && !trip?.driver_id && !trip?.driver_name) return setErr("Choose or type the driver who owes the commission");
+    if (initial.commission_enabled && !v.commission_enabled && !v.commission_cancel_reason?.trim()) return setErr("Enter a reason for turning commission off");
     for (const p of v.parties) for (const e of p.expenses) if (!(Number(e.amount) > 0)) return setErr("Every consignor/consignee expense needs an amount");
     setBusy(true);
     try {
       const { data, error } = await supabase.rpc("save_lr", { p: v as never });
       if (error) throw error;
       toast.success("LR saved");
-      qc.invalidateQueries({ queryKey: ["lrs"] }); qc.invalidateQueries({ queryKey: ["lr", data] }); qc.invalidateQueries({ queryKey: ["trip"] }); qc.invalidateQueries({ queryKey: ["ledger"] });
+      qc.invalidateQueries();
       nav({ to: "/lr/$id", params: { id: data as string } });
     } catch (e) {
       const m = errorMessage(e);
@@ -121,7 +123,6 @@ export function LRForm({ initial }: { initial: LRValues }) {
   );
 
   const firstConsignor = v.parties.find((p) => p.role === "consignor")?.party_id;
-  const consigneeIds = v.parties.filter((p) => p.role === "consignee" && p.party_id).map((p) => p.party_id);
   const payer = v.freight_type === "paid" ? firstConsignor : v.freight_type === "to_pay" ? v.parties.find((p) => p.role === "consignee")?.party_id : v.billing_party_id || firstConsignor;
   const dp = v.direct_payment_enabled ? Math.min(Number(v.direct_payment_amount || 0), calc.final) : 0;
 
@@ -189,7 +190,8 @@ export function LRForm({ initial }: { initial: LRValues }) {
               onCreate={async (t) => { const id = await createTransporterInline(t); qc.invalidateQueries({ queryKey: ["transporters"] }); return id; }} createLabel="Add transporter" /></Field>
           <Field label="Vehicle number"><Input value={v.vehicle_number ?? ""} onChange={(e) => set("vehicle_number", e.target.value)} /></Field>
           <Field label="Vehicle name/type"><Input value={v.vehicle_type ?? ""} onChange={(e) => set("vehicle_type", e.target.value)} /></Field>
-          <Field label="Driver"><Input value={v.driver_name ?? ""} onChange={(e) => set("driver_name", e.target.value)} /></Field>
+          <Field label="Registered driver"><SearchSelect value={v.driver_id ?? ""} onChange={(id) => setV({ ...v, driver_id: id, driver_name: drivers.data?.find((d) => d.id === id)?.name ?? "" })} options={(drivers.data ?? []).map((d) => ({ value: d.id, label: d.name }))} placeholder="Choose driver" /></Field>
+          {!v.driver_id && <Field label="Driver name"><Input aria-label="Driver name" value={v.driver_name ?? ""} onChange={(e) => set("driver_name", e.target.value)} placeholder={trip?.driver_name ?? "Type driver name"} /></Field>}
           <Field label="Freight payable to transporter (₹)" hint="This does NOT record a payment"><Input type="number" min="0" value={v.freight_payable ?? ""} onChange={(e) => set("freight_payable", e.target.value)} /></Field>
         </div>
         <p className="mt-2 text-xs text-muted-foreground">Amount paid and remaining are calculated from real payments and advances (see Transporter Settlements).</p>
@@ -204,14 +206,12 @@ export function LRForm({ initial }: { initial: LRValues }) {
           {v.commission_enabled && <>
             <Field label="Commission type"><select className={selectCls} value={v.commission_mode} onChange={(e) => set("commission_mode", e.target.value)}><option value="percent">% of freight</option><option value="fixed">Fixed ₹</option></select></Field>
             <Field label={v.commission_mode === "percent" ? "Percent (%)" : "Amount (₹)"}><Input type="number" min="0" value={v.commission_value ?? ""} onChange={(e) => set("commission_value", e.target.value)} /></Field>
-            <Field label="Who pays commission"><select className={selectCls} value={v.commission_payer_party_id ?? ""} onChange={(e) => set("commission_payer_party_id", e.target.value)}><option value="">First consignee (default)</option>{v.parties.filter((p) => p.party_id).map((p, i) => <option key={i} value={p.party_id}>{parties.data?.find((x) => x.id === p.party_id)?.name} ({p.role})</option>)}</select></Field>
-            <Field label="Status"><select className={selectCls} value={v.commission_status} onChange={(e) => set("commission_status", e.target.value)}><option value="pending">Pending</option><option value="received">Received</option></select></Field>
             <Field label="Date"><Input type="date" value={v.commission_date ?? ""} onChange={(e) => set("commission_date", e.target.value)} /></Field>
             <Field label="Reference"><Input value={v.commission_reference ?? ""} onChange={(e) => set("commission_reference", e.target.value)} /></Field>
             <div className="sm:col-span-2"><Field label="Notes"><Input value={v.commission_notes ?? ""} onChange={(e) => set("commission_notes", e.target.value)} /></Field></div>
-            <p className="text-sm sm:col-span-4">Commission: <Money value={commission} /> ({v.commission_status === "pending" ? "pending — not counted as income" : "received"})</p>
+            <p className="text-sm sm:col-span-4">Commission due from driver: <Money value={commission} /> · {v.driver_name || drivers.data?.find((d) => d.id === (v.driver_id || trip?.driver_id))?.name || trip?.driver_name || "Choose driver"}</p>
           </>}
-          {consigneeIds.length === 0 && v.commission_enabled && <p className="text-xs text-destructive sm:col-span-4">Add a consignee first.</p>}
+          {initial.commission_enabled && !v.commission_enabled && <Field label="Reason for turning commission off" required><Input value={v.commission_cancel_reason ?? ""} onChange={(e) => set("commission_cancel_reason", e.target.value)} /></Field>}
         </div>
       </Section>
 

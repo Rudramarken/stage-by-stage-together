@@ -7,3 +7,6 @@
 - [x] Stage 6 Ledgers, outstanding, dashboard, reports
 - [x] Self sign-up with Owner approval
 - [ ] Stage 7 full test pass — waiting on owner's manual testing in preview
+- [ ] Driver-paid commission: safe ledger postings, normalized driver linking, partial receipts and cancellation
+- [ ] Commission screens, reports, outstanding and trip totals; confirmed salary recovery
+- [ ] Commission TEST record checks and honest verification report

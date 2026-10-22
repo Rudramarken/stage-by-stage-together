@@ -15,6 +15,13 @@
       "when": 1792648179712,
       "tag": "0001_stages_3_to_6",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792654816827,
+      "tag": "0002_driver_commissions_receipts_recovery",
+      "breakpoints": true
     }
   ]
 }
