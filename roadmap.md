@@ -1,8 +1,9 @@
 # Gokul Cargo Movers — roadmap
-- [x] Stage 1 Foundation (auth, setup, settings, users, numbering, audit, ledger table, system check)
-- [x] Stage 2 Masters (parties + opening balance, drivers, vehicles, routes, transporters, cash/bank accounts)
-- [ ] Stage 3 Trips
-- [ ] Stage 4 LR / Bilty
-- [ ] Stage 5 Money (expenses, advances, payments, third-party, settlements, salary, driver ledger)
-- [ ] Stage 6 Ledgers, outstanding, dashboard, reports
-- [ ] Stage 7 Hardening & test pass
+- [x] Stage 1 Foundation
+- [x] Stage 2 Masters
+- [x] Stage 3 Trips (stops, legs/round trip, stop-by-stop delivery)
+- [x] Stage 4 LR / Bilty (multi consignor/consignee, freight calc, transporter payable, commission, print)
+- [x] Stage 5 Money (trip expenses, advances, payments, third-party, settlements, salary, driver ledger)
+- [x] Stage 6 Ledgers, outstanding, dashboard, reports
+- [x] Self sign-up with Owner approval
+- [ ] Stage 7 full test pass — waiting on owner's manual testing in preview
