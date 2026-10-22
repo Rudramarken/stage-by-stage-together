@@ -29,6 +29,13 @@
       "when": 1792655103577,
       "tag": "0003_separate_direct_payment_ledger_lines",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792655310447,
+      "tag": "0004_refresh_trip_percentage_without_lr_commission",
+      "breakpoints": true
     }
   ]
 }
