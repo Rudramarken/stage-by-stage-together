@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -9,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/audit")({
-  head: () => ({ meta: [{ title: "Audit Log — Gokul Cargo Movers" }] }),
+  head: () => pageHead("Audit Log — Gokul Cargo Movers", "Audit Log records for Gokul Cargo Movers transport management."),
   component: AuditPage,
 });
 

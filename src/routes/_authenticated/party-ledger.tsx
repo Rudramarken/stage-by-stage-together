@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -8,7 +9,7 @@ import { LedgerTable, LedgerHelp } from "@/components/app/LedgerTable";
 import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/_authenticated/party-ledger")({
-  head: () => ({ meta: [{ title: "Party Ledger — Gokul Cargo Movers" }] }),
+  head: () => pageHead("Party Ledger — Gokul Cargo Movers", "Party Ledger records for Gokul Cargo Movers transport management."),
   component: PartyLedger,
 });
 

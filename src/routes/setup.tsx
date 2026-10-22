@@ -12,6 +12,8 @@ import { AuthCard } from "./auth";
 export const Route = createFileRoute("/setup")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { title: "First-time setup — Gokul Cargo Movers" },
       { name: "description", content: "Create the Gokul Cargo Movers business and first Owner account." },
       { property: "og:title", content: "First-time setup — Gokul Cargo Movers" },

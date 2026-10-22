@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Eye } from "lucide-react";
@@ -14,7 +15,7 @@ export const PARTY_ROLES = [
 ];
 
 export const Route = createFileRoute("/_authenticated/parties/")({
-  head: () => ({ meta: [{ title: "Parties — Gokul Cargo Movers" }] }),
+  head: () => pageHead("Parties — Gokul Cargo Movers", "Parties records for Gokul Cargo Movers transport management."),
   component: PartiesPage,
 });
 

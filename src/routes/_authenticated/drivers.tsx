@@ -1,9 +1,10 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { MasterCrud } from "@/components/app/MasterCrud";
 import { formatDate } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/drivers")({
-  head: () => ({ meta: [{ title: "Drivers — Gokul Cargo Movers" }] }),
+  head: () => pageHead("Drivers — Gokul Cargo Movers", "Drivers records for Gokul Cargo Movers transport management."),
   component: () => (
     <MasterCrud table="drivers" title="Drivers" singular="Driver" orderBy="name"
       description="Your drivers. On a trip you can also type any driver's name without adding them here."

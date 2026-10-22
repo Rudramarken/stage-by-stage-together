@@ -1,8 +1,9 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { MasterCrud } from "@/components/app/MasterCrud";
 
 export const Route = createFileRoute("/_authenticated/routes")({
-  head: () => ({ meta: [{ title: "Routes — Gokul Cargo Movers" }] }),
+  head: () => pageHead("Routes — Gokul Cargo Movers", "Routes records for Gokul Cargo Movers transport management."),
   component: () => (
     <MasterCrud table="routes" title="Routes" singular="Route" orderBy="origin"
       description="Optional list of common routes. You can always type any place on a trip."

@@ -7,7 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Field } from "./ui";
+import { Switch } from "@/components/ui/switch";
+import { Field, Money } from "./ui";
 import { Section, selectCls } from "./Section";
 import { SearchSelect } from "./SearchSelect";
 import { errorMessage } from "./states";
@@ -56,14 +57,15 @@ export function TripForm({ initial }: { initial?: TripValues }) {
     if (v.stops.some((s) => !s.location.trim())) return setErr("Every stop needs a location");
     if (v.vehicle_mode === "market" && !v.market_vehicle_number?.trim()) return setErr("Enter the market truck's vehicle number");
     if (v.status === "cancelled" && !v.cancel_reason?.trim()) return setErr("Enter a reason for cancelling");
+    if (v.commission_enabled && !v.driver_id && !v.driver_name?.trim()) return setErr("Choose or type the driver who owes commission");
+    if (initial?.commission_enabled && !v.commission_enabled && !v.commission_cancel_reason?.trim()) return setErr("Enter a reason for turning commission off");
     setBusy(true);
     try {
       const payload = { ...v, stops: v.stops.map((s) => ({ ...s, planned_arrival: s.planned_arrival ? new Date(s.planned_arrival).toISOString() : "", actual_arrival: s.actual_arrival ? new Date(s.actual_arrival).toISOString() : "" })) };
       const { data, error } = await supabase.rpc("save_trip", { p: payload as never });
       if (error) throw error;
       toast.success("Trip saved");
-      qc.invalidateQueries({ queryKey: ["trips"] });
-      qc.invalidateQueries({ queryKey: ["trip", data] });
+      qc.invalidateQueries();
       nav({ to: "/trips/$id", params: { id: data as string } });
     } catch (e) { setErr(errorMessage(e)); } finally { setBusy(false); }
   }
@@ -120,7 +122,7 @@ export function TripForm({ initial }: { initial?: TripValues }) {
               onCreate={async (t) => { const id = await createTransporterInline(t); qc.invalidateQueries({ queryKey: ["transporters"] }); return id; }} createLabel="Add transporter" />
           </Field>
           <Field label="Registered driver">
-            <SearchSelect value={v.driver_id} onChange={(x) => set("driver_id", x)} placeholder="Choose driver"
+            <SearchSelect value={v.driver_id} onChange={(x) => setV({ ...v, driver_id: x, driver_name: "" })} placeholder="Choose driver"
               options={(drivers.data ?? []).filter((x) => x.is_active || x.id === v.driver_id).map((x) => ({ value: x.id, label: x.name, hint: x.phone ?? "" }))} />
           </Field>
           {!v.driver_id && <Field label="…or type driver name"><Input value={v.driver_name ?? ""} onChange={(e) => set("driver_name", e.target.value)} /></Field>}
@@ -131,7 +133,7 @@ export function TripForm({ initial }: { initial?: TripValues }) {
         {(routes.data?.length ?? 0) > 0 && (
           <div className="mb-3 max-w-sm"><Field label="Fill first/last stop from a saved route (optional)">
             <select className={selectCls} defaultValue="" onChange={(e) => applyRoute(e.target.value)}>
-              <option value="">—</option>{routes.data!.filter((r) => r.is_active).map((r) => <option key={r.id} value={r.id}>{r.origin} → {r.destination}</option>)}
+              <option value="">—</option>{(routes.data ?? []).filter((r) => r.is_active).map((r) => <option key={r.id} value={r.id}>{r.origin} → {r.destination}</option>)}
             </select></Field></div>
         )}
         <p className="mb-3 text-sm font-medium text-primary">{summary}</p>
@@ -164,6 +166,18 @@ export function TripForm({ initial }: { initial?: TripValues }) {
       </Section>
       <Section n={5} title="Expenses & driver advances" defaultOpen={false}>
         <p className="text-sm text-muted-foreground">After saving, add expenses and advances on the trip page (each entry saved separately).</p>
+      </Section>
+      <Section title="Driver commission (optional)" defaultOpen={!!v.commission_enabled}>
+        <label className="flex items-center gap-2 text-sm"><Switch checked={!!v.commission_enabled} onCheckedChange={(enabled) => set("commission_enabled", enabled)} />Commission applicable?</label>
+        {v.commission_enabled && <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          <Field label="Commission type"><select className={selectCls} value={v.commission_mode ?? "fixed"} onChange={(e) => set("commission_mode", e.target.value)}><option value="fixed">Fixed ₹</option><option value="percent">% of this trip's LR freight</option></select></Field>
+          <Field label={v.commission_mode === "percent" ? "Percent (%)" : "Amount (₹)"}><Input type="number" min="0" value={v.commission_value ?? ""} onChange={(e) => set("commission_value", e.target.value)} /></Field>
+          <Field label="Date"><Input type="date" value={v.commission_date ?? ""} onChange={(e) => set("commission_date", e.target.value)} /></Field>
+          <Field label="Reference"><Input value={v.commission_reference ?? ""} onChange={(e) => set("commission_reference", e.target.value)} /></Field>
+          <Field label="Notes"><Input value={v.commission_notes ?? ""} onChange={(e) => set("commission_notes", e.target.value)} /></Field>
+          <p className="text-sm">Commission due from driver: <Money value={v.commission_mode === "percent" ? v.commission_amount ?? 0 : v.commission_value ?? 0} /></p>
+        </div>}
+        {initial?.commission_enabled && !v.commission_enabled && <Field label="Reason for turning commission off" required><Input value={v.commission_cancel_reason ?? ""} onChange={(e) => set("commission_cancel_reason", e.target.value)} /></Field>}
       </Section>
       <Section n={6} title="Summary">
         <dl className="grid gap-2 text-sm sm:grid-cols-2">

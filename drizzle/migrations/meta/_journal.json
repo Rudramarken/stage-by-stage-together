@@ -15,6 +15,27 @@
       "when": 1792648179712,
       "tag": "0001_stages_3_to_6",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792654816827,
+      "tag": "0002_driver_commissions_receipts_recovery",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792655103577,
+      "tag": "0003_separate_direct_payment_ledger_lines",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792655310447,
+      "tag": "0004_refresh_trip_percentage_without_lr_commission",
+      "breakpoints": true
     }
   ]
 }

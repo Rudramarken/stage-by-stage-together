@@ -6,6 +6,8 @@ export const Route = createFileRoute("/")({
   },
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { title: "Gokul Cargo Movers" },
       { name: "description", content: "Transport management for Gokul Cargo Movers." },
       { property: "og:title", content: "Gokul Cargo Movers" },

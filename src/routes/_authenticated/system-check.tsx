@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
@@ -9,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { errorMessage } from "@/components/app/states";
 
 export const Route = createFileRoute("/_authenticated/system-check")({
-  head: () => ({ meta: [{ title: "System Check — Gokul Cargo Movers" }] }),
+  head: () => pageHead("System Check — Gokul Cargo Movers", "System Check records for Gokul Cargo Movers transport management."),
   component: SystemCheck,
 });
 

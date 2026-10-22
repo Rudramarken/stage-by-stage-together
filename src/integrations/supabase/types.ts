@@ -262,6 +262,103 @@ export type Database = {
         }
         Relationships: []
       }
+      commission_receipts: {
+        Row: {
+          account_id: string | null
+          amount: number
+          business_id: string
+          commission_id: string
+          created_at: string
+          created_by: string | null
+          driver_id: string
+          id: string
+          is_reversed: boolean
+          notes: string | null
+          receipt_date: string
+          reference: string | null
+          request_id: string
+          reversal_reason: string | null
+          salary_payment_id: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          amount: number
+          business_id: string
+          commission_id: string
+          created_at?: string
+          created_by?: string | null
+          driver_id: string
+          id?: string
+          is_reversed?: boolean
+          notes?: string | null
+          receipt_date?: string
+          reference?: string | null
+          request_id: string
+          reversal_reason?: string | null
+          salary_payment_id?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          business_id?: string
+          commission_id?: string
+          created_at?: string
+          created_by?: string | null
+          driver_id?: string
+          id?: string
+          is_reversed?: boolean
+          notes?: string | null
+          receipt_date?: string
+          reference?: string | null
+          request_id?: string
+          reversal_reason?: string | null
+          salary_payment_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_receipts_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "payment_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_receipts_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_receipts_commission_id_fkey"
+            columns: ["commission_id"]
+            isOneToOne: false
+            referencedRelation: "commission_balances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_receipts_commission_id_fkey"
+            columns: ["commission_id"]
+            isOneToOne: false
+            referencedRelation: "driver_commissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_receipts_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_receipts_salary_payment_id_fkey"
+            columns: ["salary_payment_id"]
+            isOneToOne: false
+            referencedRelation: "salary_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       doc_sequences: {
         Row: {
           business_id: string
@@ -284,6 +381,83 @@ export type Database = {
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      driver_commissions: {
+        Row: {
+          amount: number
+          business_id: string
+          cancel_reason: string | null
+          commission_date: string
+          created_at: string
+          created_by: string | null
+          driver_id: string
+          id: string
+          is_cancelled: boolean
+          lr_id: string | null
+          notes: string | null
+          reference: string | null
+          trip_id: string | null
+        }
+        Insert: {
+          amount: number
+          business_id: string
+          cancel_reason?: string | null
+          commission_date?: string
+          created_at?: string
+          created_by?: string | null
+          driver_id: string
+          id?: string
+          is_cancelled?: boolean
+          lr_id?: string | null
+          notes?: string | null
+          reference?: string | null
+          trip_id?: string | null
+        }
+        Update: {
+          amount?: number
+          business_id?: string
+          cancel_reason?: string | null
+          commission_date?: string
+          created_at?: string
+          created_by?: string | null
+          driver_id?: string
+          id?: string
+          is_cancelled?: boolean
+          lr_id?: string | null
+          notes?: string | null
+          reference?: string | null
+          trip_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_commissions_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_commissions_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_commissions_lr_id_fkey"
+            columns: ["lr_id"]
+            isOneToOne: true
+            referencedRelation: "lrs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_commissions_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: true
+            referencedRelation: "trips"
             referencedColumns: ["id"]
           },
         ]
@@ -660,6 +834,7 @@ export type Database = {
           business_id: string
           cancel_reason: string | null
           commission_amount: number
+          commission_cancel_reason: string | null
           commission_date: string | null
           commission_enabled: boolean
           commission_mode: string
@@ -675,6 +850,7 @@ export type Database = {
           delivery_status: string
           direct_payment_amount: number
           direct_payment_enabled: boolean
+          driver_id: string | null
           driver_name: string | null
           final_freight: number
           freight_payable: number
@@ -706,6 +882,7 @@ export type Database = {
           business_id: string
           cancel_reason?: string | null
           commission_amount?: number
+          commission_cancel_reason?: string | null
           commission_date?: string | null
           commission_enabled?: boolean
           commission_mode?: string
@@ -721,6 +898,7 @@ export type Database = {
           delivery_status?: string
           direct_payment_amount?: number
           direct_payment_enabled?: boolean
+          driver_id?: string | null
           driver_name?: string | null
           final_freight?: number
           freight_payable?: number
@@ -752,6 +930,7 @@ export type Database = {
           business_id?: string
           cancel_reason?: string | null
           commission_amount?: number
+          commission_cancel_reason?: string | null
           commission_date?: string | null
           commission_enabled?: boolean
           commission_mode?: string
@@ -767,6 +946,7 @@ export type Database = {
           delivery_status?: string
           direct_payment_amount?: number
           direct_payment_enabled?: boolean
+          driver_id?: string | null
           driver_name?: string | null
           final_freight?: number
           freight_payable?: number
@@ -811,6 +991,13 @@ export type Database = {
             columns: ["commission_payer_party_id"]
             isOneToOne: false
             referencedRelation: "parties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lrs_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
             referencedColumns: ["id"]
           },
           {
@@ -1270,6 +1457,7 @@ export type Database = {
           payment_date: string
           payment_method: string | null
           recovered_advance: number
+          recovered_commission: number
           reference: string | null
           reversal_reason: string | null
           salary_entry_id: string
@@ -1288,6 +1476,7 @@ export type Database = {
           payment_date?: string
           payment_method?: string | null
           recovered_advance?: number
+          recovered_commission?: number
           reference?: string | null
           reversal_reason?: string | null
           salary_entry_id: string
@@ -1306,6 +1495,7 @@ export type Database = {
           payment_date?: string
           payment_method?: string | null
           recovered_advance?: number
+          recovered_commission?: number
           reference?: string | null
           reversal_reason?: string | null
           salary_entry_id?: string
@@ -1469,6 +1659,14 @@ export type Database = {
         Row: {
           business_id: string
           cancel_reason: string | null
+          commission_amount: number
+          commission_cancel_reason: string | null
+          commission_date: string | null
+          commission_enabled: boolean
+          commission_mode: string
+          commission_notes: string | null
+          commission_reference: string | null
+          commission_value: number
           created_at: string
           created_by: string | null
           direction: string
@@ -1492,6 +1690,14 @@ export type Database = {
         Insert: {
           business_id: string
           cancel_reason?: string | null
+          commission_amount?: number
+          commission_cancel_reason?: string | null
+          commission_date?: string | null
+          commission_enabled?: boolean
+          commission_mode?: string
+          commission_notes?: string | null
+          commission_reference?: string | null
+          commission_value?: number
           created_at?: string
           created_by?: string | null
           direction?: string
@@ -1515,6 +1721,14 @@ export type Database = {
         Update: {
           business_id?: string
           cancel_reason?: string | null
+          commission_amount?: number
+          commission_cancel_reason?: string | null
+          commission_date?: string | null
+          commission_enabled?: boolean
+          commission_mode?: string
+          commission_notes?: string | null
+          commission_reference?: string | null
+          commission_value?: number
           created_at?: string
           created_by?: string | null
           direction?: string
@@ -1644,6 +1858,57 @@ export type Database = {
           },
         ]
       }
+      commission_balances: {
+        Row: {
+          amount: number | null
+          business_id: string | null
+          cancel_reason: string | null
+          cash_received_amount: number | null
+          commission_date: string | null
+          created_at: string | null
+          created_by: string | null
+          document_number: string | null
+          driver_id: string | null
+          id: string | null
+          is_cancelled: boolean | null
+          lr_id: string | null
+          notes: string | null
+          pending_amount: number | null
+          received_amount: number | null
+          reference: string | null
+          trip_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_commissions_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_commissions_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_commissions_lr_id_fkey"
+            columns: ["lr_id"]
+            isOneToOne: true
+            referencedRelation: "lrs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_commissions_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: true
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       current_business_id: { Args: never; Returns: string }
@@ -1692,6 +1957,15 @@ export type Database = {
           p_source_id: string
           p_source_table: string
         }
+        Returns: undefined
+      }
+      record_commission_receipt: { Args: { p: Json }; Returns: string }
+      resolve_driver: {
+        Args: { p_business: string; p_name: string }
+        Returns: string
+      }
+      reverse_commission_receipt: {
+        Args: { p_id: string; p_reason: string }
         Returns: undefined
       }
       save_lr: { Args: { p: Json }; Returns: string }

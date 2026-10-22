@@ -1,3 +1,4 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
@@ -10,7 +11,7 @@ import { formatDate } from "@/lib/format";
 import { PARTY_ROLES } from "./parties.index";
 
 export const Route = createFileRoute("/_authenticated/parties/$id")({
-  head: () => ({ meta: [{ title: "Party details — Gokul Cargo Movers" }] }),
+  head: () => pageHead("Party details — Gokul Cargo Movers", "Party details records for Gokul Cargo Movers transport management."),
   component: PartyDetail,
 });
 

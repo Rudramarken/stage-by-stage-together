@@ -1,7 +1,9 @@
+import { pageHead } from "@/lib/page-head";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowLeft, Pencil, Printer, Ban, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Pencil, Printer, Ban } from "lucide-react";
+import { CommissionPanel } from "@/components/app/CommissionPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { Money, StatusBadge } from "@/components/app/ui";
 import { LoadingState, ErrorState, errorMessage } from "@/components/app/states";
@@ -13,7 +15,7 @@ import { RATE_UNIT_LABEL } from "@/lib/freight";
 import { formatDate, formatINR } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/lr/$id/")({
-  head: () => ({ meta: [{ title: "LR details — Gokul Cargo Movers" }] }),
+  head: () => pageHead("LR details — Gokul Cargo Movers", "LR details records for Gokul Cargo Movers transport management."),
   component: LRDetail,
 });
 
@@ -44,8 +46,6 @@ function LRDetail() {
       <div className="no-print flex flex-wrap gap-2">
         <Button asChild variant="ghost" size="sm"><Link to="/lr"><ArrowLeft className="mr-1 h-4 w-4" />LR register</Link></Button>
         <div className="ml-auto flex flex-wrap gap-2">
-          {lr.commission_enabled && lr.commission_status === "pending" && lr.status === "active" &&
-            <Button variant="outline" disabled={upd.isPending} onClick={() => upd.mutate({ commission_status: "received", commission_date: lr.commission_date ?? new Date().toISOString().slice(0, 10) })}><CheckCircle2 className="mr-1 h-4 w-4" />Mark commission received</Button>}
           <Button variant="outline" onClick={() => window.print()}><Printer className="mr-1 h-4 w-4" />Print</Button>
           {lr.status === "active" && <Button variant="outline" disabled={upd.isPending} onClick={() => { const r = window.prompt("Reason for cancelling this LR (required):"); if (r?.trim()) upd.mutate({ status: "cancelled", cancel_reason: r.trim() }); }}><Ban className="mr-1 h-4 w-4" />Cancel LR</Button>}
           {lr.status === "active" && <Button asChild><Link to="/lr/$id/edit" params={{ id }}><Pencil className="mr-1 h-4 w-4" />Edit</Link></Button>}
@@ -98,8 +98,8 @@ function LRDetail() {
         <div><p className="text-muted-foreground">Transporter</p><p>{nameOf(transporters.data, lr.transporter_id) || "—"}</p></div>
         <div><p className="text-muted-foreground">Freight payable to transporter</p><p><Money value={lr.freight_payable} /> <span className="text-xs text-muted-foreground">(paid/remaining in Transporter Settlements)</span></p></div>
         <div><p className="text-muted-foreground">Direct payment to driver</p><p>{lr.direct_payment_enabled ? <Money value={lr.direct_payment_amount} /> : "No"}</p></div>
-        <div><p className="text-muted-foreground">Commission</p><p>{lr.commission_enabled ? <><Money value={lr.commission_amount} /> <StatusBadge tone={lr.commission_status === "received" ? "success" : "warning"}>{lr.commission_status}</StatusBadge></> : "Off"}</p></div>
       </div>
+      <div className="no-print"><CommissionPanel lrId={id} /></div>
     </div>
   );
 }
