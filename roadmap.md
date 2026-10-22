@@ -14,3 +14,4 @@
 - [x] Complete the re-uploaded list-actions request without changing real records or owner access (remaining safety restrictions documented)
 - [x] Guarded cancellation and owner-only unused-record deletion with audit history
 - [x] Verify LR edits preserve records and amounts; TEST-only checks and honest report in list-actions-test-report.md
+- [x] Refresh shared navigation, controls and list layouts; signed-in LR/trip/payment lists checked at 390px, 492px and laptop width; automated accessibility checks passed, no records changed

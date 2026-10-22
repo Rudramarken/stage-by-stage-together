@@ -52,11 +52,11 @@ function TripsList() {
     <div>
       <PageHeader title="Trips" description="Every journey leg. Search by trip no., place, vehicle, driver, LR or party."
         actions={<Button asChild><Link to="/trips/new"><Plus className="mr-1 h-4 w-4" />New trip</Link></Button>} />
-      <div className="mb-4 grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
-        <Input className="lg:col-span-2" placeholder="Search…" value={f.search} onChange={(e) => { setF({ ...f, search: e.target.value }); setPage(0); }} />
-        <select className={selectCls} value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })}><option value="">All statuses</option>{Object.entries(TRIP_STATUS).map(([k, s]) => <option key={k} value={k}>{s.label}</option>)}</select>
-        <select className={selectCls} value={f.transporter} onChange={(e) => setF({ ...f, transporter: e.target.value })}><option value="">All transporters</option>{transporters.data?.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
-        <select className={selectCls} value={f.driver} onChange={(e) => setF({ ...f, driver: e.target.value })}><option value="">All drivers</option>{drivers.data?.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
+      <div role="search" aria-label="Filter trips" className="list-filters mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+        <Input aria-label="Search trips" className="sm:col-span-2" placeholder="Search trip, vehicle, driver, LR or party…" value={f.search} onChange={(e) => { setF({ ...f, search: e.target.value }); setPage(0); }} />
+        <select aria-label="Trip status" className={selectCls} value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })}><option value="">All statuses</option>{Object.entries(TRIP_STATUS).map(([k, s]) => <option key={k} value={k}>{s.label}</option>)}</select>
+        <select aria-label="Transporter" className={selectCls} value={f.transporter} onChange={(e) => setF({ ...f, transporter: e.target.value })}><option value="">All transporters</option>{transporters.data?.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
+        <select aria-label="Driver" className={selectCls} value={f.driver} onChange={(e) => setF({ ...f, driver: e.target.value })}><option value="">All drivers</option>{drivers.data?.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
         <div className={dateRangeCls}><Input type="date" value={f.from} onChange={(e) => setF({ ...f, from: e.target.value })} title="From" aria-label="From date" /><Input type="date" value={f.to} onChange={(e) => setF({ ...f, to: e.target.value })} title="To" aria-label="To date" /></div>
       </div>
       {q.isPending ? <LoadingState /> : q.isError ? <ErrorState error={q.error} onRetry={() => q.refetch()} /> : rows.length === 0 ? (

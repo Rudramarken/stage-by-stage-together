@@ -98,7 +98,7 @@ export function LRForm({ initial }: { initial: LRValues }) {
             <div className="sm:col-span-3"><Field label="Delivery point"><Input value={p.delivery_point ?? ""} onChange={(e) => setP(i, { delivery_point: e.target.value })} /></Field></div>
           </div>
           <div className="mt-3 rounded bg-muted/50 p-3">
-            <div className="mb-2 flex items-center justify-between"><p className="text-sm font-medium">{role === "consignor" ? "Consignor" : "Consignee"} expenses</p>
+            <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2"><p className="min-w-0 text-sm font-medium">{role === "consignor" ? "Consignor" : "Consignee"} expenses</p>
               <Button type="button" size="sm" variant="outline" onClick={() => setP(i, { expenses: [...p.expenses, { category: "Loading/Unloading", expense_date: todayIST(), responsible: "gokul", payment_status: "paid", payment_method: "cash" }] })}><Plus className="mr-1 h-3 w-3" />Add expense</Button></div>
             {p.expenses.map((e, k) => (
               <div key={k} className="mb-2 grid items-end gap-2 border-b pb-2 sm:grid-cols-8">
@@ -109,7 +109,7 @@ export function LRForm({ initial }: { initial: LRValues }) {
                 <Field label="Paid to"><Input value={e.paid_to ?? ""} onChange={(ev) => setE(i, k, { paid_to: ev.target.value })} /></Field>
                 <Field label="Responsible"><select className={selectCls} value={e.responsible} onChange={(ev) => setE(i, k, { responsible: ev.target.value })}><option value="gokul">Gokul (own expense)</option><option value="party">This party (adds to their bill)</option></select></Field>
                 <Field label="Status"><select className={selectCls} value={e.payment_status} onChange={(ev) => setE(i, k, { payment_status: ev.target.value })}><option value="paid">Paid</option><option value="pending">Pending</option></select></Field>
-                <Button type="button" variant="ghost" size="icon" onClick={() => setP(i, { expenses: p.expenses.filter((_, j) => j !== k) })}><Trash2 className="h-4 w-4" /></Button>
+                <Button type="button" variant="ghost" size="icon" aria-label={`Remove ${role} expense ${k + 1}`} onClick={() => setP(i, { expenses: p.expenses.filter((_, j) => j !== k) })}><Trash2 className="h-4 w-4" /></Button>
                 <div className="sm:col-span-4"><Field label="Method"><select className={selectCls} value={e.payment_method ?? ""} onChange={(ev) => setE(i, k, { payment_method: ev.target.value })}>{PAY_MODES.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}</select></Field></div>
                 <div className="sm:col-span-4"><Field label="Notes"><Input value={e.notes ?? ""} onChange={(ev) => setE(i, k, { notes: ev.target.value })} /></Field></div>
               </div>
@@ -143,7 +143,7 @@ export function LRForm({ initial }: { initial: LRValues }) {
           </>}
           <div className="sm:col-span-2"><Field label="Goods description"><Input value={v.goods_description ?? ""} onChange={(e) => set("goods_description", e.target.value)} /></Field></div>
           <Field label="Quantity"><Input type="number" min="0" value={v.quantity ?? ""} onChange={(e) => set("quantity", e.target.value)} /></Field>
-          <div className="flex gap-2"><Field label="Total weight"><Input type="number" min="0" value={v.weight ?? ""} onChange={(e) => set("weight", e.target.value)} /></Field>
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2"><Field label="Total weight"><Input type="number" min="0" value={v.weight ?? ""} onChange={(e) => set("weight", e.target.value)} /></Field>
             <Field label="Unit"><select className={selectCls} value={v.weight_unit} onChange={(e) => set("weight_unit", e.target.value)}><option value="kg">kg</option><option value="quintal">quintal</option><option value="tonne">tonne</option></select></Field></div>
           <div className="sm:col-span-2"><Field label="Loading point(s)"><Input value={v.loading_point ?? ""} onChange={(e) => set("loading_point", e.target.value)} /></Field></div>
           <div className="sm:col-span-2"><Field label="Delivery point(s)"><Input value={v.delivery_point ?? ""} onChange={(e) => set("delivery_point", e.target.value)} /></Field></div>
@@ -168,7 +168,7 @@ export function LRForm({ initial }: { initial: LRValues }) {
               <Field label="Type"><select className={selectCls} value={a.kind} onChange={(e) => setV({ ...v, adjustments: v.adjustments.map((x, j) => (j === i ? { ...x, kind: e.target.value as "add" } : x)) })}><option value="add">+ Addition</option><option value="deduct">− Deduction</option></select></Field>
               <Field label="Amount" required><Input type="number" min="0" value={a.amount} onChange={(e) => setV({ ...v, adjustments: v.adjustments.map((x, j) => (j === i ? { ...x, amount: e.target.value } : x)) })} /></Field>
               <div className="sm:col-span-3"><Field label="Reason" required><Input value={a.reason} onChange={(e) => setV({ ...v, adjustments: v.adjustments.map((x, j) => (j === i ? { ...x, reason: e.target.value } : x)) })} /></Field></div>
-              <Button type="button" variant="ghost" size="icon" onClick={() => setV({ ...v, adjustments: v.adjustments.filter((_, j) => j !== i) })}><Trash2 className="h-4 w-4" /></Button>
+              <Button type="button" variant="ghost" size="icon" aria-label={`Remove adjustment ${i + 1}`} onClick={() => setV({ ...v, adjustments: v.adjustments.filter((_, j) => j !== i) })}><Trash2 className="h-4 w-4" /></Button>
             </div>
           ))}
           <div className="flex gap-2">
@@ -217,7 +217,7 @@ export function LRForm({ initial }: { initial: LRValues }) {
       </Section>
 
       <Section n={7} title="Save">
-        {err && <p className="mb-3 rounded bg-destructive/10 p-2 text-sm text-destructive">{err}</p>}
+        {err && <p role="alert" className="mb-3 rounded bg-destructive/10 p-2 text-sm text-destructive">{err}</p>}
         <Button onClick={save} disabled={busy}>{busy ? "Saving…" : "Save LR"}</Button>
       </Section>
     </div>

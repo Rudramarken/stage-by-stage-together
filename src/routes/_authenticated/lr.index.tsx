@@ -47,10 +47,10 @@ function LRList() {
   return (
     <div>
       <PageHeader title="LR / Bilty Register" actions={<Button asChild><Link to="/lr/new" search={{}}><Plus className="mr-1 h-4 w-4" />New LR</Link></Button>} />
-      <div className="mb-4 grid gap-2 sm:grid-cols-5">
-        <Input className="sm:col-span-2" placeholder="Search LR no., party, trip, vehicle…" value={f.search} onChange={(e) => { setF({ ...f, search: e.target.value }); setPage(0); }} />
-        <select className={selectCls} value={f.delivery} onChange={(e) => setF({ ...f, delivery: e.target.value })}><option value="">All delivery</option>{Object.entries(LR_DELIVERY).map(([k, s]) => <option key={k} value={k}>{s.label}</option>)}</select>
-        <select className={selectCls} value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })}><option value="active">Active</option><option value="cancelled">Cancelled</option><option value="">All</option></select>
+      <div role="search" aria-label="Filter LR records" className="list-filters mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <Input aria-label="Search LR records" className="sm:col-span-2" placeholder="Search LR no., party, trip, vehicle…" value={f.search} onChange={(e) => { setF({ ...f, search: e.target.value }); setPage(0); }} />
+        <select aria-label="Delivery status" className={selectCls} value={f.delivery} onChange={(e) => setF({ ...f, delivery: e.target.value })}><option value="">All delivery</option>{Object.entries(LR_DELIVERY).map(([k, s]) => <option key={k} value={k}>{s.label}</option>)}</select>
+        <select aria-label="LR status" className={selectCls} value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })}><option value="active">Active</option><option value="cancelled">Cancelled</option><option value="">All</option></select>
         <div className={dateRangeCls}><Input type="date" aria-label="From date" value={f.from} onChange={(e) => setF({ ...f, from: e.target.value })} /><Input type="date" aria-label="To date" value={f.to} onChange={(e) => setF({ ...f, to: e.target.value })} /></div>
       </div>
       {q.isPending ? <LoadingState /> : q.isError ? <ErrorState error={q.error} onRetry={() => q.refetch()} /> : rows.length === 0 ? (
@@ -62,6 +62,7 @@ function LRList() {
               title={<Link to="/lr/$id" params={{ id: l.id }} className="text-info">{l.lr_number}</Link>}
               aside={<Money value={l.final_freight} />} actions={<DocumentActions kind="lr" row={l} />}>
               <div>{formatDate(l.lr_date)}{l.trips?.trip_number ? ` · ${l.trips.trip_number}` : ""}</div>
+               <div>Payable <Money value={l.freight_payable} /> · {FREIGHT_TYPE[l.freight_type]}</div>
               <div className="text-foreground">{l.lr_parties.filter((p: any) => p.role === "consignor").map((p: any) => p.parties?.name).join(", ")} → {l.lr_parties.filter((p: any) => p.role === "consignee").map((p: any) => p.parties?.name).join(", ")}</div>
               <div>{l.status === "cancelled" ? <StatusBadge tone="danger">Cancelled</StatusBadge> : <StatusBadge tone={LR_DELIVERY[l.delivery_status]?.tone}>{LR_DELIVERY[l.delivery_status]?.label}</StatusBadge>}</div>
             </MobileCard>))}</MobileCards>

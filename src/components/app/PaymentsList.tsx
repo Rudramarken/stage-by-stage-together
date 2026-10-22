@@ -67,11 +67,11 @@ export function PaymentsList({ thirdParty, transporterId }: { thirdParty?: boole
             ["", "", "", "", "", "Total received", totIn.toFixed(2), ""], ["", "", "", "", "", "Total paid", totOut.toFixed(2), ""],
           ])}>Download CSV</Button>
           <Button onClick={() => setDlg({ open: true, row: null })}><Plus className="mr-1 h-4 w-4" />{thirdParty ? "Record third-party payment" : "New entry"}</Button></>} />
-      <div className="mb-4 grid gap-2 sm:grid-cols-6">
-        <Input className="sm:col-span-2" placeholder="Search party, payer, reference…" value={f.search} onChange={(e) => setF({ ...f, search: e.target.value })} />
-        <select className={selectCls} value={f.party} onChange={(e) => setF({ ...f, party: e.target.value })}><option value="">All parties</option>{parties.data?.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
-        <select className={selectCls} value={f.account} onChange={(e) => setF({ ...f, account: e.target.value })}><option value="">All accounts</option>{accounts.data?.map((a) => <option key={a.id} value={a.id}>{a.kind === "cash" ? "Cash" : a.display_name}</option>)}</select>
-        {!thirdParty && <select className={selectCls} value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })}><option value="">Receipts & payments</option><option value="in">Receipts only</option><option value="out">Payments only</option></select>}
+      <div role="search" aria-label="Filter payments" className="list-filters mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+        <Input aria-label="Search payments" className="sm:col-span-2" placeholder="Search party, payer, reference…" value={f.search} onChange={(e) => setF({ ...f, search: e.target.value })} />
+        <select aria-label="Party" className={selectCls} value={f.party} onChange={(e) => setF({ ...f, party: e.target.value })}><option value="">All parties</option>{parties.data?.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
+        <select aria-label="Payment account" className={selectCls} value={f.account} onChange={(e) => setF({ ...f, account: e.target.value })}><option value="">All accounts</option>{accounts.data?.map((a) => <option key={a.id} value={a.id}>{a.kind === "cash" ? "Cash" : a.display_name}</option>)}</select>
+        {!thirdParty && <select aria-label="Payment direction" className={selectCls} value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })}><option value="">Receipts & payments</option><option value="in">Receipts only</option><option value="out">Payments only</option></select>}
         <div className={dateRangeCls}><Input type="date" aria-label="From date" value={f.from} onChange={(e) => setF({ ...f, from: e.target.value })} /><Input type="date" aria-label="To date" value={f.to} onChange={(e) => setF({ ...f, to: e.target.value })} /></div>
       </div>
       {q.isPending ? <LoadingState /> : q.isError ? <ErrorState error={q.error} onRetry={() => q.refetch()} /> : rows.length === 0 ? <EmptyState title="Nothing recorded yet" action={<Button onClick={() => setDlg({ open: true, row: null })}>Add entry</Button>} /> : (<>
