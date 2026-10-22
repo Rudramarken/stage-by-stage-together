@@ -26,6 +26,7 @@ import { Route as AuthenticatedPartiesIndexRouteImport } from './routes/_authent
 import { Route as AuthenticatedPartiesIdRouteImport } from './routes/_authenticated/parties.$id'
 import { Route as AuthenticatedTripsIndexRouteImport } from './routes/_authenticated/trips.index'
 import { Route as AuthenticatedTripsNewRouteImport } from './routes/_authenticated/trips.new'
+import { Route as AuthenticatedTripsIdIndexRouteImport } from './routes/_authenticated/trips.$id.index'
 import { Route as AuthenticatedTripsIdEditRouteImport } from './routes/_authenticated/trips.$id.edit'
 
 const IndexRoute = IndexRouteImport.update({
@@ -115,6 +116,12 @@ const AuthenticatedTripsNewRoute = AuthenticatedTripsNewRouteImport.update({
   path: '/trips/new',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedTripsIdIndexRoute =
+  AuthenticatedTripsIdIndexRouteImport.update({
+    id: '/trips/$id/',
+    path: '/trips/$id/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedTripsIdEditRoute =
   AuthenticatedTripsIdEditRouteImport.update({
     id: '/trips/$id/edit',
@@ -140,6 +147,7 @@ export interface FileRoutesByFullPath {
   '/parties/': typeof AuthenticatedPartiesIndexRoute
   '/trips/': typeof AuthenticatedTripsIndexRoute
   '/trips/$id/edit': typeof AuthenticatedTripsIdEditRoute
+  '/trips/$id/': typeof AuthenticatedTripsIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -159,6 +167,7 @@ export interface FileRoutesByTo {
   '/parties': typeof AuthenticatedPartiesIndexRoute
   '/trips': typeof AuthenticatedTripsIndexRoute
   '/trips/$id/edit': typeof AuthenticatedTripsIdEditRoute
+  '/trips/$id': typeof AuthenticatedTripsIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -180,6 +189,7 @@ export interface FileRoutesById {
   '/_authenticated/parties/': typeof AuthenticatedPartiesIndexRoute
   '/_authenticated/trips/': typeof AuthenticatedTripsIndexRoute
   '/_authenticated/trips/$id/edit': typeof AuthenticatedTripsIdEditRoute
+  '/_authenticated/trips/$id/': typeof AuthenticatedTripsIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -201,6 +211,7 @@ export interface FileRouteTypes {
     | '/parties/'
     | '/trips/'
     | '/trips/$id/edit'
+    | '/trips/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -220,6 +231,7 @@ export interface FileRouteTypes {
     | '/parties'
     | '/trips'
     | '/trips/$id/edit'
+    | '/trips/$id'
   id:
     | '__root__'
     | '/'
@@ -240,6 +252,7 @@ export interface FileRouteTypes {
     | '/_authenticated/parties/'
     | '/_authenticated/trips/'
     | '/_authenticated/trips/$id/edit'
+    | '/_authenticated/trips/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -371,6 +384,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTripsNewRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/trips/$id/': {
+      id: '/_authenticated/trips/$id/'
+      path: '/trips/$id'
+      fullPath: '/trips/$id/'
+      preLoaderRoute: typeof AuthenticatedTripsIdIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/trips/$id/edit': {
       id: '/_authenticated/trips/$id/edit'
       path: '/trips/$id/edit'
@@ -395,6 +415,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPartiesIndexRoute: typeof AuthenticatedPartiesIndexRoute
   AuthenticatedTripsIndexRoute: typeof AuthenticatedTripsIndexRoute
   AuthenticatedTripsIdEditRoute: typeof AuthenticatedTripsIdEditRoute
+  AuthenticatedTripsIdIndexRoute: typeof AuthenticatedTripsIdIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -411,6 +432,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPartiesIndexRoute: AuthenticatedPartiesIndexRoute,
   AuthenticatedTripsIndexRoute: AuthenticatedTripsIndexRoute,
   AuthenticatedTripsIdEditRoute: AuthenticatedTripsIdEditRoute,
+  AuthenticatedTripsIdIndexRoute: AuthenticatedTripsIdIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
