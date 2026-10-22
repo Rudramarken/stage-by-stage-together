@@ -55,21 +55,21 @@ function LRList() {
       {q.isPending ? <LoadingState /> : q.isError ? <ErrorState error={q.error} onRetry={() => q.refetch()} /> : rows.length === 0 ? (
         <EmptyState title={q.data.length ? "No LRs match" : "No LRs yet"} action={!q.data.length ? <Button asChild><Link to="/lr/new" search={{}}>Create first LR</Link></Button> : undefined} />
       ) : (
-        <div className="overflow-x-auto rounded-lg border bg-card"><Table className="table-fixed min-w-[620px] text-xs">
-          <TableHeader><TableRow><TableHead className="w-24">LR / Date</TableHead><TableHead className="hidden w-24 xl:table-cell">Trip</TableHead><TableHead>Consignor → Consignee</TableHead><TableHead className="hidden w-20 xl:table-cell">Type</TableHead><TableHead className="w-24 text-right">Freight</TableHead><TableHead className="hidden w-24 xl:table-cell text-right">Payable</TableHead><TableHead className="w-24">Delivery</TableHead><TableHead className={actionCell + " w-28"}>Actions</TableHead></TableRow></TableHeader>
+        <div className="overflow-x-auto rounded-lg border bg-card"><Table className="sm:table-fixed min-w-[620px] text-xs">
+          <TableHeader><TableRow><TableHead className="w-24">LR / Date</TableHead><TableHead className="hidden w-24 xl:table-cell">Trip</TableHead><TableHead>Consignor → Consignee</TableHead><TableHead className="hidden w-20 xl:table-cell">Type</TableHead><TableHead className="w-24 text-right">Freight</TableHead><TableHead className="hidden w-24 xl:table-cell text-right">Payable</TableHead><TableHead className="w-24">Delivery</TableHead><TableHead className={actionCell + " w-12 sm:w-28"}>Actions</TableHead></TableRow></TableHeader>
           <TableBody>{rows.slice(page * PAGE, page * PAGE + PAGE).map((l) => (
             <TableRow key={l.id} className={l.status === "cancelled" ? "opacity-50" : ""}>
               <TableCell><Link to="/lr/$id" params={{ id: l.id }} className="font-medium text-info hover:underline">{l.lr_number}</Link><span className="block text-muted-foreground">{formatDate(l.lr_date)}</span></TableCell>
               <TableCell className="hidden xl:table-cell">{l.trip_id ? <Link to="/trips/$id" params={{ id: l.trip_id }} className="hover:underline">{l.trips?.trip_number}</Link> : <span className="text-muted-foreground">No trip</span>}</TableCell>
-              <TableCell className="whitespace-normal break-words">{l.lr_parties.filter((p: any) => p.role === "consignor").map((p: any) => p.parties?.name).join(", ")} → {l.lr_parties.filter((p: any) => p.role === "consignee").map((p: any) => p.parties?.name).join(", ")}</TableCell>
+              <TableCell className="min-w-40 whitespace-normal break-words">{l.lr_parties.filter((p: any) => p.role === "consignor").map((p: any) => p.parties?.name).join(", ")} → {l.lr_parties.filter((p: any) => p.role === "consignee").map((p: any) => p.parties?.name).join(", ")}</TableCell>
               <TableCell className="hidden xl:table-cell text-xs">{FREIGHT_TYPE[l.freight_type]}</TableCell>
               <TableCell className="text-right"><Money value={l.final_freight} /></TableCell>
               <TableCell className="hidden xl:table-cell text-right"><Money value={l.freight_payable} /></TableCell>
               <TableCell>{l.status === "cancelled" ? <StatusBadge tone="danger">Cancelled</StatusBadge> : <StatusBadge tone={LR_DELIVERY[l.delivery_status]?.tone}>{LR_DELIVERY[l.delivery_status]?.label}</StatusBadge>}</TableCell>
               <TableCell className={actionCell}><DocumentActions kind="lr" row={l} /></TableCell>
             </TableRow>))}</TableBody>
-          <TableFooter><TableRow><TableCell colSpan={8}>Total ({rows.length} LRs) · Freight <Money value={tot.f} /> · Payable <Money value={tot.p} /></TableCell></TableRow></TableFooter>
         </Table>
+          <div className="border-t bg-muted px-3 py-2 text-xs">Total ({rows.length} LRs) · Freight <Money value={tot.f} /> · Payable <Money value={tot.p} /></div>
           <div className="flex justify-end gap-2 border-t px-3 py-2"><Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(page - 1)}>Previous</Button><Button variant="outline" size="sm" disabled={(page + 1) * PAGE >= rows.length} onClick={() => setPage(page + 1)}>Next</Button></div>
         </div>
       )}
