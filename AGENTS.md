@@ -23,3 +23,4 @@
 
 - List row actions share RowActions and RemovalDialog; destructive document/master operations use remove_record, and money is reversed, never deleted. Why: consistent pending confirmation and server-side dependency/owner checks.
 - LR edits preserve party, expense and adjustment IDs; save RPCs lock the business-scoped document and reject foreign child IDs. Why: editing must update the same records without double amounts.
+- Shared controls, navigation and MobileCards own touch sizing and focus treatment; list filters have explicit accessible names. Why: accessibility and phone layouts remain consistent across transport screens.
