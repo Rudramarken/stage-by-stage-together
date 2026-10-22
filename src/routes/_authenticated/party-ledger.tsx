@@ -1,0 +1,52 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { PageHeader, Field } from "@/components/app/ui";
+import { LoadingState, ErrorState, EmptyState } from "@/components/app/states";
+import { LedgerTable, LedgerHelp } from "@/components/app/LedgerTable";
+import { Input } from "@/components/ui/input";
+
+export const Route = createFileRoute("/_authenticated/party-ledger")({
+  head: () => ({ meta: [{ title: "Party Ledger — Gokul Cargo Movers" }] }),
+  component: PartyLedger,
+});
+
+function PartyLedger() {
+  const [partyId, setPartyId] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const q = useQuery({
+    queryKey: ["parties"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("parties").select("*").order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+  const party = q.data?.find((p) => p.id === partyId);
+  return (
+    <div className="space-y-4">
+      <PageHeader title="Party Ledger" description="Every entry for one party, with a running Receivable / Payable balance." />
+      <LedgerHelp />
+      {q.isPending ? <LoadingState /> : q.isError ? <ErrorState error={q.error} onRetry={() => q.refetch()} /> : (
+        <>
+          <div className="no-print grid gap-3 sm:grid-cols-3">
+            <Field label="Party">
+              <select className="h-9 rounded-md border border-input bg-card px-2 text-sm" value={partyId} onChange={(e) => setPartyId(e.target.value)}>
+                <option value="">— Choose a party —</option>
+                {q.data.map((p) => <option key={p.id} value={p.id}>{p.name}{p.is_active ? "" : " (archived)"}</option>)}
+              </select>
+            </Field>
+            <Field label="From date"><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></Field>
+            <Field label="To date"><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></Field>
+          </div>
+          {party ? (
+            <div><h2 className="mb-2 text-lg font-semibold">{party.name}</h2>
+              <LedgerTable accountType="party" accountId={party.id} from={from || undefined} to={to || undefined} title={`ledger-${party.name}`} /></div>
+          ) : <EmptyState title={q.data.length ? "Choose a party to see its ledger" : "No parties yet"} hint={q.data.length ? undefined : "Add a party first on the Parties page."} />}
+        </>
+      )}
+    </div>
+  );
+}
