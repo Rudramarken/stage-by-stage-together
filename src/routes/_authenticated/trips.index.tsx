@@ -69,7 +69,7 @@ function TripsList() {
               aside={<StatusBadge tone={TRIP_STATUS[t.status]?.tone}>{TRIP_STATUS[t.status]?.label}</StatusBadge>} actions={<DocumentActions kind="trip" row={t} />}>
               <div>{formatDate(t.trip_date)} · {t.lrs.length} LR(s)</div>
               <div className="text-foreground">{[...t.trip_stops].sort((a: any, b: any) => a.seq - b.seq).map((s: any) => s.location).join(" → ")}</div>
-              <div>{t.vehicle_mode === "own" ? nameOf(vehicles.data, t.vehicle_id, "registration_number") || "—" : `${t.market_vehicle_number ?? ""} (market)`} · {nameOf(drivers.data, t.driver_id) || t.driver_name || "No driver"}</div>
+              <div>{t.vehicle_mode === "own" ? nameOf(vehicles.data, t.vehicle_id, "registration_number") || "No vehicle" : `${t.market_vehicle_number ?? ""} (market)`} · {nameOf(drivers.data, t.driver_id) || t.driver_name || "No driver"}</div>
               {t.transporter_id && <div>{nameOf(transporters.data, t.transporter_id)}</div>}
             </MobileCard>))}</MobileCards>
           <div className="hidden overflow-x-auto sm:block">
