@@ -1,0 +1,183 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useBusiness } from "@/lib/business";
+import { addOwner } from "@/server/admin.functions";
+import { PageHeader, Field, StatusBadge } from "@/components/app/ui";
+import { LoadingState, ErrorState, errorMessage } from "@/components/app/states";
+import { MasterCrud } from "@/components/app/MasterCrud";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { maskAccount } from "@/lib/format";
+
+export const Route = createFileRoute("/_authenticated/settings")({
+  head: () => ({ meta: [{ title: "Business Settings — Gokul Cargo Movers" }] }),
+  component: SettingsPage,
+});
+
+function SettingsPage() {
+  return (
+    <div>
+      <PageHeader title="Business Settings" />
+      <Tabs defaultValue="business">
+        <TabsList className="mb-4 flex-wrap">
+          <TabsTrigger value="business">Business details</TabsTrigger>
+          <TabsTrigger value="accounts">Cash & bank accounts</TabsTrigger>
+          <TabsTrigger value="transporters">Transporters</TabsTrigger>
+          <TabsTrigger value="users">Users</TabsTrigger>
+        </TabsList>
+        <TabsContent value="business"><BusinessForm /></TabsContent>
+        <TabsContent value="accounts">
+          <p className="mb-3 text-sm text-muted-foreground">Accounts are only labels on payments (no balances are tracked). The Cash account is permanent.</p>
+          <MasterCrud hideHeader table="payment_accounts" title="Accounts" singular="Bank account" orderBy="display_name"
+            searchKeys={["display_name", "bank_name", "account_holder"]}
+            canArchive={(r) => r.kind !== "cash"}
+            transform={(v) => ({ ...v, kind: "bank" })}
+            fields={[
+              { name: "display_name", label: "Display name", required: true, hint: "e.g. HDFC Current" },
+              { name: "bank_name", label: "Bank name" },
+              { name: "account_holder", label: "Account holder" },
+              { name: "account_number", label: "Account number" },
+              { name: "ifsc", label: "IFSC" },
+            ]}
+            columns={[
+              { label: "Name", render: (r) => <span className="font-medium">{r.display_name}</span> },
+              { label: "Type", render: (r) => <StatusBadge tone={r.kind === "cash" ? "success" : "info"}>{r.kind === "cash" ? "Cash" : "Bank"}</StatusBadge> },
+              { label: "Bank", render: (r) => r.bank_name ?? "—" },
+              { label: "Account no.", render: (r) => maskAccount(r.account_number) },
+              { label: "IFSC", render: (r) => r.ifsc ?? "—" },
+            ]}
+          />
+        </TabsContent>
+        <TabsContent value="transporters">
+          <p className="mb-3 text-sm text-muted-foreground">Transporters typed on trips/LRs are added here automatically (once). You can link one to a Party.</p>
+          <TransportersTab />
+        </TabsContent>
+        <TabsContent value="users"><UsersTab /></TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+function TransportersTab() {
+  const parties = useQuery({
+    queryKey: ["parties"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("parties").select("*").order("name");
+      if (error) throw error;
+      return data;
+    },
+  });
+  const opts = [{ value: "", label: "— Not linked —" }, ...(parties.data ?? []).map((p) => ({ value: p.id, label: p.name }))];
+  return (
+    <MasterCrud hideHeader table="transporters" title="Transporters" singular="Transporter" orderBy="name"
+      searchKeys={["name", "phone"]}
+      transform={(v) => ({ ...v, party_id: v.party_id || null })}
+      fields={[
+        { name: "name", label: "Name", required: true },
+        { name: "phone", label: "Phone" },
+        { name: "party_id", label: "Linked party (optional)", type: "select", options: opts },
+        { name: "notes", label: "Notes", type: "textarea" },
+      ]}
+      columns={[
+        { label: "Name", render: (r) => <span className="font-medium">{r.name}</span> },
+        { label: "Phone", render: (r) => r.phone ?? "—" },
+        { label: "Linked party", render: (r) => parties.data?.find((p) => p.id === r.party_id)?.name ?? "—" },
+      ]}
+    />
+  );
+}
+
+function BusinessForm() {
+  const { businessId, role } = useBusiness();
+  const qc = useQueryClient();
+  const q = useQuery({
+    queryKey: ["settings", businessId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("business_settings").select("*").eq("business_id", businessId).single();
+      if (error) throw error;
+      return data;
+    },
+  });
+  const [f, setF] = useState<Record<string, string>>({});
+  useEffect(() => { if (q.data) setF(Object.fromEntries(Object.entries(q.data).map(([k, v]) => [k, (v ?? "") as string]))); }, [q.data]);
+  const save = useMutation({
+    mutationFn: async () => {
+      if (!f.trip_prefix?.trim() || !f.lr_prefix?.trim()) throw new Error("Trip prefix and LR prefix are required");
+      const { error } = await supabase.from("business_settings").update({
+        trip_prefix: f.trip_prefix.trim(), lr_prefix: f.lr_prefix.trim(), phone: f.phone || null, email: f.email || null,
+        address: f.address || null, city: f.city || null, state: f.state || null,
+      }).eq("business_id", businessId).select().single();
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Settings saved"); qc.invalidateQueries({ queryKey: ["settings"] }); qc.invalidateQueries({ queryKey: ["business-context"] }); },
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+  if (q.isPending) return <LoadingState />;
+  if (q.isError) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
+  const disabled = role !== "owner";
+  return (
+    <form className="grid max-w-3xl gap-4 rounded-lg border bg-card p-4 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); if (!save.isPending) save.mutate(); }}>
+      <Field label="Trip number prefix" required hint="Changing this never changes old numbers"><Input disabled={disabled} value={f.trip_prefix ?? ""} onChange={(e) => setF({ ...f, trip_prefix: e.target.value })} /></Field>
+      <Field label="LR number prefix" required><Input disabled={disabled} value={f.lr_prefix ?? ""} onChange={(e) => setF({ ...f, lr_prefix: e.target.value })} /></Field>
+      <Field label="Phone"><Input disabled={disabled} value={f.phone ?? ""} onChange={(e) => setF({ ...f, phone: e.target.value })} /></Field>
+      <Field label="Email"><Input disabled={disabled} value={f.email ?? ""} onChange={(e) => setF({ ...f, email: e.target.value })} /></Field>
+      <Field label="City"><Input disabled={disabled} value={f.city ?? ""} onChange={(e) => setF({ ...f, city: e.target.value })} /></Field>
+      <Field label="State"><Input disabled={disabled} value={f.state ?? ""} onChange={(e) => setF({ ...f, state: e.target.value })} /></Field>
+      <div className="sm:col-span-2"><Field label="Address"><Textarea disabled={disabled} value={f.address ?? ""} onChange={(e) => setF({ ...f, address: e.target.value })} /></Field></div>
+      <p className="text-sm text-muted-foreground sm:col-span-2">Dates are shown as DD/MM/YYYY (India time).</p>
+      <div className="sm:col-span-2"><Button type="submit" disabled={disabled || save.isPending}>{save.isPending ? "Saving…" : "Save settings"}</Button></div>
+    </form>
+  );
+}
+
+function UsersTab() {
+  const { role } = useBusiness();
+  const qc = useQueryClient();
+  const [f, setF] = useState({ displayName: "", email: "", password: "" });
+  const q = useQuery({
+    queryKey: ["members"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("business_members").select("user_id, display_name, email, role").order("created_at");
+      if (error) throw error;
+      return data;
+    },
+  });
+  const add = useMutation({
+    mutationFn: () => addOwner({ data: f }),
+    onSuccess: () => { toast.success("Owner added. They can now sign in."); setF({ displayName: "", email: "", password: "" }); qc.invalidateQueries({ queryKey: ["members"] }); },
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+  return (
+    <div className="grid gap-6 lg:grid-cols-2">
+      <div className="rounded-lg border bg-card p-4">
+        <h3 className="mb-3 font-semibold">Current users</h3>
+        {q.isPending ? <LoadingState /> : q.isError ? <ErrorState error={q.error} onRetry={() => q.refetch()} /> : (
+          <ul className="divide-y">{q.data.map((m) => (
+            <li key={m.user_id} className="flex items-center justify-between py-2 text-sm">
+              <span><b>{m.display_name}</b><br /><span className="text-muted-foreground">{m.email}</span></span>
+              <StatusBadge tone="info">{m.role}</StatusBadge>
+            </li>))}</ul>
+        )}
+      </div>
+      {role === "owner" && (
+        <form className="flex flex-col gap-3 rounded-lg border bg-card p-4" onSubmit={(e) => {
+          e.preventDefault();
+          if (add.isPending) return;
+          if (f.password.length < 8) { toast.error("Password must be at least 8 characters"); return; }
+          add.mutate();
+        }}>
+          <h3 className="font-semibold">Add another Owner</h3>
+          <Field label="Name" required><Input value={f.displayName} onChange={(e) => setF({ ...f, displayName: e.target.value })} required /></Field>
+          <Field label="Email" required><Input type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} required /></Field>
+          <Field label="Temporary password" required hint="Share it privately; they can change it with 'Forgot password'."><Input type="password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} required /></Field>
+          <Button type="submit" disabled={add.isPending}>{add.isPending ? "Adding…" : "Add Owner"}</Button>
+        </form>
+      )}
+    </div>
+  );
+}
