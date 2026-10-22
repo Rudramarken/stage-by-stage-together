@@ -57,6 +57,13 @@
       "when": 1792674196860,
       "tag": "0007_retain_payment_account_archive_actions",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792683378138,
+      "tag": "0008_transporter_from_party",
+      "breakpoints": true
     }
   ]
 }
