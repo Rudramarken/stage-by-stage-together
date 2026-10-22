@@ -18,3 +18,5 @@
 - Master list pages use `src/components/app/MasterCrud.tsx`; keep `src/lib/schema-smoke.ts` in sync with every column the UI reads.
 - Multi-row money saves (LR with parties/adjustments/expenses, trip with stops) go through `save_lr(jsonb)` / `save_trip(jsonb)`; ledger lines are posted by AFTER triggers on lrs/expenses/advances/payments/salary tables via `ledger_set()`. Why: one atomic, idempotent path.
 - Self sign-up creates an account with no business access; an Owner approves it (server fn `approveUser`). Why: no one sees data without approval.
+- Driver commission sources sync to driver_commissions; commission_receipts is the single cash/salary-recovery history and commission_balances is the RLS-scoped read model. Why: partial settlements, reporting and driver ledgers share one atomic, idempotent source.
+- Commission cash receipts and confirmed salary recoveries use driver-level transaction locks; receipt request IDs are unique and cancellations retain offsetting ledger rows. Why: concurrent retries cannot over-receive or silently erase financial history.

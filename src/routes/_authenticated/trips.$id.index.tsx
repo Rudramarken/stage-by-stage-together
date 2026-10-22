@@ -8,6 +8,7 @@ import { PageHeader, StatusBadge, Money } from "@/components/app/ui";
 import { LoadingState, ErrorState, errorMessage } from "@/components/app/states";
 import { Section, selectCls } from "@/components/app/Section";
 import { TripExpenses, TripAdvances } from "@/components/app/MoneyEditors";
+import { CommissionPanel } from "@/components/app/CommissionPanel";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useDrivers, useTransporters, useVehicles, nameOf, TRIP_STATUS, LR_DELIVERY, FREIGHT_TYPE } from "@/lib/lookups";
@@ -18,7 +19,7 @@ export const Route = createFileRoute("/_authenticated/trips/$id/")({
   component: TripDetail,
 });
 
-type LegData = { trip: any; lrs: any[]; expenses: any[]; advances: any[] };
+type LegData = { trip: any; lrs: any[]; expenses: any[]; advances: any[]; commissions: any[] };
 
 async function loadFamily(id: string) {
   const { data: t, error } = await supabase.from("trips").select("id, parent_trip_id").eq("id", id).single();
@@ -37,6 +38,8 @@ async function loadFamily(id: string) {
   const lrIds = (lrs.data ?? []).map((l) => l.id);
   const lrExp = lrIds.length ? await supabase.from("expenses").select("*").in("lr_id", lrIds).eq("is_cancelled", false) : { data: [], error: null };
   if (lrExp.error) throw lrExp.error;
+  const { data: commissions, error: ce } = await supabase.from("commission_balances").select("*");
+  if (ce) throw ce;
   const allExp = new Map<string, any>();
   for (const e of [...(exps.data ?? []), ...(lrExp.data ?? [])]) allExp.set(e.id, e); // one record, counted once
   const legs: LegData[] = trips.map((tr) => {
@@ -47,6 +50,7 @@ async function loadFamily(id: string) {
       lrs: legLrs,
       expenses: [...allExp.values()].filter((e) => (e.scope === "trip" && e.trip_id === tr.id) || (e.lr_id && legLrIds.has(e.lr_id))),
       advances: (advs.data ?? []).filter((a) => a.trip_id === tr.id),
+      commissions: (commissions ?? []).filter((c) => c.trip_id === tr.id || (c.lr_id && legLrIds.has(c.lr_id))),
     };
   });
   return { root, legs };
@@ -68,8 +72,8 @@ function summarize(legs: LegData[]) {
     consigneeCharged: sum(exp.filter((e) => e.scope === "consignee" && e.responsible === "party"), (e) => Number(e.amount)),
     driverAdvances: sum(adv.filter((a) => a.recipient_type === "driver"), (a) => Number(a.amount)),
     transporterAdvances: sum(adv.filter((a) => a.recipient_type !== "driver"), (a) => Number(a.amount)),
-    commissionPending: sum(active.filter((x) => x.commission_enabled && x.commission_status === "pending"), (x) => Number(x.commission_amount)),
-    commissionReceived: sum(active.filter((x) => x.commission_enabled && x.commission_status === "received"), (x) => Number(x.commission_amount)),
+    commissionPending: sum(legs.flatMap((l) => l.commissions), (x) => Number(x.pending_amount)),
+    commissionReceived: sum(legs.flatMap((l) => l.commissions), (x) => Number(x.received_amount)),
     weight: active.length,
   };
 }
@@ -133,7 +137,8 @@ function TripDetail() {
 
   if (q.isPending) return <LoadingState />;
   if (q.isError) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
-  const leg = q.data.legs.find((l) => l.trip.id === id)!;
+  const leg = q.data.legs.find((l) => l.trip.id === id);
+  if (!leg) return <ErrorState error={new Error("Trip not found")} />;
   const t = leg.trip;
   const route = t.trip_stops.map((s: any) => s.location).join(" → ");
   const others = q.data.legs.filter((l) => l.trip.id !== id);
@@ -214,6 +219,7 @@ function TripDetail() {
 
       <Section title="Trip expenses"><TripExpenses tripId={id} /></Section>
       <Section title="Advances (driver / transporter / truck owner)"><TripAdvances tripId={id} defaultDriverId={t.driver_id} defaultTransporterId={t.transporter_id} /></Section>
+      <Section title="Trip commission"><CommissionPanel tripId={id} />{leg.lrs.filter((l) => l.commission_enabled).map((l) => <CommissionPanel key={l.id} lrId={l.id} />)}</Section>
 
       <Section title="Trip summary">
         <div className="space-y-6">

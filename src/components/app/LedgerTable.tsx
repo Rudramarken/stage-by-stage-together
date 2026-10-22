@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Money, StatusBadge } from "./ui";
 import { LoadingState, ErrorState, EmptyState } from "./states";
 import { balanceLabel, downloadCSV, formatDate } from "@/lib/format";
+import { Link } from "@tanstack/react-router";
 
 export function LedgerTable({ accountType, accountId, from, to, title }: {
   accountType: "party" | "driver" | "transporter" | "commission"; accountId: string; from?: string; to?: string; title?: string;
@@ -13,11 +14,19 @@ export function LedgerTable({ accountType, accountId, from, to, title }: {
     queryKey: ["ledger", accountType, accountId],
     queryFn: async () => {
       const { data, error } = await supabase.from("ledger_entries")
-        .select("id, entry_date, description, debit, credit, source_table, line_kind, created_at")
+        .select("id, entry_date, description, debit, credit, source_table, source_id, line_kind, created_at")
         .eq("account_type", accountType).eq("account_id", accountId)
         .order("entry_date").order("created_at");
       if (error) throw error;
-      return data;
+      const commissions = await supabase.from("driver_commissions").select("id, lr_id, trip_id");
+      const receipts = await supabase.from("commission_receipts").select("id, commission_id");
+      if (commissions.error) throw commissions.error;
+      if (receipts.error) throw receipts.error;
+      return data.map((r) => {
+        const commissionId = r.source_table === "driver_commissions" ? r.source_id : receipts.data?.find((x) => x.id === r.source_id)?.commission_id;
+        const c = commissions.data?.find((x) => x.id === commissionId);
+        return { ...r, lrId: r.source_table === "lrs" ? r.source_id : c?.lr_id, tripId: c?.trip_id };
+      });
     },
   });
   if (q.isPending) return <LoadingState onRetry={() => q.refetch()} />;
@@ -42,7 +51,7 @@ export function LedgerTable({ accountType, accountId, from, to, title }: {
         <div className="no-print flex gap-2">
           <Button variant="outline" size="sm" onClick={() => window.print()}>Print</Button>
           <Button variant="outline" size="sm" onClick={() => downloadCSV(`${title ?? "ledger"}.csv`, [
-            ["Date", "Description", "Debit (owed to Gokul ↑)", "Credit", "Running balance"],
+            ["Date", "Description", accountType === "driver" ? "Driver owes Gokul / salary settled" : "Debit", accountType === "driver" ? "Received / Gokul owes driver" : "Credit", "Running balance"],
             ["", "Opening balance", "", "", opening.toFixed(2)],
             ...withRun.map((r) => [formatDate(r.entry_date), r.description, Number(r.debit).toFixed(2), Number(r.credit).toFixed(2), r.run.toFixed(2)]),
             ["", "Total", totD.toFixed(2), totC.toFixed(2), run.toFixed(2)],
@@ -53,7 +62,7 @@ export function LedgerTable({ accountType, accountId, from, to, title }: {
         <Table>
           <TableHeader><TableRow>
             <TableHead>Date</TableHead><TableHead>Description</TableHead>
-            <TableHead className="text-right">Debit</TableHead><TableHead className="text-right">Credit</TableHead>
+            <TableHead className="text-right">{accountType === "driver" ? "Driver owes Gokul / salary settled" : "Debit"}</TableHead><TableHead className="text-right">{accountType === "driver" ? "Received / salary due" : "Credit"}</TableHead>
             <TableHead className="text-right">Balance</TableHead>
           </TableRow></TableHeader>
           <TableBody>
@@ -61,7 +70,7 @@ export function LedgerTable({ accountType, accountId, from, to, title }: {
             {withRun.map((r) => (
               <TableRow key={r.id}>
                 <TableCell className="whitespace-nowrap">{formatDate(r.entry_date)}</TableCell>
-                <TableCell>{r.description}</TableCell>
+                <TableCell>{r.lrId ? <Link to="/lr/$id" params={{ id: r.lrId }} className="text-info hover:underline">{r.description}</Link> : r.tripId ? <Link to="/trips/$id" params={{ id: r.tripId }} className="text-info hover:underline">{r.description}</Link> : r.description}</TableCell>
                 <TableCell className="text-right">{Number(r.debit) ? <Money value={r.debit} /> : ""}</TableCell>
                 <TableCell className="text-right">{Number(r.credit) ? <Money value={r.credit} /> : ""}</TableCell>
                 <TableCell className="whitespace-nowrap text-right">{balanceLabel(r.run).text}</TableCell>

@@ -32,25 +32,27 @@ function Dashboard() {
   const q = useQuery({
     queryKey: ["dashboard", from, to],
     queryFn: async () => {
-      const [trips, lrs, pays, exps, bal, com] = await Promise.all([
+      const [trips, lrs, pays, exps, bal, com, receipts] = await Promise.all([
         supabase.from("trips").select("id, trip_number, trip_date, status, trip_stops(location, seq)").gte("trip_date", from).lte("trip_date", to).order("trip_date", { ascending: false }),
         supabase.from("lrs").select("final_freight").eq("status", "active").gte("lr_date", from).lte("lr_date", to),
         supabase.from("payments").select("*").eq("is_reversed", false).gte("payment_date", from).lte("payment_date", to).order("payment_date", { ascending: false }),
         supabase.from("expenses").select("amount").eq("is_cancelled", false).eq("scope", "trip").gte("expense_date", from).lte("expense_date", to),
         supabase.from("account_balances").select("account_type, balance"),
-        supabase.from("lrs").select("commission_amount").eq("status", "active").eq("commission_enabled", true).eq("commission_status", "pending"),
+        supabase.from("commission_balances").select("pending_amount"),
+        supabase.from("commission_receipts").select("amount, salary_payment_id").eq("is_reversed", false).gte("receipt_date", from).lte("receipt_date", to),
       ]);
-      for (const r of [trips, lrs, pays, exps, bal, com]) if (r.error) throw r.error;
+      for (const r of [trips, lrs, pays, exps, bal, com, receipts]) if (r.error) throw r.error;
       const isIn = (t: string) => ["customer_receipt", "third_party_receipt", "advance_received"].includes(t);
       const b = bal.data!.map((x) => ({ ...x, balance: Number(x.balance) }));
       return {
         trips: trips.data!,
         freight: lrs.data!.reduce((s, l) => s + Number(l.final_freight), 0),
-        receipts: pays.data!.filter((p) => isIn(p.payment_type)).reduce((s, p) => s + Number(p.amount), 0),
+        receipts: (pays.data ?? []).filter((p) => isIn(p.payment_type)).reduce((s, p) => s + Number(p.amount), 0) + (receipts.data ?? []).filter((r) => !r.salary_payment_id).reduce((s, r) => s + Number(r.amount), 0),
         expenses: exps.data!.reduce((s, e) => s + Number(e.amount), 0),
         receivable: b.filter((x) => x.account_type === "party" && x.balance > 0).reduce((s, x) => s + x.balance, 0),
         transporterPayable: b.filter((x) => x.account_type === "transporter" && x.balance < 0).reduce((s, x) => s - x.balance, 0),
-        commission: com.data!.reduce((s, c) => s + Number(c.commission_amount), 0),
+        commission: (com.data ?? []).reduce((s, c) => s + Number(c.pending_amount), 0),
+        commissionReceived: (receipts.data ?? []).reduce((s, r) => s + Number(r.amount), 0),
         payments: pays.data!.slice(0, 8),
       };
     },
@@ -72,6 +74,7 @@ function Dashboard() {
             <Stat k="Outstanding receivable (now)" m={q.data.receivable} tone="success" />
             <Stat k="Transporter payable (now)" m={q.data.transporterPayable} tone="warning" />
             <Stat k="Pending commission (not income)" m={q.data.commission} tone="warning" />
+            <Stat k="Commission received (period)" m={q.data.commissionReceived} tone="success" />
           </div>
           <div className="grid gap-4 lg:grid-cols-2">
             <div className="rounded-lg border bg-card p-4"><div className="mb-2 flex justify-between"><h3 className="font-semibold">Recent trips</h3><Link to="/trips" className="text-sm text-info">All</Link></div>
