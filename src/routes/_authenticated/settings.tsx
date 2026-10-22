@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useBusiness } from "@/lib/business";
-import { addOwner } from "@/lib/api/admin.functions";
+import { addOwner, listPendingUsers, approveUser } from "@/lib/api/admin.functions";
 import { PageHeader, Field, StatusBadge } from "@/components/app/ui";
 import { LoadingState, ErrorState, errorMessage } from "@/components/app/states";
 import { MasterCrud } from "@/components/app/MasterCrud";
@@ -164,6 +164,7 @@ function UsersTab() {
             </li>))}</ul>
         )}
       </div>
+      {role === "owner" && <PendingUsers />}
       {role === "owner" && (
         <form className="flex flex-col gap-3 rounded-lg border bg-card p-4" onSubmit={(e) => {
           e.preventDefault();
@@ -177,6 +178,32 @@ function UsersTab() {
           <Field label="Temporary password" required hint="Share it privately; they can change it with 'Forgot password'."><Input type="password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} required /></Field>
           <Button type="submit" disabled={add.isPending}>{add.isPending ? "Adding…" : "Add Owner"}</Button>
         </form>
+      )}
+    </div>
+  );
+}
+
+function PendingUsers() {
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ["pending-users"], queryFn: () => listPendingUsers() });
+  const approve = useMutation({
+    mutationFn: (v: { userId: string; role: "owner" | "admin" | "staff" }) => approveUser({ data: v }),
+    onSuccess: () => { toast.success("User approved. They can now sign in and see the business."); qc.invalidateQueries({ queryKey: ["pending-users"] }); qc.invalidateQueries({ queryKey: ["members"] }); },
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+  return (
+    <div className="rounded-lg border bg-card p-4 lg:col-span-2">
+      <h3 className="mb-1 font-semibold">New sign-ups waiting for approval</h3>
+      <p className="mb-3 text-sm text-muted-foreground">People who signed up themselves see nothing until you approve them here.</p>
+      {q.isPending ? <LoadingState /> : q.isError ? <ErrorState error={q.error} onRetry={() => q.refetch()} /> : q.data.length === 0 ? <p className="text-sm text-muted-foreground">No one is waiting.</p> : (
+        <ul className="divide-y">{q.data.map((u) => (
+          <li key={u.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+            <span><b>{u.name || u.email}</b> <span className="text-muted-foreground">{u.email}</span> {!u.confirmed && <StatusBadge tone="warning">Email not confirmed</StatusBadge>}</span>
+            <span className="flex gap-2">
+              <Button size="sm" variant="outline" disabled={approve.isPending} onClick={() => approve.mutate({ userId: u.id, role: "staff" })}>Approve as Staff</Button>
+              <Button size="sm" disabled={approve.isPending} onClick={() => approve.mutate({ userId: u.id, role: "owner" })}>Approve as Owner</Button>
+            </span>
+          </li>))}</ul>
       )}
     </div>
   );
