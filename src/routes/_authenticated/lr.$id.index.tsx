@@ -93,6 +93,7 @@ function LRDetail() {
           <p><span className="text-muted-foreground">Vehicle:</span> {lr.vehicle_number || "—"} {lr.vehicle_type}</p>
           <p><span className="text-muted-foreground">Driver:</span> {lr.driver_name || "—"}</p>
         </div>
+        {lr.notes && <p className="mt-3 whitespace-pre-wrap"><span className="text-muted-foreground">Remarks:</span> {lr.notes}</p>}
         <table className="mt-4 w-full border text-sm">
           <tbody>
             <tr className="border-b"><td className="p-2">Freight type</td><td className="p-2 text-right">{FREIGHT_TYPE[lr.freight_type]}</td></tr>
