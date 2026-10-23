@@ -48,6 +48,24 @@ export function PaymentsList({ thirdParty, transporterId }: { thirdParty?: boole
   const live = rows.filter((r) => !r.is_reversed);
   const totIn = live.filter((r) => isIn(r.payment_type)).reduce((s, r) => s + Number(r.amount), 0);
   const totOut = live.filter((r) => !isIn(r.payment_type)).reduce((s, r) => s + Number(r.amount), 0);
+  // Bank-statement view (Debit / Credit / Balance). Not shown on the Third-Party and per-transporter screens.
+  const showBank = !thirdParty && !transporterId;
+  // Running balance after each entry, per account: opening balance + receipts - payments, oldest first.
+  // Computed from ALL entries of the account (not the filtered rows) so filters never change the balance.
+  const balanceById = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const a of accounts.data ?? []) {
+      const openDate: string = a.opening_date ?? "";
+      let run = Number(a.opening_balance ?? 0);
+      (q.data ?? [])
+        .filter((p) => p.account_id === a.id && !p.is_reversed && (!openDate || p.payment_date >= openDate))
+        .sort((x, y) => (x.payment_date === y.payment_date ? String(x.created_at).localeCompare(String(y.created_at)) : x.payment_date.localeCompare(y.payment_date)))
+        .forEach((p) => { run += isIn(p.payment_type) ? Number(p.amount) : -Number(p.amount); m.set(p.id, run); });
+    }
+    return m;
+  }, [q.data, accounts.data]);
+  const debitOf = (p: any) => (!p.is_reversed && !isIn(p.payment_type) ? Number(p.amount) : 0);
+  const creditOf = (p: any) => (!p.is_reversed && isIn(p.payment_type) ? Number(p.amount) : 0);
   const who = (p: any) => nameOf(transporters.data, p.transporter_id) || nameOf(parties.data, p.party_id);
   const acct = (id: string) => { const a = accounts.data?.find((x) => x.id === id); return a ? (a.kind === "cash" ? "Cash" : `${a.display_name} ${maskAccount(a.account_number)}`) : "—"; };
   const rowActions = (p: any) => <RowActions label={p.reference || formatDate(p.payment_date)} actions={[
@@ -62,9 +80,9 @@ export function PaymentsList({ thirdParty, transporterId }: { thirdParty?: boole
         description={thirdParty ? "Someone else pays on behalf of a party. Only the original party's balance goes down." : "Receipts reduce what parties owe Gokul; payments reduce what Gokul owes. Mistakes are reversed, never deleted."}
         actions={<>
           <Button variant="outline" onClick={() => downloadCSV(thirdParty ? "third-party-payments.csv" : "payments.csv", [
-            ["Date", "Type", "Party/Transporter", thirdParty ? "Payer" : "Mode", "Account", "Reference", "Amount", "Reversed"],
-            ...rows.map((p) => [formatDate(p.payment_date), PAYMENT_TYPE[p.payment_type], who(p), thirdParty ? p.payer_name : p.mode, acct(p.account_id), p.reference, Number(p.amount).toFixed(2), p.is_reversed ? "Yes" : ""]),
-            ["", "", "", "", "", "Total received", totIn.toFixed(2), ""], ["", "", "", "", "", "Total paid", totOut.toFixed(2), ""],
+            ["Date", "Type", "Party/Transporter", thirdParty ? "Payer" : "Mode", "Account", "Reference", "Amount", "Reversed", ...(showBank ? ["Debit", "Credit", "Balance"] : [])],
+            ...rows.map((p) => [formatDate(p.payment_date), PAYMENT_TYPE[p.payment_type], who(p), thirdParty ? p.payer_name : p.mode, acct(p.account_id), p.reference, Number(p.amount).toFixed(2), p.is_reversed ? "Yes" : "", ...(showBank ? [debitOf(p) ? debitOf(p).toFixed(2) : "", creditOf(p) ? creditOf(p).toFixed(2) : "", balanceById.has(p.id) ? balanceById.get(p.id)!.toFixed(2) : ""] : [])]),
+            ["", "", "", "", "", "Total received", totIn.toFixed(2), "", ...(showBank ? ["", "", ""] : [])], ["", "", "", "", "", "Total paid", totOut.toFixed(2), "", ...(showBank ? ["", "", ""] : [])],
           ])}>Download CSV</Button>
           <Button onClick={() => setDlg({ open: true, row: null })}><Plus className="mr-1 h-4 w-4" />{thirdParty ? "Record third-party payment" : "New entry"}</Button></>} />
       <div role="search" aria-label="Filter payments" className="list-filters mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
@@ -81,11 +99,12 @@ export function PaymentsList({ thirdParty, transporterId }: { thirdParty?: boole
             <div>{formatDate(p.payment_date)} · {acct(p.account_id)}</div>
             {thirdParty && p.payer_name && <div>Paid by {p.payer_name}</div>}
             {(p.reference || p.txn_reference) && <div>Ref {p.reference ?? p.txn_reference}</div>}
+            {showBank && !p.is_reversed && <div>{creditOf(p) ? <>Credit <Money value={creditOf(p)} /></> : <>Debit <Money value={debitOf(p)} /></>}{balanceById.has(p.id) && <> · Balance <Money value={balanceById.get(p.id)} /></>}</div>}
           </MobileCard>))}
           <li className="rounded border bg-muted px-3 py-2 text-sm">Received <Money value={totIn} /> · Paid <Money value={totOut} /> (reversed excluded)</li>
         </MobileCards>
         <div className="hidden overflow-x-auto rounded-lg border bg-card sm:block"><Table>
-          <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Type</TableHead><TableHead>{thirdParty ? "Original party" : "Party / Transporter"}</TableHead>{thirdParty && <TableHead>Paid by</TableHead>}<TableHead>Account</TableHead><TableHead>Reference</TableHead><TableHead className="text-right">Amount</TableHead><TableHead className={actionCell}>Actions</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Type</TableHead><TableHead>{thirdParty ? "Original party" : "Party / Transporter"}</TableHead>{thirdParty && <TableHead>Paid by</TableHead>}<TableHead>Account</TableHead><TableHead>Reference</TableHead><TableHead className="text-right">Amount</TableHead>{showBank && <><TableHead className="text-right">Debit</TableHead><TableHead className="text-right">Credit</TableHead><TableHead className="text-right">Balance</TableHead></>}<TableHead className={actionCell}>Actions</TableHead></TableRow></TableHeader>
           <TableBody>{rows.map((p) => (
             <TableRow key={p.id} className={p.is_reversed ? "opacity-50" : ""}>
               <TableCell>{formatDate(p.payment_date)}</TableCell>
@@ -94,9 +113,14 @@ export function PaymentsList({ thirdParty, transporterId }: { thirdParty?: boole
               <TableCell>{acct(p.account_id)}{p.bank_account_number && <span className="block text-xs text-muted-foreground">{p.bank_name} {maskAccount(p.bank_account_number)}</span>}</TableCell>
               <TableCell>{p.reference ?? p.txn_reference ?? "—"}</TableCell>
               <TableCell className="text-right"><Money value={p.amount} /></TableCell>
+              {showBank && <>
+                <TableCell className="text-right">{debitOf(p) ? <Money value={debitOf(p)} /> : ""}</TableCell>
+                <TableCell className="text-right">{creditOf(p) ? <Money value={creditOf(p)} /> : ""}</TableCell>
+                <TableCell className="text-right">{balanceById.has(p.id) ? <Money value={balanceById.get(p.id)} /> : "—"}</TableCell>
+              </>}
               <TableCell className={actionCell}>{rowActions(p)}</TableCell>
             </TableRow>))}</TableBody>
-          <TableFooter><TableRow><TableCell colSpan={thirdParty ? 6 : 5}>Received <Money value={totIn} /> · Paid <Money value={totOut} /> (reversed entries excluded)</TableCell><TableCell colSpan={2} /></TableRow></TableFooter>
+          <TableFooter><TableRow><TableCell colSpan={thirdParty ? 6 : 5}>Received <Money value={totIn} /> · Paid <Money value={totOut} /> (reversed entries excluded)</TableCell>{showBank ? <><TableCell /><TableCell className="text-right"><Money value={totOut} /></TableCell><TableCell className="text-right"><Money value={totIn} /></TableCell><TableCell colSpan={2} /></> : <TableCell colSpan={2} />}</TableRow></TableFooter>
         </Table></div></>
       )}
       <RemovalDialog target={removal} onClose={() => setRemoval(null)} />
