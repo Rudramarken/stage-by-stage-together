@@ -1123,6 +1123,8 @@ export type Database = {
           ifsc: string | null
           is_active: boolean
           kind: string
+          opening_balance: number
+          opening_date: string | null
           updated_at: string
         }
         Insert: {
@@ -1137,6 +1139,8 @@ export type Database = {
           ifsc?: string | null
           is_active?: boolean
           kind?: string
+          opening_balance?: number
+          opening_date?: string | null
           updated_at?: string
         }
         Update: {
@@ -1151,6 +1155,8 @@ export type Database = {
           ifsc?: string | null
           is_active?: boolean
           kind?: string
+          opening_balance?: number
+          opening_date?: string | null
           updated_at?: string
         }
         Relationships: [

@@ -12,7 +12,7 @@ export const SCHEMA_COLUMNS: Record<string, string[]> = {
   vehicles: ["id", "registration_number", "registration_normalized", "vehicle_type", "capacity", "notes", "is_active"],
   routes: ["id", "origin", "destination", "distance_km", "notes", "is_active"],
   transporters: ["id", "name", "name_normalized", "phone", "notes", "party_id", "is_active"],
-  payment_accounts: ["id", "kind", "display_name", "bank_name", "account_holder", "account_number", "ifsc", "is_active"],
+  payment_accounts: ["id", "kind", "display_name", "bank_name", "account_holder", "account_number", "ifsc", "is_active", "opening_balance", "opening_date"],
   trips: ["id", "trip_number", "trip_date", "journey_type", "direction", "status", "parent_trip_id", "leg_label", "vehicle_mode", "vehicle_id", "market_vehicle_number", "market_vehicle_type", "transporter_id", "driver_id", "driver_name", "notes", "cancel_reason"],
   trip_stops: ["id", "trip_id", "seq", "location", "stop_type", "planned_arrival", "actual_arrival", "status", "notes"],
   lrs: ["id", "lr_number", "lr_date", "trip_id", "loading_stop_id", "unloading_stop_id", "goods_description", "quantity", "weight", "weight_unit", "loading_point", "delivery_point", "delivery_status", "freight_type", "billing_party_id", "rate_unit", "rate", "base_freight", "additions_total", "deductions_total", "final_freight", "transporter_id", "vehicle_number", "vehicle_type", "driver_name", "freight_payable", "direct_payment_enabled", "direct_payment_amount", "commission_enabled", "commission_mode", "commission_value", "commission_amount", "commission_payer_party_id", "commission_status", "commission_date", "status", "cancel_reason"],
