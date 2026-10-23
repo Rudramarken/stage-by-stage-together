@@ -856,6 +856,10 @@ export type Database = {
           driver_name: string | null
           final_freight: number
           freight_payable: number
+          transporter_rate: number | null
+          transporter_rate_unit: string | null
+          transporter_weight: number | null
+          transporter_weight_unit: string | null
           freight_type: string
           goods_description: string | null
           id: string
@@ -906,6 +910,10 @@ export type Database = {
           driver_name?: string | null
           final_freight?: number
           freight_payable?: number
+          transporter_rate?: number | null
+          transporter_rate_unit?: string | null
+          transporter_weight?: number | null
+          transporter_weight_unit?: string | null
           freight_type?: string
           goods_description?: string | null
           id?: string
@@ -956,6 +964,10 @@ export type Database = {
           driver_name?: string | null
           final_freight?: number
           freight_payable?: number
+          transporter_rate?: number | null
+          transporter_rate_unit?: string | null
+          transporter_weight?: number | null
+          transporter_weight_unit?: string | null
           freight_type?: string
           goods_description?: string | null
           id?: string

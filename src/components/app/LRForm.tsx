@@ -48,6 +48,15 @@ export function LRForm({ initial }: { initial: LRValues }) {
   const set = (k: string, val: unknown) => setV((p) => ({ ...p, [k]: val }));
   const setP = (i: number, patch: Partial<LP>) => setV((p) => ({ ...p, parties: p.parties.map((x, j) => (j === i ? { ...x, ...patch } : x)) }));
   const setE = (i: number, k: number, patch: Exp) => setP(i, { expenses: v.parties[i].expenses.map((e, j) => (j === k ? { ...e, ...patch } : e)) });
+  // Transporter freight: when a rate unit + rate (+ weight for per-kg/quintal/tonne) are entered, freight payable is auto-calculated. Manual entry still works.
+  const setTP = (patch: Record<string, unknown>) => setV((p) => {
+    const n: LRValues = { ...p, ...patch };
+    const w = n.transporter_weight === "" || n.transporter_weight == null ? null : Number(n.transporter_weight);
+    const r = n.transporter_rate === "" || n.transporter_rate == null ? null : Number(n.transporter_rate);
+    const ru = n.transporter_rate_unit as RateUnit | "" | undefined;
+    if (ru && r != null && !Number.isNaN(r) && (ru === "fixed" || (w != null && w > 0))) n.freight_payable = String(calcFreight(w, (n.transporter_weight_unit || "kg") as WeightUnit, r, ru).base);
+    return n;
+  });
 
   const trip = trips.data?.find((t) => t.id === v.trip_id);
   const stops = trip ? [...trip.trip_stops].sort((a: any, b: any) => a.seq - b.seq) : [];
@@ -55,6 +64,10 @@ export function LRForm({ initial }: { initial: LRValues }) {
   const weight = v.weight === "" || v.weight == null ? null : Number(v.weight);
   const rate = v.rate === "" || v.rate == null ? null : Number(v.rate);
   const calc = calcFreight(weight, v.weight_unit as WeightUnit, rate, v.rate_unit as RateUnit, adj);
+  const tWeight = v.transporter_weight === "" || v.transporter_weight == null ? null : Number(v.transporter_weight);
+  const tRate = v.transporter_rate === "" || v.transporter_rate == null ? null : Number(v.transporter_rate);
+  const tUnit = (v.transporter_rate_unit || "") as RateUnit | "";
+  const tCalc = tUnit && tRate != null ? calcFreight(tWeight, (v.transporter_weight_unit || "kg") as WeightUnit, tRate, tUnit) : null;
   const commission = !v.commission_enabled ? 0 : v.commission_mode === "percent" ? Math.round(calc.final * Number(v.commission_value || 0)) / 100 : Number(v.commission_value || 0);
   const partyOpts = (role: string) => (parties.data ?? []).filter((p) => p.is_active).map((p) => ({ value: p.id, label: p.name, hint: (p.roles ?? []).includes(role) ? "" : (p.roles ?? []).join(", ") }));
   const createParty = async (name: string, role: string) => { const id = await createPartyInline(name, "customer"); await qc.invalidateQueries({ queryKey: ["parties"] }); void role; return id; };
@@ -67,6 +80,10 @@ export function LRForm({ initial }: { initial: LRValues }) {
     if (!v.parties.some((p) => p.role === "consignor" && p.party_id) || !v.parties.some((p) => p.role === "consignee" && p.party_id)) return setErr("Add at least one consignor and one consignee");
     if (v.parties.some((p) => !p.party_id)) return setErr("Choose a party for every consignor/consignee row (or remove the empty row)");
     if (Number(v.freight_payable) < 0) return setErr("Freight payable cannot be negative");
+    if (v.transporter_rate_unit && v.transporter_rate !== "" && v.transporter_rate != null) {
+      if (Number(v.transporter_rate) < 0) return setErr("Transporter rate cannot be negative");
+      if (v.transporter_rate_unit !== "fixed" && !(Number(v.transporter_weight) > 0)) return setErr("Enter the weight on which freight is payable to the transporter");
+    }
     if (v.direct_payment_enabled && !(Number(v.direct_payment_amount) > 0)) return setErr("Enter the amount the consignee paid the driver directly");
     if (v.commission_enabled && !v.driver_id && !v.driver_name?.trim() && !trip?.driver_id && !trip?.driver_name) return setErr("Choose or type the driver who owes the commission");
     if (initial.commission_enabled && !v.commission_enabled && !v.commission_cancel_reason?.trim()) return setErr("Enter a reason for turning commission off");
@@ -188,8 +205,13 @@ export function LRForm({ initial }: { initial: LRValues }) {
           <Field label="Vehicle name/type"><Input value={v.vehicle_type ?? ""} onChange={(e) => set("vehicle_type", e.target.value)} /></Field>
           <Field label="Registered driver"><SearchSelect value={v.driver_id ?? ""} onChange={(id) => setV({ ...v, driver_id: id, driver_name: drivers.data?.find((d) => d.id === id)?.name ?? "" })} options={(drivers.data ?? []).map((d) => ({ value: d.id, label: d.name }))} placeholder="Choose driver" /></Field>
           {!v.driver_id && <Field label="Driver name"><Input aria-label="Driver name" value={v.driver_name ?? ""} onChange={(e) => set("driver_name", e.target.value)} placeholder={trip?.driver_name ?? "Type driver name"} /></Field>}
+          <Field label="Transporter rate unit" hint="Leave on Manual to type the amount yourself"><select className={selectCls} value={v.transporter_rate_unit ?? ""} onChange={(e) => setTP({ transporter_rate_unit: e.target.value })}><option value="">Manual (type amount)</option>{Object.entries(RATE_UNIT_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>
+          {v.transporter_rate_unit && v.transporter_rate_unit !== "fixed" && <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2"><Field label="Weight for transporter" hint={weight ? `LR weight: ${weight} ${v.weight_unit}` : undefined}><Input type="number" min="0" value={v.transporter_weight ?? ""} onChange={(e) => setTP({ transporter_weight: e.target.value })} /></Field>
+            <Field label="Unit"><select className={selectCls} value={v.transporter_weight_unit || "kg"} onChange={(e) => setTP({ transporter_weight_unit: e.target.value })}><option value="kg">kg</option><option value="quintal">quintal</option><option value="tonne">tonne</option></select></Field></div>}
+          {v.transporter_rate_unit && <Field label={v.transporter_rate_unit === "fixed" ? "Fixed freight to transporter (₹)" : "Transporter rate (₹)"}><Input type="number" min="0" step="0.01" value={v.transporter_rate ?? ""} onChange={(e) => setTP({ transporter_rate: e.target.value })} /></Field>}
           <Field label="Freight payable to transporter (₹)" hint="This does NOT record a payment"><Input type="number" min="0" value={v.freight_payable ?? ""} onChange={(e) => set("freight_payable", e.target.value)} /></Field>
         </div>
+        {tCalc && <p className="mt-2 text-sm">{tUnit === "fixed" ? `Fixed freight to transporter ${formatINR(tRate ?? 0)} (not multiplied by weight)` : `${tWeight ?? 0} ${v.transporter_weight_unit || "kg"} × ${formatINR(tRate ?? 0)} ${RATE_UNIT_LABEL[tUnit as RateUnit].toLowerCase()} = ${formatINR(tCalc.base)}`}</p>}
         <p className="mt-2 text-xs text-muted-foreground">Amount paid and remaining are calculated from real payments and advances (see Transporter Settlements).</p>
       </Section>
 

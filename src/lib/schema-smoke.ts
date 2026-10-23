@@ -32,4 +32,5 @@ SCHEMA_COLUMNS.lrs.push("driver_id", "commission_cancel_reason", "commission_ref
 SCHEMA_COLUMNS.trips.push("commission_enabled", "commission_mode", "commission_value", "commission_amount", "commission_date", "commission_reference", "commission_notes", "commission_cancel_reason");
 
 SCHEMA_COLUMNS.lrs.push("cancelled_by", "cancelled_at");
+SCHEMA_COLUMNS.lrs.push("transporter_rate", "transporter_rate_unit", "transporter_weight", "transporter_weight_unit");
 SCHEMA_COLUMNS.trips.push("cancelled_by", "cancelled_at");
