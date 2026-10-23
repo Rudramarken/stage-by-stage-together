@@ -19,6 +19,31 @@ export const useTransporters = () => useTable("transporters", "name");
 export const useAccounts = () => useTable("payment_accounts", "display_name");
 export const useRoutes = () => useTable("routes", "origin");
 
+/** Current balance per cash/bank account (opening balance + movements on/after the opening date). */
+export const useAccountBalances = () => useQuery({
+  queryKey: ["payment_accounts", "balances"],
+  queryFn: async () => {
+    const { data, error } = await supabase.from("payment_account_balances").select("*");
+    if (error) throw error;
+    return data;
+  },
+});
+
+/** Every in/out movement on cash & bank accounts (payments, expenses, advances, salary, commission). Paged past the 1000-row API cap. */
+export const useAccountMovements = () => useQuery({
+  queryKey: ["payment_accounts", "movements"],
+  queryFn: async () => {
+    const out: { account_id: string | null; entry_date: string | null; signed_amount: number | null }[] = [];
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await supabase.from("account_movements").select("account_id, entry_date, signed_amount").order("entry_date").order("source_id").range(from, from + 999);
+      if (error) throw error;
+      out.push(...data);
+      if (data.length < 1000) break;
+    }
+    return out;
+  },
+});
+
 export const nameOf = (list: any[] | undefined, id: string | null | undefined, key = "name") =>
   (id && list?.find((x) => x.id === id)?.[key]) || "";
 

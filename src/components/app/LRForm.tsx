@@ -95,6 +95,8 @@ export function LRForm({ initial }: { initial: LRValues }) {
             <div className="sm:col-span-2"><Field label="Goods"><Input value={p.goods_description ?? ""} onChange={(e) => setP(i, { goods_description: e.target.value })} /></Field></div>
             <Field label="Qty"><Input type="number" min="0" value={p.quantity ?? ""} onChange={(e) => setP(i, { quantity: e.target.value })} /></Field>
             <Field label={`Weight (${v.weight_unit})`}><Input type="number" min="0" value={p.weight ?? ""} onChange={(e) => setP(i, { weight: e.target.value })} /></Field>
+            <div className="sm:col-span-3"><Field label="Loading point"><Input value={p.loading_point ?? ""} onChange={(e) => setP(i, { loading_point: e.target.value })} /></Field></div>
+            <div className="sm:col-span-3"><Field label="Delivery point"><Input value={p.delivery_point ?? ""} onChange={(e) => setP(i, { delivery_point: e.target.value })} /></Field></div>
           </div>
           <div className="mt-3 rounded bg-muted/50 p-3">
             <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2"><p className="min-w-0 text-sm font-medium">{role === "consignor" ? "Consignor" : "Consignee"} expenses</p>

@@ -13,7 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { maskAccount } from "@/lib/format";
+import { formatDate, formatINR, maskAccount } from "@/lib/format";
+import { useAccountBalances } from "@/lib/lookups";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => pageHead("Business Settings — Gokul Cargo Movers", "Business Settings records for Gokul Cargo Movers transport management."),
@@ -32,28 +33,7 @@ function SettingsPage() {
           <TabsTrigger value="users">Users</TabsTrigger>
         </TabsList>
         <TabsContent value="business"><BusinessForm /></TabsContent>
-        <TabsContent value="accounts">
-          <p className="mb-3 text-sm text-muted-foreground">Accounts are only labels on payments (no balances are tracked). The Cash account is permanent.</p>
-          <MasterCrud hideHeader table="payment_accounts" title="Accounts" singular="Bank account" orderBy="display_name"
-            searchKeys={["display_name", "bank_name", "account_holder"]}
-            canArchive={(r) => r.kind !== "cash"}
-            transform={(v) => ({ ...v, kind: "bank" })}
-            fields={[
-              { name: "display_name", label: "Display name", required: true, hint: "e.g. HDFC Current" },
-              { name: "bank_name", label: "Bank name" },
-              { name: "account_holder", label: "Account holder" },
-              { name: "account_number", label: "Account number" },
-              { name: "ifsc", label: "IFSC" },
-            ]}
-            columns={[
-              { label: "Name", render: (r) => <span className="font-medium">{r.display_name}</span> },
-              { label: "Type", render: (r) => <StatusBadge tone={r.kind === "cash" ? "success" : "info"}>{r.kind === "cash" ? "Cash" : "Bank"}</StatusBadge> },
-              { label: "Bank", render: (r) => r.bank_name ?? "—" },
-              { label: "Account no.", render: (r) => maskAccount(r.account_number) },
-              { label: "IFSC", render: (r) => r.ifsc ?? "—" },
-            ]}
-          />
-        </TabsContent>
+        <TabsContent value="accounts"><AccountsTab /></TabsContent>
         <TabsContent value="transporters">
           <p className="mb-3 text-sm text-muted-foreground">Transporters typed on trips/LRs are added here automatically (once). You can link one to a Party.</p>
           <TransportersTab />
@@ -61,6 +41,43 @@ function SettingsPage() {
         <TabsContent value="users"><UsersTab /></TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function AccountsTab() {
+  const bal = useAccountBalances();
+  const byId = new Map((bal.data ?? []).map((b) => [b.account_id, b]));
+  return (
+    <>
+      <p className="mb-3 text-sm text-muted-foreground">
+        Set each account's <b>opening balance</b> and the <b>date</b> your bank statement starts. Only entries dated on/after that date count, so the balance here matches your statement.
+        Balance = opening + receipts − payments, expenses, advances and salary paid from the account (reversed/cancelled entries ignored). The Cash account is permanent.
+      </p>
+      <MasterCrud hideHeader table="payment_accounts" title="Accounts" singular="Bank account" orderBy="display_name"
+        searchKeys={["display_name", "bank_name", "account_holder"]}
+        canArchive={(r) => r.kind !== "cash"}
+        transform={(v, existing) => ({ ...v, ...(existing ? {} : { kind: "bank" }), opening_balance: v.opening_balance ?? 0, opening_date: Number(v.opening_balance ?? 0) === 0 && !v.opening_date ? null : v.opening_date })}
+        validate={(v) => (Number(v.opening_balance ?? 0) !== 0 && !v.opening_date ? "Choose the opening balance date (the date your statement starts)" : null)}
+        fields={[
+          { name: "display_name", label: "Display name", required: true, hint: "e.g. HDFC Current" },
+          { name: "bank_name", label: "Bank name" },
+          { name: "account_holder", label: "Account holder" },
+          { name: "account_number", label: "Account number" },
+          { name: "ifsc", label: "IFSC" },
+          { name: "opening_balance", label: "Opening balance (₹)", type: "number", allowNegative: true, hint: "Balance at the start of the date below. Use a minus sign for an overdraft (bank only)." },
+          { name: "opening_date", label: "Opening balance date", type: "date", hint: "Your statement's first day. Earlier entries won't count in the balance." },
+        ]}
+        columns={[
+          { label: "Name", render: (r) => <span className="font-medium">{r.display_name}</span> },
+          { label: "Type", render: (r) => <StatusBadge tone={r.kind === "cash" ? "success" : "info"}>{r.kind === "cash" ? "Cash" : "Bank"}</StatusBadge> },
+          { label: "Bank", render: (r) => r.bank_name ?? "—" },
+          { label: "Account no.", render: (r) => maskAccount(r.account_number) },
+          { label: "IFSC", render: (r) => r.ifsc ?? "—" },
+          { label: "Opening", render: (r) => <span className="whitespace-nowrap">{formatINR(r.opening_balance)}{r.opening_date && <span className="block text-xs text-muted-foreground">as on {formatDate(r.opening_date)}</span>}</span> },
+          { label: "Current balance", render: (r) => { const b = byId.get(r.id); return b ? <span className="whitespace-nowrap font-medium">{formatINR(b.balance)}{!!b.entries_before_opening && <span className="block text-xs font-normal text-warning-foreground">{b.entries_before_opening} older entr{b.entries_before_opening === 1 ? "y" : "ies"} not counted</span>}</span> : "—"; } },
+        ]}
+      />
+    </>
   );
 }
 
