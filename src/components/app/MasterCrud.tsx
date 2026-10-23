@@ -25,7 +25,6 @@ export type FieldDef = {
   options?: { value: string; label: string }[];
   hint?: string;
   full?: boolean;
-  allowNegative?: boolean;
   showIf?: (v: Record<string, unknown>) => boolean;
 };
 
@@ -47,7 +46,7 @@ type Props = {
   canArchive?: (row: Record<string, any>) => boolean;
   rowLink?: (row: Record<string, any>) => ReactNode;
   hideHeader?: boolean;
-  transform?: (v: Record<string, any>, existing?: Record<string, any>) => Record<string, any>;
+  transform?: (v: Record<string, any>) => Record<string, any>;
 };
 
 const PAGE = 25;
@@ -86,7 +85,7 @@ export function MasterCrud(p: Props) {
 
   const save = useMutation({
     mutationFn: async (values: Record<string, any>) => {
-      const payload = p.transform ? p.transform(values, editing?.id ? editing : undefined) : values;
+      const payload = p.transform ? p.transform(values) : values;
       delete payload.id; delete payload.business_id; delete payload.created_at; delete payload.updated_at; delete payload.created_by;
       for (const k of Object.keys(payload)) if (k.endsWith("_normalized")) delete payload[k];
       if (editing?.id) {
@@ -119,7 +118,7 @@ export function MasterCrud(p: Props) {
       if (f.required && (f.showIf ? f.showIf(form) : true) && (form[f.name] == null || String(form[f.name]).trim() === "" || (Array.isArray(form[f.name]) && form[f.name].length === 0))) {
         setFormErr(`${f.label} is required`); return;
       }
-      if (f.type === "number" && !f.allowNegative && form[f.name] !== "" && form[f.name] != null && Number(form[f.name]) < 0) {
+      if (f.type === "number" && form[f.name] !== "" && form[f.name] != null && Number(form[f.name]) < 0) {
         setFormErr(`${f.label} cannot be negative`); return;
       }
     }
@@ -233,7 +232,7 @@ function renderInput(f: FieldDef, form: Record<string, any>, setForm: (v: Record
   switch (f.type) {
     case "textarea": return <Textarea value={v ?? ""} onChange={(e) => set(e.target.value)} />;
     case "date": return <Input type="date" value={v ?? ""} onChange={(e) => set(e.target.value)} />;
-    case "number": return <Input type="number" step="0.01" min={f.allowNegative ? undefined : "0"} value={v ?? ""} onChange={(e) => set(e.target.value)} />;
+    case "number": return <Input type="number" step="0.01" min="0" value={v ?? ""} onChange={(e) => set(e.target.value)} />;
     case "select": return (
       <select className="h-9 rounded-md border border-input bg-card px-2 text-sm" value={v ?? ""} onChange={(e) => set(e.target.value)}>
         {f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}

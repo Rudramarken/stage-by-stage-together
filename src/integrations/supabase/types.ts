@@ -1122,8 +1122,6 @@ export type Database = {
           id: string
           ifsc: string | null
           is_active: boolean
-          opening_balance: number
-          opening_date: string | null
           kind: string
           updated_at: string
         }
@@ -1138,8 +1136,6 @@ export type Database = {
           id?: string
           ifsc?: string | null
           is_active?: boolean
-          opening_balance?: number
-          opening_date?: string | null
           kind?: string
           updated_at?: string
         }
@@ -1154,8 +1150,6 @@ export type Database = {
           id?: string
           ifsc?: string | null
           is_active?: boolean
-          opening_balance?: number
-          opening_date?: string | null
           kind?: string
           updated_at?: string
         }
@@ -1857,30 +1851,6 @@ export type Database = {
       }
     }
     Views: {
-      account_movements: {
-        Row: {
-          account_id: string | null
-          business_id: string | null
-          entry_date: string | null
-          signed_amount: number | null
-          source_id: string | null
-          source_table: string | null
-        }
-        Relationships: []
-      }
-      payment_account_balances: {
-        Row: {
-          account_id: string | null
-          balance: number | null
-          business_id: string | null
-          entries_before_opening: number | null
-          opening_balance: number | null
-          opening_date: string | null
-          total_in: number | null
-          total_out: number | null
-        }
-        Relationships: []
-      }
       account_balances: {
         Row: {
           account_id: string | null

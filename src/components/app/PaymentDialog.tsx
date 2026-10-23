@@ -11,7 +11,7 @@ import { selectCls } from "./Section";
 import { SearchSelect } from "./SearchSelect";
 import { errorMessage } from "./states";
 import { useAccounts, useParties, useTransporters, createTransporterInline, PAYMENT_TYPE, PAY_MODES } from "@/lib/lookups";
-import { formatDate, todayIST } from "@/lib/format";
+import { todayIST } from "@/lib/format";
 
 export function PaymentDialog({ open, onOpenChange, initial, thirdParty }: { open: boolean; onOpenChange: (o: boolean) => void; initial?: Record<string, any> | null; thirdParty?: boolean }) {
   const qc = useQueryClient();
@@ -64,12 +64,10 @@ export function PaymentDialog({ open, onOpenChange, initial, thirdParty }: { ope
     onSuccess: () => {
       toast.success("Saved");
       onOpenChange(false);
-      for (const k of ["payments", "payment_accounts", "ledger", "outstanding", "dashboard", "settlements"]) qc.invalidateQueries({ queryKey: [k] });
+      for (const k of ["payments", "ledger", "outstanding", "dashboard", "settlements"]) qc.invalidateQueries({ queryKey: [k] });
     },
     onError: (e) => setErr(errorMessage(e)),
   });
-  const chosen = accounts.data?.find((a) => a.id === v.account_id);
-  const beforeOpening = !!(chosen?.opening_date && v.payment_date && v.payment_date < chosen.opening_date);
   const banks = accounts.data?.filter((a) => a.kind === "bank" && (a.is_active || a.id === v.account_id)) ?? [];
   return (
     <Dialog open={open} onOpenChange={(o) => !save.isPending && onOpenChange(o)}>
@@ -85,7 +83,7 @@ export function PaymentDialog({ open, onOpenChange, initial, thirdParty }: { ope
             <SearchSelect value={v.party_id} onChange={(x) => set("party_id", x)} options={(parties.data ?? []).map((p) => ({ value: p.id, label: p.name }))} /></Field>}
           {thirdParty && <Field label="Actual payer name" required hint="No party record needed; their balance is not changed"><Input value={v.payer_name ?? ""} onChange={(e) => set("payer_name", e.target.value)} /></Field>}
           <Field label="Amount (₹)" required><Input type="number" min="0" step="0.01" value={v.amount ?? ""} onChange={(e) => set("amount", e.target.value)} /></Field>
-          <Field label="Date" required hint={beforeOpening ? `Before this account's opening date (${formatDate(chosen?.opening_date)}) — it won't change the account balance` : undefined}><Input type="date" value={v.payment_date ?? ""} onChange={(e) => set("payment_date", e.target.value)} /></Field>
+          <Field label="Date" required><Input type="date" value={v.payment_date ?? ""} onChange={(e) => set("payment_date", e.target.value)} /></Field>
           <Field label="Mode"><select className={selectCls} value={v.mode} onChange={(e) => set("mode", e.target.value)}>{PAY_MODES.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}</select></Field>
           <Field label={v.payment_type?.includes("receipt") || v.payment_type === "advance_received" ? "Received into" : "Paid from"} required>
             <select className={selectCls} value={v.account_id ?? ""} onChange={(e) => set("account_id", e.target.value)}>
