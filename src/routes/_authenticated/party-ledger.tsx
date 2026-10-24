@@ -7,6 +7,8 @@ import { PageHeader, Field } from "@/components/app/ui";
 import { LoadingState, ErrorState, EmptyState } from "@/components/app/states";
 import { LedgerTable, LedgerHelp } from "@/components/app/LedgerTable";
 import { Input } from "@/components/ui/input";
+import { useTransporters } from "@/lib/lookups";
+import { normName } from "@/lib/transporter-options";
 
 export const Route = createFileRoute("/_authenticated/party-ledger")({
   head: () => pageHead("Party Ledger — Gokul Cargo Movers", "Party Ledger records for Gokul Cargo Movers transport management."),
@@ -26,6 +28,9 @@ function PartyLedger() {
     },
   });
   const party = q.data?.find((p) => p.id === partyId);
+  // A party that is also a transporter: its transporter account (freight payable, commission due from the transporter) is shown below too.
+  const transporters = useTransporters();
+  const linkedTransporters = party ? ((transporters.data ?? []) as any[]).filter((x) => x.party_id === party.id || (!x.party_id && normName(x.name) === normName(party.name))) : [];
   return (
     <div className="space-y-4">
       <PageHeader title="Party Ledger" description="Every entry for one party, with a running Receivable / Payable balance." />
@@ -44,7 +49,10 @@ function PartyLedger() {
           </div>
           {party ? (
             <div><h2 className="mb-2 text-lg font-semibold">{party.name}</h2>
-              <LedgerTable accountType="party" accountId={party.id} from={from || undefined} to={to || undefined} title={`ledger-${party.name}`} /></div>
+              <LedgerTable accountType="party" accountId={party.id} from={from || undefined} to={to || undefined} title={`ledger-${party.name}`} />
+              {linkedTransporters.map((tr) => <div key={tr.id} className="mt-6"><h3 className="mb-1 font-semibold">{tr.name} — transporter account</h3>
+                <p className="mb-2 text-xs text-muted-foreground">Freight Gokul owes this transporter (Payable) and commission Gokul has to receive from this transporter (Receivable).</p>
+                <LedgerTable accountType="transporter" accountId={tr.id} from={from || undefined} to={to || undefined} title={`transporter-${tr.name}`} /></div>)}</div>
           ) : <EmptyState title={q.data.length ? "Choose a party to see its ledger" : "No parties yet"} hint={q.data.length ? undefined : "Add a party first on the Parties page."} />}
         </>
       )}
