@@ -85,6 +85,13 @@
       "when": 1792860000000,
       "tag": "0011_lr_transporter_rate_weight",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792950000000,
+      "tag": "0012_commission_due_from_transporter",
+      "breakpoints": true
     }
   ]
 }

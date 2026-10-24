@@ -58,7 +58,7 @@ export function TripForm({ initial }: { initial?: TripValues }) {
     if (v.stops.some((s) => !s.location.trim())) return setErr("Every stop needs a location");
     if (v.vehicle_mode === "market" && !v.market_vehicle_number?.trim()) return setErr("Enter the market truck's vehicle number");
     if (v.status === "cancelled" && !v.cancel_reason?.trim()) return setErr("Enter a reason for cancelling");
-    if (v.commission_enabled && !v.driver_id && !v.driver_name?.trim()) return setErr("Choose or type the driver who owes commission");
+    if (v.commission_enabled && !v.transporter_id && !(initial?.commission_enabled && (v.driver_id || v.driver_name?.trim()))) return setErr("Choose the transporter who owes commission");
     if (initial?.commission_enabled && !v.commission_enabled && !v.commission_cancel_reason?.trim()) return setErr("Enter a reason for turning commission off");
     setBusy(true);
     try {
@@ -166,7 +166,7 @@ export function TripForm({ initial }: { initial?: TripValues }) {
       <Section n={5} title="Expenses & driver advances" defaultOpen={false}>
         <p className="text-sm text-muted-foreground">After saving, add expenses and advances on the trip page (each entry saved separately).</p>
       </Section>
-      <Section title="Driver commission (optional)" defaultOpen={!!v.commission_enabled}>
+      <Section title="Transporter commission (optional)" defaultOpen={!!v.commission_enabled}>
         <label className="flex items-center gap-2 text-sm"><Switch checked={!!v.commission_enabled} onCheckedChange={(enabled) => set("commission_enabled", enabled)} />Commission applicable?</label>
         {v.commission_enabled && <div className="mt-3 grid gap-3 sm:grid-cols-3">
           <Field label="Commission type"><select className={selectCls} value={v.commission_mode ?? "fixed"} onChange={(e) => set("commission_mode", e.target.value)}><option value="fixed">Fixed ₹</option><option value="percent">% of this trip's LR freight</option></select></Field>
@@ -174,7 +174,7 @@ export function TripForm({ initial }: { initial?: TripValues }) {
           <Field label="Date"><Input type="date" value={v.commission_date ?? ""} onChange={(e) => set("commission_date", e.target.value)} /></Field>
           <Field label="Reference"><Input value={v.commission_reference ?? ""} onChange={(e) => set("commission_reference", e.target.value)} /></Field>
           <Field label="Notes"><Input value={v.commission_notes ?? ""} onChange={(e) => set("commission_notes", e.target.value)} /></Field>
-          <p className="text-sm">Commission due from driver: <Money value={v.commission_mode === "percent" ? v.commission_amount ?? 0 : v.commission_value ?? 0} /></p>
+          <p className="text-sm">Commission due from transporter: <Money value={v.commission_mode === "percent" ? v.commission_amount ?? 0 : v.commission_value ?? 0} /> · {transporters.data?.find((x) => x.id === v.transporter_id)?.name ?? "Choose transporter"}</p>
         </div>}
         {initial?.commission_enabled && !v.commission_enabled && <Field label="Reason for turning commission off" required><Input value={v.commission_cancel_reason ?? ""} onChange={(e) => set("commission_cancel_reason", e.target.value)} /></Field>}
       </Section>

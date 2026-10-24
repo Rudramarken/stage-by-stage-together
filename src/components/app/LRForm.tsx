@@ -12,7 +12,7 @@ import { Field, Money } from "./ui";
 import { Section, selectCls } from "./Section";
 import { SearchSelect } from "./SearchSelect";
 import { errorMessage } from "./states";
-import { useParties, useDrivers, createPartyInline, EXPENSE_CATEGORIES, PAY_MODES, FREIGHT_TYPE } from "@/lib/lookups";
+import { useParties, useDrivers, useTransporters, createPartyInline, EXPENSE_CATEGORIES, PAY_MODES, FREIGHT_TYPE } from "@/lib/lookups";
 import { TransporterSelect } from "./TransporterSelect";
 import { calcFreight, validateFreight, RATE_UNIT_LABEL, type RateUnit, type WeightUnit } from "@/lib/freight";
 import { formatINR, todayIST } from "@/lib/format";
@@ -32,7 +32,7 @@ export function blankLR(tripId?: string): LRValues {
 export function LRForm({ initial }: { initial: LRValues }) {
   const nav = useNavigate();
   const qc = useQueryClient();
-  const parties = useParties(); const drivers = useDrivers();
+  const parties = useParties(); const drivers = useDrivers(); const transporters = useTransporters();
   const trips = useQuery({
     queryKey: ["trips-pick"],
     queryFn: async () => {
@@ -85,7 +85,7 @@ export function LRForm({ initial }: { initial: LRValues }) {
       if (v.transporter_rate_unit !== "fixed" && !(Number(v.transporter_weight) > 0)) return setErr("Enter the weight on which freight is payable to the transporter");
     }
     if (v.direct_payment_enabled && !(Number(v.direct_payment_amount) > 0)) return setErr("Enter the amount the consignee paid the driver directly");
-    if (v.commission_enabled && !v.driver_id && !v.driver_name?.trim() && !trip?.driver_id && !trip?.driver_name) return setErr("Choose or type the driver who owes the commission");
+    if (v.commission_enabled && !v.transporter_id && !trip?.transporter_id && !(initial.commission_enabled && (v.driver_id || v.driver_name?.trim()))) return setErr("Choose the transporter who owes the commission");
     if (initial.commission_enabled && !v.commission_enabled && !v.commission_cancel_reason?.trim()) return setErr("Enter a reason for turning commission off");
     for (const p of v.parties) for (const e of p.expenses) if (!(Number(e.amount) > 0)) return setErr("Every consignor/consignee expense needs an amount");
     setBusy(true);
@@ -227,7 +227,7 @@ export function LRForm({ initial }: { initial: LRValues }) {
             <Field label="Date"><Input type="date" value={v.commission_date ?? ""} onChange={(e) => set("commission_date", e.target.value)} /></Field>
             <Field label="Reference"><Input value={v.commission_reference ?? ""} onChange={(e) => set("commission_reference", e.target.value)} /></Field>
             <div className="sm:col-span-2"><Field label="Notes"><Input value={v.commission_notes ?? ""} onChange={(e) => set("commission_notes", e.target.value)} /></Field></div>
-            <p className="text-sm sm:col-span-4">Commission due from driver: <Money value={commission} /> · {v.driver_name || drivers.data?.find((d) => d.id === (v.driver_id || trip?.driver_id))?.name || trip?.driver_name || "Choose driver"}</p>
+            <p className="text-sm sm:col-span-4">Commission due from transporter: <Money value={commission} /> · {transporters.data?.find((t) => t.id === (v.transporter_id || trip?.transporter_id))?.name || "Choose transporter"}</p>
           </>}
           {initial.commission_enabled && !v.commission_enabled && <Field label="Reason for turning commission off" required><Input value={v.commission_cancel_reason ?? ""} onChange={(e) => set("commission_cancel_reason", e.target.value)} /></Field>}
         </div>

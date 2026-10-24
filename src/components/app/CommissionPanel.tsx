@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useAccounts, useDrivers, nameOf } from "@/lib/lookups";
+import { useAccounts, useDrivers, useTransporters, nameOf } from "@/lib/lookups";
 import { formatDate, todayIST } from "@/lib/format";
 import { validateCommissionReceipt } from "@/lib/commission";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import { ErrorState, LoadingState, errorMessage } from "./states";
 
 export function CommissionPanel({ lrId, tripId, driverId }: { lrId?: string; tripId?: string; driverId?: string }) {
   const qc = useQueryClient();
-  const accounts = useAccounts(); const drivers = useDrivers();
+  const accounts = useAccounts(); const drivers = useDrivers(); const transporters = useTransporters();
   const [form, setForm] = useState<{ commission_id: string; pending: number; amount: string; receipt_date: string; account_id: string; reference: string; notes: string; request_id: string } | null>(null);
   const q = useQuery({
     queryKey: ["commissions", lrId, tripId, driverId],
@@ -52,20 +52,20 @@ export function CommissionPanel({ lrId, tripId, driverId }: { lrId?: string; tri
   if (q.isPending) return <LoadingState />;
   if (q.isError) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
   return <section className="space-y-3 text-sm">
-    <h3 className="font-semibold">Driver commission & receipt history</h3>
+    <h3 className="font-semibold">Commission & receipt history</h3>
     {!q.data.commissions.length && <p className="text-muted-foreground">Commission off — nothing due.</p>}
     {q.data.commissions.map((c) => <div key={c.id} className="border-b pb-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="font-medium">{c.lr_id ? <Link to="/lr/$id" params={{ id: c.lr_id }} className="text-info">{c.document_number}</Link> : c.trip_id ? <Link to="/trips/$id" params={{ id: c.trip_id }} className="text-info">{c.document_number}</Link> : c.document_number} · {nameOf(drivers.data, c.driver_id)} {c.is_cancelled && `· Cancelled: ${c.cancel_reason}`}</p>
+        <p className="font-medium">{c.lr_id ? <Link to="/lr/$id" params={{ id: c.lr_id }} className="text-info">{c.document_number}</Link> : c.trip_id ? <Link to="/trips/$id" params={{ id: c.trip_id }} className="text-info">{c.document_number}</Link> : c.document_number} · {c.transporter_id ? nameOf(transporters.data, c.transporter_id) : nameOf(drivers.data, c.driver_id)} {c.is_cancelled && `· Cancelled: ${c.cancel_reason}`}</p>
         {c.id && Number(c.pending_amount) > 0 && <Button size="sm" variant="outline" onClick={() => setForm({ commission_id: c.id ?? "", pending: Number(c.pending_amount), amount: String(c.pending_amount), receipt_date: todayIST(), account_id: accounts.data?.find((a) => a.kind === "cash" && a.is_active)?.id ?? "", reference: "", notes: "", request_id: crypto.randomUUID() })}>Record commission received</Button>}
       </div>
-      <div className="mt-2 flex flex-wrap gap-4"><p>Commission due from driver: <Money value={c.is_cancelled ? 0 : c.amount} /></p><p className="text-success">Commission received: <Money value={c.received_amount} /></p><p className="text-warning-foreground">Commission pending: <Money value={c.pending_amount} /></p></div>
+      <div className="mt-2 flex flex-wrap gap-4"><p>Commission due from {c.transporter_id ? "transporter" : "driver"}: <Money value={c.is_cancelled ? 0 : c.amount} /></p><p className="text-success">Commission received: <Money value={c.received_amount} /></p><p className="text-warning-foreground">Commission pending: <Money value={c.pending_amount} /></p></div>
       {q.data.receipts.filter((r) => r.commission_id === c.id).map((r) => <div key={r.id} className="mt-2 flex flex-wrap items-center gap-2 text-xs">
         <span className={r.is_reversed ? "line-through text-muted-foreground" : ""}>{formatDate(r.receipt_date)} · <Money value={r.amount} /> · {r.salary_payment_id ? "Salary recovery" : nameOf(accounts.data, r.account_id, "display_name")} · {r.reference} {r.notes} {r.is_reversed && `· Reversed: ${r.reversal_reason}`}</span>
         {!r.is_reversed && !r.salary_payment_id && <Button size="sm" variant="ghost" className="text-destructive" disabled={reverse.isPending} onClick={() => { const reason = window.prompt("Reason for reversing commission receipt:"); if (reason?.trim()) reverse.mutate({ id: r.id, reason: reason.trim() }); }}>Reverse</Button>}
       </div>)}
     </div>)}
-    <Dialog open={!!form} onOpenChange={(open) => { if (!open) setForm(null); }}><DialogContent><DialogHeader><DialogTitle>Record commission received from driver</DialogTitle></DialogHeader>
+    <Dialog open={!!form} onOpenChange={(open) => { if (!open) setForm(null); }}><DialogContent><DialogHeader><DialogTitle>Record commission received</DialogTitle></DialogHeader>
       {form && <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Amount received (₹)" required><Input aria-label="Amount received" type="number" min="0.01" step="0.01" max={form.pending} value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></Field>
         <Field label="Date"><Input type="date" value={form.receipt_date} onChange={(e) => setForm({ ...form, receipt_date: e.target.value })} /></Field>

@@ -21,7 +21,7 @@ function Outstanding() {
     queryFn: async () => {
       const { data, error } = await supabase.from("account_balances").select("*");
       if (error) throw error;
-      const { data: com, error: e2 } = await supabase.from("commission_balances").select("id, document_number, pending_amount, driver_id").gt("pending_amount", 0);
+      const { data: com, error: e2 } = await supabase.from("commission_balances").select("id, document_number, pending_amount, driver_id, transporter_id").gt("pending_amount", 0);
       if (e2) throw e2;
       return { bal: data, com };
     },
@@ -56,11 +56,11 @@ function Outstanding() {
       <div className="grid gap-4 lg:grid-cols-2">
         <T title="Receivables — parties owe Gokul" rows={recv} link="party" />
         <T title="Payables — Gokul owes" rows={pay} />
-        <T title="Receivable from drivers — commission (not income)" rows={q.data.com.map((c) => ({ name: `${c.document_number} · ${nameOf(drivers.data, c.driver_id)}`, amt: Number(c.pending_amount), kind: "Commission" }))} />
+        <T title="Receivable — commission from transporters/drivers (not income)" rows={q.data.com.map((c) => ({ name: `${c.document_number} · ${c.transporter_id ? nameOf(transporters.data, c.transporter_id) : nameOf(drivers.data, c.driver_id)}`, amt: Number(c.pending_amount), kind: "Commission" }))} />
         <T title="Advances paid beyond freight (transporters owe back)" rows={advPaidTransporters.map((x) => ({ ...x, kind: "Transporter" }))} />
         <div className="lg:col-span-2"><T title="Driver balances (+ driver owes Gokul / − Gokul owes driver)" rows={drv.map((d) => ({ ...d, kind: d.amt > 0 ? "Driver owes" : "Gokul owes driver" }))} /></div>
       </div>
-      <p className="text-xs text-muted-foreground">Pending commission total: <Money value={comTotal} /> (already included in driver balances, not an extra amount). Opening balances are never revenue.</p>
+      <p className="text-xs text-muted-foreground">Pending commission total: <Money value={comTotal} /> (already included in the transporter/driver balances, not an extra amount). Opening balances are never revenue.</p>
     </div>
   );
 }
