@@ -270,7 +270,7 @@ export type Database = {
           commission_id: string
           created_at: string
           created_by: string | null
-          driver_id: string
+          driver_id: string | null
           id: string
           is_reversed: boolean
           notes: string | null
@@ -279,6 +279,7 @@ export type Database = {
           request_id: string
           reversal_reason: string | null
           salary_payment_id: string | null
+          transporter_id: string | null
         }
         Insert: {
           account_id?: string | null
@@ -287,7 +288,7 @@ export type Database = {
           commission_id: string
           created_at?: string
           created_by?: string | null
-          driver_id: string
+          driver_id?: string | null
           id?: string
           is_reversed?: boolean
           notes?: string | null
@@ -296,6 +297,7 @@ export type Database = {
           request_id: string
           reversal_reason?: string | null
           salary_payment_id?: string | null
+          transporter_id?: string | null
         }
         Update: {
           account_id?: string | null
@@ -304,7 +306,7 @@ export type Database = {
           commission_id?: string
           created_at?: string
           created_by?: string | null
-          driver_id?: string
+          driver_id?: string | null
           id?: string
           is_reversed?: boolean
           notes?: string | null
@@ -313,6 +315,7 @@ export type Database = {
           request_id?: string
           reversal_reason?: string | null
           salary_payment_id?: string | null
+          transporter_id?: string | null
         }
         Relationships: [
           {
@@ -357,6 +360,13 @@ export type Database = {
             referencedRelation: "salary_payments"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "commission_receipts_transporter_id_fkey"
+            columns: ["transporter_id"]
+            isOneToOne: false
+            referencedRelation: "transporters"
+            referencedColumns: ["id"]
+          },
         ]
       }
       doc_sequences: {
@@ -393,12 +403,13 @@ export type Database = {
           commission_date: string
           created_at: string
           created_by: string | null
-          driver_id: string
+          driver_id: string | null
           id: string
           is_cancelled: boolean
           lr_id: string | null
           notes: string | null
           reference: string | null
+          transporter_id: string | null
           trip_id: string | null
         }
         Insert: {
@@ -408,12 +419,13 @@ export type Database = {
           commission_date?: string
           created_at?: string
           created_by?: string | null
-          driver_id: string
+          driver_id?: string | null
           id?: string
           is_cancelled?: boolean
           lr_id?: string | null
           notes?: string | null
           reference?: string | null
+          transporter_id?: string | null
           trip_id?: string | null
         }
         Update: {
@@ -423,12 +435,13 @@ export type Database = {
           commission_date?: string
           created_at?: string
           created_by?: string | null
-          driver_id?: string
+          driver_id?: string | null
           id?: string
           is_cancelled?: boolean
           lr_id?: string | null
           notes?: string | null
           reference?: string | null
+          transporter_id?: string | null
           trip_id?: string | null
         }
         Relationships: [
@@ -451,6 +464,13 @@ export type Database = {
             columns: ["lr_id"]
             isOneToOne: true
             referencedRelation: "lrs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_commissions_transporter_id_fkey"
+            columns: ["transporter_id"]
+            isOneToOne: false
+            referencedRelation: "transporters"
             referencedColumns: ["id"]
           },
           {
@@ -869,6 +889,10 @@ export type Database = {
           rate_unit: string
           status: string
           transporter_id: string | null
+          transporter_rate: number | null
+          transporter_rate_unit: string | null
+          transporter_weight: number | null
+          transporter_weight_unit: string | null
           trip_id: string | null
           unloading_stop_id: string | null
           updated_at: string
@@ -919,6 +943,10 @@ export type Database = {
           rate_unit?: string
           status?: string
           transporter_id?: string | null
+          transporter_rate?: number | null
+          transporter_rate_unit?: string | null
+          transporter_weight?: number | null
+          transporter_weight_unit?: string | null
           trip_id?: string | null
           unloading_stop_id?: string | null
           updated_at?: string
@@ -969,6 +997,10 @@ export type Database = {
           rate_unit?: string
           status?: string
           transporter_id?: string | null
+          transporter_rate?: number | null
+          transporter_rate_unit?: string | null
+          transporter_weight?: number | null
+          transporter_weight_unit?: string | null
           trip_id?: string | null
           unloading_stop_id?: string | null
           updated_at?: string
@@ -1123,6 +1155,8 @@ export type Database = {
           ifsc: string | null
           is_active: boolean
           kind: string
+          opening_balance: number
+          opening_date: string | null
           updated_at: string
         }
         Insert: {
@@ -1137,6 +1171,8 @@ export type Database = {
           ifsc?: string | null
           is_active?: boolean
           kind?: string
+          opening_balance?: number
+          opening_date?: string | null
           updated_at?: string
         }
         Update: {
@@ -1151,6 +1187,8 @@ export type Database = {
           ifsc?: string | null
           is_active?: boolean
           kind?: string
+          opening_balance?: number
+          opening_date?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1888,6 +1926,7 @@ export type Database = {
           pending_amount: number | null
           received_amount: number | null
           reference: string | null
+          transporter_id: string | null
           trip_id: string | null
         }
         Relationships: [
@@ -1910,6 +1949,13 @@ export type Database = {
             columns: ["lr_id"]
             isOneToOne: true
             referencedRelation: "lrs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_commissions_transporter_id_fkey"
+            columns: ["transporter_id"]
+            isOneToOne: false
+            referencedRelation: "transporters"
             referencedColumns: ["id"]
           },
           {

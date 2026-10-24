@@ -99,6 +99,13 @@
       "when": 1793040000000,
       "tag": "0013_move_driver_commission_to_transporter",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793040000001,
+      "tag": "0014_commission_due_from_transporter",
+      "breakpoints": true
     }
   ]
 }
