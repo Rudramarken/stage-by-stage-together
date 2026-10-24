@@ -270,8 +270,7 @@ export type Database = {
           commission_id: string
           created_at: string
           created_by: string | null
-          driver_id: string | null
-          transporter_id: string | null
+          driver_id: string
           id: string
           is_reversed: boolean
           notes: string | null
@@ -288,8 +287,7 @@ export type Database = {
           commission_id: string
           created_at?: string
           created_by?: string | null
-          driver_id?: string | null
-          transporter_id?: string | null
+          driver_id: string
           id?: string
           is_reversed?: boolean
           notes?: string | null
@@ -306,8 +304,7 @@ export type Database = {
           commission_id?: string
           created_at?: string
           created_by?: string | null
-          driver_id?: string | null
-          transporter_id?: string | null
+          driver_id?: string
           id?: string
           is_reversed?: boolean
           notes?: string | null
@@ -396,8 +393,7 @@ export type Database = {
           commission_date: string
           created_at: string
           created_by: string | null
-          driver_id: string | null
-          transporter_id: string | null
+          driver_id: string
           id: string
           is_cancelled: boolean
           lr_id: string | null
@@ -412,8 +408,7 @@ export type Database = {
           commission_date?: string
           created_at?: string
           created_by?: string | null
-          driver_id?: string | null
-          transporter_id?: string | null
+          driver_id: string
           id?: string
           is_cancelled?: boolean
           lr_id?: string | null
@@ -428,8 +423,7 @@ export type Database = {
           commission_date?: string
           created_at?: string
           created_by?: string | null
-          driver_id?: string | null
-          transporter_id?: string | null
+          driver_id?: string
           id?: string
           is_cancelled?: boolean
           lr_id?: string | null
@@ -862,10 +856,6 @@ export type Database = {
           driver_name: string | null
           final_freight: number
           freight_payable: number
-          transporter_rate: number | null
-          transporter_rate_unit: string | null
-          transporter_weight: number | null
-          transporter_weight_unit: string | null
           freight_type: string
           goods_description: string | null
           id: string
@@ -916,10 +906,6 @@ export type Database = {
           driver_name?: string | null
           final_freight?: number
           freight_payable?: number
-          transporter_rate?: number | null
-          transporter_rate_unit?: string | null
-          transporter_weight?: number | null
-          transporter_weight_unit?: string | null
           freight_type?: string
           goods_description?: string | null
           id?: string
@@ -970,10 +956,6 @@ export type Database = {
           driver_name?: string | null
           final_freight?: number
           freight_payable?: number
-          transporter_rate?: number | null
-          transporter_rate_unit?: string | null
-          transporter_weight?: number | null
-          transporter_weight_unit?: string | null
           freight_type?: string
           goods_description?: string | null
           id?: string
@@ -1141,8 +1123,6 @@ export type Database = {
           ifsc: string | null
           is_active: boolean
           kind: string
-          opening_balance: number
-          opening_date: string | null
           updated_at: string
         }
         Insert: {
@@ -1157,8 +1137,6 @@ export type Database = {
           ifsc?: string | null
           is_active?: boolean
           kind?: string
-          opening_balance?: number
-          opening_date?: string | null
           updated_at?: string
         }
         Update: {
@@ -1173,8 +1151,6 @@ export type Database = {
           ifsc?: string | null
           is_active?: boolean
           kind?: string
-          opening_balance?: number
-          opening_date?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1905,7 +1881,6 @@ export type Database = {
           created_by: string | null
           document_number: string | null
           driver_id: string | null
-          transporter_id: string | null
           id: string | null
           is_cancelled: boolean | null
           lr_id: string | null
