@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -17,6 +17,7 @@ import { TransporterSelect } from "./TransporterSelect";
 import { calcFreight, validateFreight, RATE_UNIT_LABEL, type RateUnit, type WeightUnit } from "@/lib/freight";
 import { formatINR, todayIST } from "@/lib/format";
 
+const r2 = (n: number) => Math.round(n * 100) / 100;
 type Exp = Record<string, any>;
 type LP = { id?: string; role: "consignor" | "consignee"; party_id: string; goods_description?: string; quantity?: string; weight?: string; loading_point?: string; delivery_point?: string; expenses: Exp[] };
 export type LRValues = Record<string, any> & { parties: LP[]; adjustments: { id?: string; kind: "add" | "deduct"; amount: string; reason: string }[] };
@@ -54,9 +55,18 @@ export function LRForm({ initial }: { initial: LRValues }) {
     const w = n.transporter_weight === "" || n.transporter_weight == null ? null : Number(n.transporter_weight);
     const r = n.transporter_rate === "" || n.transporter_rate == null ? null : Number(n.transporter_rate);
     const ru = n.transporter_rate_unit as RateUnit | "" | undefined;
-    if (ru && r != null && !Number.isNaN(r) && (ru === "fixed" || (w != null && w > 0))) n.freight_payable = String(calcFreight(w, (n.transporter_weight_unit || "kg") as WeightUnit, r, ru).base);
+    if (ru && r != null && !Number.isNaN(r) && (ru === "fixed" || (w != null && w > 0))) n.freight_payable = String(r2(calcFreight(w, (n.transporter_weight_unit || "kg") as WeightUnit, r, ru).base + Number(n.transporter_additions || 0) - Number(n.transporter_shortage || 0)));
     return n;
   });
+  // Add (+) / Shortage (−) on the transporter freight. Freight payable stays the single final amount that is saved; the base is whatever remains after removing the current add/shortage.
+  const setTAdj = (patch: Record<string, unknown>) => setV((p) => {
+    const base = Number(p.freight_payable || 0) - Number(p.transporter_additions || 0) + Number(p.transporter_shortage || 0);
+    const n: LRValues = { ...p, ...patch };
+    n.freight_payable = String(r2(base + Number(n.transporter_additions || 0) - Number(n.transporter_shortage || 0)));
+    return n;
+  });
+  // Commission = what the consignee paid directly minus the freight payable to the transporter, until the commission is typed by hand.
+  const [commissionAuto, setCommissionAuto] = useState(!initial.commission_enabled);
 
   const trip = trips.data?.find((t) => t.id === v.trip_id);
   const stops = trip ? [...trip.trip_stops].sort((a: any, b: any) => a.seq - b.seq) : [];
@@ -84,6 +94,9 @@ export function LRForm({ initial }: { initial: LRValues }) {
       if (Number(v.transporter_rate) < 0) return setErr("Transporter rate cannot be negative");
       if (v.transporter_rate_unit !== "fixed" && !(Number(v.transporter_weight) > 0)) return setErr("Enter the weight on which freight is payable to the transporter");
     }
+    if (Number(v.transporter_additions || 0) < 0 || Number(v.transporter_shortage || 0) < 0) return setErr("Transporter add / shortage cannot be negative");
+    if (Number(v.transporter_additions || 0) > 0 && !String(v.transporter_additions_reason ?? "").trim()) return setErr("Enter a reason for the amount added to the transporter freight");
+    if (Number(v.transporter_shortage || 0) > 0 && !String(v.transporter_shortage_reason ?? "").trim()) return setErr("Enter a reason for the shortage deducted from the transporter freight");
     if (v.direct_payment_enabled && !(Number(v.direct_payment_amount) > 0)) return setErr("Enter the amount the consignee paid the driver directly");
     if (v.commission_enabled && !v.transporter_id && !trip?.transporter_id) return setErr("Choose the transporter who owes the commission");
     if (initial.commission_enabled && !v.commission_enabled && !v.commission_cancel_reason?.trim()) return setErr("Enter a reason for turning commission off");
@@ -144,6 +157,12 @@ export function LRForm({ initial }: { initial: LRValues }) {
   const firstConsignor = v.parties.find((p) => p.role === "consignor")?.party_id;
   const payer = v.freight_type === "paid" ? firstConsignor : v.freight_type === "to_pay" ? v.parties.find((p) => p.role === "consignee")?.party_id : v.billing_party_id || firstConsignor;
   const dp = v.direct_payment_enabled ? Math.min(Number(v.direct_payment_amount || 0), calc.final) : 0;
+  const autoComm = v.direct_payment_enabled ? Math.max(0, r2(Number(v.direct_payment_amount || 0) - Number(v.freight_payable || 0))) : null;
+  useEffect(() => {
+    if (!commissionAuto || !v.commission_enabled || autoComm == null || autoComm <= 0) return;
+    if (v.commission_mode === "fixed" && String(v.commission_value ?? "") === String(autoComm)) return;
+    setV((p) => ({ ...p, commission_mode: "fixed", commission_value: String(autoComm) }));
+  }, [commissionAuto, v.commission_enabled, v.commission_mode, v.commission_value, autoComm]);
 
   return (
     <div className="space-y-4">
@@ -202,16 +221,18 @@ export function LRForm({ initial }: { initial: LRValues }) {
           <Field label="Transporter" hint="Pick a party or type a new name to add it once">
             <TransporterSelect value={v.transporter_id} onChange={(x) => set("transporter_id", x)} /></Field>
           <Field label="Vehicle number"><Input value={v.vehicle_number ?? ""} onChange={(e) => set("vehicle_number", e.target.value)} /></Field>
-          <Field label="Vehicle name/type"><Input value={v.vehicle_type ?? ""} onChange={(e) => set("vehicle_type", e.target.value)} /></Field>
-          <Field label="Registered driver"><SearchSelect value={v.driver_id ?? ""} onChange={(id) => setV({ ...v, driver_id: id, driver_name: drivers.data?.find((d) => d.id === id)?.name ?? "" })} options={(drivers.data ?? []).map((d) => ({ value: d.id, label: d.name }))} placeholder="Choose driver" /></Field>
-          {!v.driver_id && <Field label="Driver name"><Input aria-label="Driver name" value={v.driver_name ?? ""} onChange={(e) => set("driver_name", e.target.value)} placeholder={trip?.driver_name ?? "Type driver name"} /></Field>}
           <Field label="Transporter rate unit" hint="Leave on Manual to type the amount yourself"><select className={selectCls} value={v.transporter_rate_unit ?? ""} onChange={(e) => setTP({ transporter_rate_unit: e.target.value })}><option value="">Manual (type amount)</option>{Object.entries(RATE_UNIT_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>
           {v.transporter_rate_unit && v.transporter_rate_unit !== "fixed" && <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2"><Field label="Weight for transporter" hint={weight ? `LR weight: ${weight} ${v.weight_unit}` : undefined}><Input type="number" min="0" value={v.transporter_weight ?? ""} onChange={(e) => setTP({ transporter_weight: e.target.value })} /></Field>
             <Field label="Unit"><select className={selectCls} value={v.transporter_weight_unit || "kg"} onChange={(e) => setTP({ transporter_weight_unit: e.target.value })}><option value="kg">kg</option><option value="quintal">quintal</option><option value="tonne">tonne</option></select></Field></div>}
           {v.transporter_rate_unit && <Field label={v.transporter_rate_unit === "fixed" ? "Fixed freight to transporter (₹)" : "Transporter rate (₹)"}><Input type="number" min="0" step="0.01" value={v.transporter_rate ?? ""} onChange={(e) => setTP({ transporter_rate: e.target.value })} /></Field>}
-          <Field label="Freight payable to transporter (₹)" hint="This does NOT record a payment"><Input type="number" min="0" value={v.freight_payable ?? ""} onChange={(e) => set("freight_payable", e.target.value)} /></Field>
+          <Field label="Add (+) to transporter freight (₹)" hint="Freight difference, commission etc."><Input type="number" min="0" step="0.01" value={v.transporter_additions ?? ""} onChange={(e) => setTAdj({ transporter_additions: e.target.value })} /></Field>
+          <div className="sm:col-span-1"><Field label="Reason for add"><Input value={v.transporter_additions_reason ?? ""} onChange={(e) => set("transporter_additions_reason", e.target.value)} /></Field></div>
+          <Field label="Shortage (−) from transporter freight (₹)" hint="Material shortage charges to cut"><Input type="number" min="0" step="0.01" value={v.transporter_shortage ?? ""} onChange={(e) => setTAdj({ transporter_shortage: e.target.value })} /></Field>
+          <div className="sm:col-span-1"><Field label="Reason for shortage"><Input value={v.transporter_shortage_reason ?? ""} onChange={(e) => set("transporter_shortage_reason", e.target.value)} /></Field></div>
+          <Field label="Freight payable to transporter (₹)" hint="Final amount after add / shortage. This does NOT record a payment"><Input type="number" min="0" value={v.freight_payable ?? ""} onChange={(e) => set("freight_payable", e.target.value)} /></Field>
         </div>
         {tCalc && <p className="mt-2 text-sm">{tUnit === "fixed" ? `Fixed freight to transporter ${formatINR(tRate ?? 0)} (not multiplied by weight)` : `${tWeight ?? 0} ${v.transporter_weight_unit || "kg"} × ${formatINR(tRate ?? 0)} ${RATE_UNIT_LABEL[tUnit as RateUnit].toLowerCase()} = ${formatINR(tCalc.base)}`}</p>}
+        {(Number(v.transporter_additions || 0) > 0 || Number(v.transporter_shortage || 0) > 0) && <p className="mt-2 text-sm">Base {formatINR(r2(Number(v.freight_payable || 0) - Number(v.transporter_additions || 0) + Number(v.transporter_shortage || 0)))} + add {formatINR(Number(v.transporter_additions || 0))} − shortage {formatINR(Number(v.transporter_shortage || 0))} = <b>{formatINR(Number(v.freight_payable || 0))}</b></p>}
         <p className="mt-2 text-xs text-muted-foreground">Amount paid and remaining are calculated from real payments and advances (see Transporter Settlements).</p>
       </Section>
 
@@ -222,11 +243,12 @@ export function LRForm({ initial }: { initial: LRValues }) {
           {v.direct_payment_enabled && <p className="text-xs text-muted-foreground sm:col-span-4">Not Gokul cash. Reduces the party's freight receivable by {formatINR(dp)} and the transporter payable by {formatINR(Math.min(dp, Number(v.freight_payable || 0)))}.</p>}
           <label className="flex items-center gap-2 text-sm sm:col-span-4"><Switch checked={v.commission_enabled} onCheckedChange={(c) => set("commission_enabled", c)} />Commission applicable?</label>
           {v.commission_enabled && <>
-            <Field label="Commission type"><select className={selectCls} value={v.commission_mode} onChange={(e) => set("commission_mode", e.target.value)}><option value="percent">% of freight</option><option value="fixed">Fixed ₹</option></select></Field>
-            <Field label={v.commission_mode === "percent" ? "Percent (%)" : "Amount (₹)"}><Input type="number" min="0" value={v.commission_value ?? ""} onChange={(e) => set("commission_value", e.target.value)} /></Field>
+            <Field label="Commission type"><select className={selectCls} value={v.commission_mode} onChange={(e) => { setCommissionAuto(false); set("commission_mode", e.target.value); }}><option value="percent">% of freight</option><option value="fixed">Fixed ₹</option></select></Field>
+            <Field label={v.commission_mode === "percent" ? "Percent (%)" : "Amount (₹)"}><Input type="number" min="0" value={v.commission_value ?? ""} onChange={(e) => { setCommissionAuto(false); set("commission_value", e.target.value); }} /></Field>
             <Field label="Date"><Input type="date" value={v.commission_date ?? ""} onChange={(e) => set("commission_date", e.target.value)} /></Field>
             <Field label="Reference"><Input value={v.commission_reference ?? ""} onChange={(e) => set("commission_reference", e.target.value)} /></Field>
             <div className="sm:col-span-2"><Field label="Notes"><Input value={v.commission_notes ?? ""} onChange={(e) => set("commission_notes", e.target.value)} /></Field></div>
+            {autoComm != null && autoComm > 0 && <p className="text-xs text-muted-foreground sm:col-span-4">{commissionAuto ? "Auto" : "Suggested"}: {formatINR(autoComm)} = direct payment {formatINR(Number(v.direct_payment_amount || 0))} − freight payable {formatINR(Number(v.freight_payable || 0))}. {!commissionAuto && <button type="button" className="text-info underline" onClick={() => setCommissionAuto(true)}>Use this amount</button>}</p>}
             <p className="text-sm sm:col-span-4">Commission due from transporter: <Money value={commission} /> · {transporters.data?.find((t) => t.id === (v.transporter_id || trip?.transporter_id))?.name || "Choose transporter"}</p>
           </>}
           {initial.commission_enabled && !v.commission_enabled && <Field label="Reason for turning commission off" required><Input value={v.commission_cancel_reason ?? ""} onChange={(e) => set("commission_cancel_reason", e.target.value)} /></Field>}

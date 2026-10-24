@@ -33,4 +33,5 @@ SCHEMA_COLUMNS.trips.push("commission_enabled", "commission_mode", "commission_v
 
 SCHEMA_COLUMNS.lrs.push("cancelled_by", "cancelled_at");
 SCHEMA_COLUMNS.lrs.push("transporter_rate", "transporter_rate_unit", "transporter_weight", "transporter_weight_unit");
+SCHEMA_COLUMNS.lrs.push("transporter_additions", "transporter_additions_reason", "transporter_shortage", "transporter_shortage_reason");
 SCHEMA_COLUMNS.trips.push("cancelled_by", "cancelled_at");
