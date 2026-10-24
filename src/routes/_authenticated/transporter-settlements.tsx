@@ -37,12 +37,15 @@ function Settlements() {
   const bal = useQuery({
     queryKey: ["settlements", "balances"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("ledger_entries").select("account_id, debit, credit").eq("account_type", "transporter");
+      const { data, error } = await supabase.from("ledger_entries").select("account_id, debit, credit, line_kind").eq("account_type", "transporter");
       if (error) throw error;
-      const m = new Map<string, { payable: number; settled: number }>();
+      const m = new Map<string, { payable: number; settled: number; commission: number }>();
       for (const r of data) {
-        const x = m.get(r.account_id) ?? { payable: 0, settled: 0 };
-        x.payable += Number(r.credit); x.settled += Number(r.debit); m.set(r.account_id, x);
+        const x = m.get(r.account_id) ?? { payable: 0, settled: 0, commission: 0 };
+        // Commission is money Gokul has to RECEIVE from the transporter - shown separately, never mixed into freight payable/settled.
+        if (String(r.line_kind ?? "").startsWith("commission")) x.commission += Number(r.debit) - Number(r.credit);
+        else { x.payable += Number(r.credit); x.settled += Number(r.debit); }
+        m.set(r.account_id, x);
       }
       return m;
     },
@@ -57,7 +60,7 @@ function Settlements() {
     },
   });
   const t = transporters.data?.find((x) => x.id === tid);
-  const tb = bal.data?.get(tid) ?? { payable: 0, settled: 0 };
+  const tb = bal.data?.get(tid) ?? { payable: 0, settled: 0, commission: 0 };
   return (
     <div className="space-y-4">
       <PageHeader title="Transporter Settlements" description="Freight payable vs. advances and payments, per transporter (including names typed on trips/LRs)."
@@ -67,20 +70,21 @@ function Settlements() {
         bal.isPending || transporters.isPending ? <LoadingState /> : bal.isError ? <ErrorState error={bal.error} onRetry={() => bal.refetch()} /> :
           (transporters.data ?? []).length === 0 ? <EmptyState title="No transporters yet" hint="They are added when you type one on a trip or LR." /> : (
             <div className="overflow-x-auto rounded-lg border bg-card"><Table>
-              <TableHeader><TableRow><TableHead>Transporter</TableHead><TableHead className="text-right">Freight payable</TableHead><TableHead className="text-right">Advances + payments + direct</TableHead><TableHead className="text-right">Remaining</TableHead><TableHead>Status</TableHead><TableHead className={actionCell}>Actions</TableHead></TableRow></TableHeader>
-              <TableBody>{(transporters.data ?? []).map((x) => { const b = bal.data?.get(x.id) ?? { payable: 0, settled: 0 }; const s = statusOf(b.payable, b.settled); return (
+              <TableHeader><TableRow><TableHead>Transporter</TableHead><TableHead className="text-right">Freight payable</TableHead><TableHead className="text-right">Advances + payments + direct</TableHead><TableHead className="text-right">Remaining</TableHead><TableHead className="text-right">Commission to receive</TableHead><TableHead>Status</TableHead><TableHead className={actionCell}>Actions</TableHead></TableRow></TableHeader>
+              <TableBody>{(transporters.data ?? []).map((x) => { const b = bal.data?.get(x.id) ?? { payable: 0, settled: 0, commission: 0 }; const s = statusOf(b.payable, b.settled); return (
                 <TableRow key={x.id} className="cursor-pointer" onClick={() => setTid(x.id)}>
                   <TableCell className="font-medium text-info">{x.name}</TableCell><TableCell className="text-right"><Money value={b.payable} /></TableCell>
-                  <TableCell className="text-right"><Money value={b.settled} /></TableCell><TableCell className="text-right font-semibold"><Money value={b.payable - b.settled} /></TableCell>
+                  <TableCell className="text-right"><Money value={b.settled} /></TableCell><TableCell className="text-right font-semibold"><Money value={b.payable - b.settled} /></TableCell><TableCell className="text-right font-semibold text-success"><Money value={b.commission} /></TableCell>
                   <TableCell><StatusBadge tone={s.tone}>{s.label}</StatusBadge></TableCell><TableCell className={actionCell}><RowActions label={x.name} actions={[{ label: "View", icon: Eye, onClick: () => setTid(x.id) }]} /></TableCell></TableRow>); })}</TableBody>
             </Table></div>)
       ) : (
         <>
           <h2 className="text-xl font-semibold">{t?.name}</h2>
-          <div className="grid gap-3 sm:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-5">
             <Box k="Freight payable (total)" v={tb.payable} />
             <Box k="Advances, payments & direct" v={tb.settled} />
             <Box k="Remaining" v={tb.payable - tb.settled} tone="warning" />
+            <Box k="Commission to receive from transporter" v={tb.commission} />
             <div className="rounded-lg border bg-card p-3"><p className="text-xs text-muted-foreground">Status</p><StatusBadge tone={statusOf(tb.payable, tb.settled).tone}>{statusOf(tb.payable, tb.settled).label}</StatusBadge></div>
           </div>
           {detail.isPending ? <LoadingState /> : detail.isError ? <ErrorState error={detail.error} onRetry={() => detail.refetch()} /> : (
@@ -99,7 +103,7 @@ function Settlements() {
           )}
           <PaymentsList transporterId={tid} />
           <h3 className="font-semibold">Transporter ledger</h3>
-          <p className="text-xs text-muted-foreground">Here "Payable" = Gokul still owes this transporter. Each advance and payment appears once.</p>
+          <p className="text-xs text-muted-foreground">Here "Payable" = Gokul still owes this transporter. Each advance and payment appears once. Commission shows as a debit - the amount Gokul has to receive from this transporter.</p>
           <LedgerTable accountType="transporter" accountId={tid} title={`transporter-${t?.name}`} />
           <PaymentDialog open={pay} onOpenChange={setPay} initial={pay ? { payment_type: "transporter_payment", transporter_id: tid, payment_date: new Date().toISOString().slice(0, 10), mode: "cash", account_id: "" } : null} />
         </>
