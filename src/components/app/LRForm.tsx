@@ -85,7 +85,7 @@ export function LRForm({ initial }: { initial: LRValues }) {
       if (v.transporter_rate_unit !== "fixed" && !(Number(v.transporter_weight) > 0)) return setErr("Enter the weight on which freight is payable to the transporter");
     }
     if (v.direct_payment_enabled && !(Number(v.direct_payment_amount) > 0)) return setErr("Enter the amount the consignee paid the driver directly");
-    if (v.commission_enabled && !v.transporter_id && !trip?.transporter_id && !(initial.commission_enabled && (v.driver_id || v.driver_name?.trim()))) return setErr("Choose the transporter who owes the commission");
+    if (v.commission_enabled && !v.transporter_id && !trip?.transporter_id) return setErr("Choose the transporter who owes the commission");
     if (initial.commission_enabled && !v.commission_enabled && !v.commission_cancel_reason?.trim()) return setErr("Enter a reason for turning commission off");
     for (const p of v.parties) for (const e of p.expenses) if (!(Number(e.amount) > 0)) return setErr("Every consignor/consignee expense needs an amount");
     setBusy(true);

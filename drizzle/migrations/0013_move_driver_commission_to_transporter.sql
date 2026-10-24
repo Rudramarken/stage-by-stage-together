@@ -3,7 +3,7 @@
 -- tracked ONLY on the transporter ledger.
 --
 -- What this changes (nothing else):
---   1. commission_source_before(): the "Choose or type the driver who owes the commission" error is removed.
+--   1. commission_source_before(): a driver can no longer stand in for the transporter (transporter is always required when commission is on); the "Choose or type the driver who owes the commission" error is removed.
 --      (No transporter chosen -> the existing "Choose the transporter who owes the commission" error still applies.)
 --      Clearing/changing the driver is no longer blocked by old cash receipts (they move with the commission).
 --   2. commission_after(): any old driver-owed commission (and its cash receipts) moves to the LR's/trip's transporter
@@ -32,6 +32,12 @@ BEGIN
       IF position(old_frag IN d) > 0 THEN d := replace(d, old_frag, new_frag); done := true; EXIT; END IF;
     END LOOP;
     IF NOT done THEN RAISE EXCEPTION 'commission_source_before definition not in the expected shape; migration aborted without changes'; END IF;
+  END IF;
+  -- commission always needs a transporter; a driver never replaces it
+  IF position('NOT (coalesce(v_has,false) AND v_old_t IS NULL AND NEW.driver_id IS NOT NULL)' IN d) > 0 THEN
+    old_frag := 'IF NEW.commission_enabled AND v_t IS NULL AND NOT (coalesce(v_has,false) AND v_old_t IS NULL AND NEW.driver_id IS NOT NULL) THEN RAISE EXCEPTION ''Choose the transporter who owes the commission''; END IF;';
+    IF position(old_frag IN d) = 0 THEN RAISE EXCEPTION 'commission_source_before transporter check not in the expected shape; migration aborted without changes'; END IF;
+    d := replace(d, old_frag, 'IF NEW.commission_enabled AND v_t IS NULL THEN RAISE EXCEPTION ''Choose the transporter who owes the commission''; END IF;');
   END IF;
   IF position('r.salary_payment_id IS NOT NULL AND CASE' IN d) = 0 THEN
     old_frag := 'IF TG_OP=''UPDATE'' AND v_receipts>0 AND v_old_t IS NULL AND NEW.driver_id IS DISTINCT FROM OLD.driver_id THEN RAISE EXCEPTION ''Reverse commission receipts before changing the driver''; END IF;';

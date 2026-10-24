@@ -58,7 +58,7 @@ export function TripForm({ initial }: { initial?: TripValues }) {
     if (v.stops.some((s) => !s.location.trim())) return setErr("Every stop needs a location");
     if (v.vehicle_mode === "market" && !v.market_vehicle_number?.trim()) return setErr("Enter the market truck's vehicle number");
     if (v.status === "cancelled" && !v.cancel_reason?.trim()) return setErr("Enter a reason for cancelling");
-    if (v.commission_enabled && !v.transporter_id && !(initial?.commission_enabled && (v.driver_id || v.driver_name?.trim()))) return setErr("Choose the transporter who owes commission");
+    if (v.commission_enabled && !v.transporter_id) return setErr("Choose the transporter who owes commission");
     if (initial?.commission_enabled && !v.commission_enabled && !v.commission_cancel_reason?.trim()) return setErr("Enter a reason for turning commission off");
     setBusy(true);
     try {
