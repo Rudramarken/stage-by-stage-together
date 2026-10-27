@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, Table
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { selectCls } from "@/components/app/Section";
-import { lrVehicleNumber } from "@/lib/lr-summary";
+import { lrVehicleNumber, calcLrProfit } from "@/lib/lr-summary";
 import { formatDate } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/lr/")({
@@ -29,7 +29,7 @@ function LRList() {
   const q = useQuery({
     queryKey: ["lrs"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("lrs").select("*, trips(trip_number, market_vehicle_number, vehicles(registration_number)), lr_parties(role, parties(name))").order("lr_date", { ascending: false }).order("lr_number", { ascending: false });
+      const { data, error } = await supabase.from("lrs").select("*, trips(trip_number, market_vehicle_number, vehicles(registration_number)), lr_parties(role, parties(name)), expenses(amount, responsible, scope, is_cancelled)").order("lr_date", { ascending: false }).order("lr_number", { ascending: false });
       if (error) throw error;
       return data as any[];
     },
@@ -42,6 +42,11 @@ function LRList() {
     if (!s) return true;
     return [l.lr_number, l.trips?.trip_number, lrVehicleNumber(l), l.vehicle_number, ...l.lr_parties.map((p: any) => p.parties?.name)].join(" ").toLowerCase().includes(s);
   }), [q.data, f]);
+  // Same rule as the LR details page: customer freight - transporter payable - Gokul's own consignor/consignee expenses (+ commission once). Trip-linked LRs stay Provisional.
+  const profitOf = (l: any) => calcLrProfit({ status: l.status, finalFreight: Number(l.final_freight), freightPayable: Number(l.freight_payable), hasTransporter: !!l.transporter_id, tripLinked: !!l.trip_id,
+    gokulExpenses: (l.expenses ?? []).filter((e: any) => e.responsible === "gokul" && !e.is_cancelled && (e.scope === "consignor" || e.scope === "consignee")).reduce((a: number, e: any) => a + Number(e.amount || 0), 0),
+    commissionEnabled: !!l.commission_enabled, commissionAmount: Number(l.commission_amount || 0), directPaymentEnabled: !!l.direct_payment_enabled });
+  const ProfitText = ({ l }: { l: any }) => { const pr = profitOf(l); return pr.profit == null ? <span className="text-muted-foreground">Profit: not enough data</span> : <span className="text-muted-foreground">Profit <Money value={pr.profit} />{pr.state === "provisional" ? " (provisional)" : ""}</span>; };
   const tot = rows.reduce((a, l) => ({ f: a.f + Number(l.final_freight), p: a.p + Number(l.freight_payable) }), { f: 0, p: 0 });
   return (
     <div>
@@ -59,8 +64,9 @@ function LRList() {
             <MobileCard key={l.id} muted={l.status === "cancelled"}
               title={<Link to="/lr/$id" params={{ id: l.id }} className="text-info">{l.lr_number}</Link>}
               aside={<Money value={l.final_freight} />} actions={<DocumentActions kind="lr" row={l} />}>
-              <div>{formatDate(l.lr_date)} · {lrVehicleNumber(l) ?? "Vehicle —"}</div>
+              <div>{formatDate(l.lr_date)} · {lrVehicleNumber(l) ?? "Vehicle not assigned"}</div>
                <div>Payable <Money value={l.freight_payable} /></div>
+              <div><ProfitText l={l} /></div>
               <div className="text-foreground">{l.lr_parties.filter((p: any) => p.role === "consignor").map((p: any) => p.parties?.name).join(", ")} → {l.lr_parties.filter((p: any) => p.role === "consignee").map((p: any) => p.parties?.name).join(", ")}</div>
               {l.status === "cancelled" && <div><StatusBadge tone="danger">Cancelled</StatusBadge></div>}
             </MobileCard>))}</MobileCards>
@@ -68,10 +74,10 @@ function LRList() {
           <TableHeader><TableRow><TableHead className="w-24">LR / Date</TableHead><TableHead className="hidden w-28 xl:table-cell">Vehicle</TableHead><TableHead>Consignor → Consignee</TableHead><TableHead className="w-24 text-right">Freight</TableHead><TableHead className="hidden w-24 xl:table-cell text-right">Payable</TableHead><TableHead className="w-24">Status</TableHead><TableHead className={actionCell + " w-12 sm:w-28"}>Actions</TableHead></TableRow></TableHeader>
           <TableBody>{rows.slice(page * PAGE, page * PAGE + PAGE).map((l) => (
             <TableRow key={l.id} className={l.status === "cancelled" ? "opacity-50" : ""}>
-              <TableCell><Link to="/lr/$id" params={{ id: l.id }} className="font-medium text-info hover:underline">{l.lr_number}</Link><span className="block text-muted-foreground">{formatDate(l.lr_date)}</span></TableCell>
-              <TableCell className="hidden break-words xl:table-cell">{lrVehicleNumber(l) ? (l.trip_id ? <Link to="/trips/$id" params={{ id: l.trip_id }} className="hover:underline">{lrVehicleNumber(l)}</Link> : <span>{lrVehicleNumber(l)}</span>) : <span className="text-muted-foreground">—</span>}</TableCell>
+              <TableCell><Link to="/lr/$id" params={{ id: l.id }} className="font-medium text-info hover:underline">{l.lr_number}</Link><span className="block text-muted-foreground">{formatDate(l.lr_date)}</span><span className="block text-muted-foreground xl:hidden">{lrVehicleNumber(l) ?? "Not assigned"}</span></TableCell>
+              <TableCell className="hidden break-words xl:table-cell">{lrVehicleNumber(l) ? (l.trip_id ? <Link to="/trips/$id" params={{ id: l.trip_id }} className="hover:underline">{lrVehicleNumber(l)}</Link> : <span>{lrVehicleNumber(l)}</span>) : <span className="text-muted-foreground">Not assigned</span>}</TableCell>
               <TableCell className="min-w-40 whitespace-normal break-words">{l.lr_parties.filter((p: any) => p.role === "consignor").map((p: any) => p.parties?.name).join(", ")} → {l.lr_parties.filter((p: any) => p.role === "consignee").map((p: any) => p.parties?.name).join(", ")}</TableCell>
-              <TableCell className="text-right"><Money value={l.final_freight} /></TableCell>
+              <TableCell className="text-right"><Money value={l.final_freight} /><span className="block"><ProfitText l={l} /></span></TableCell>
               <TableCell className="hidden xl:table-cell text-right"><Money value={l.freight_payable} /></TableCell>
               <TableCell>{l.status === "cancelled" ? <StatusBadge tone="danger">Cancelled</StatusBadge> : <StatusBadge tone="success">Active</StatusBadge>}</TableCell>
               <TableCell className={actionCell}><DocumentActions kind="lr" row={l} /></TableCell>

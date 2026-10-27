@@ -92,7 +92,7 @@ function LRDetail() {
         </div>
         <div className="mt-4 grid gap-2 sm:grid-cols-3">
           <p><span className="text-muted-foreground">Weight:</span> {lr.weight ? `${lr.weight} ${lr.weight_unit === "unit" ? "Unit" : lr.weight_unit}` : "—"}</p>
-          <p><span className="text-muted-foreground">Vehicle:</span> {vehicle ?? "—"}</p>
+          <p><span className="text-muted-foreground">Vehicle:</span> {vehicle ?? "Not assigned"}</p>
           <p><span className="text-muted-foreground">Driver:</span> {lr.driver_name || "—"}</p>
         </div>
         {lr.notes && <p className="mt-3 whitespace-pre-wrap"><span className="text-muted-foreground">Remarks:</span> {lr.notes}</p>}
