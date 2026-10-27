@@ -13,7 +13,7 @@ import { errorMessage } from "./states";
 import { useAccounts, useParties, useTransporters, createTransporterInline, PAYMENT_TYPE, PAY_MODES } from "@/lib/lookups";
 import { todayIST } from "@/lib/format";
 
-export function PaymentDialog({ open, onOpenChange, initial, thirdParty, defaultAccountId }: { open: boolean; onOpenChange: (o: boolean) => void; initial?: Record<string, any> | null; thirdParty?: boolean; defaultAccountId?: string }) {
+export function PaymentDialog({ open, onOpenChange, initial, thirdParty }: { open: boolean; onOpenChange: (o: boolean) => void; initial?: Record<string, any> | null; thirdParty?: boolean }) {
   const qc = useQueryClient();
   const accounts = useAccounts(); const parties = useParties(); const transporters = useTransporters();
   const lrs = useQuery({
@@ -32,11 +32,11 @@ export function PaymentDialog({ open, onOpenChange, initial, thirdParty, default
     if (!open) return;
     setErr(null);
     const cash = accounts.data?.find((a) => a.kind === "cash")?.id ?? "";
-    const init: Record<string, any> = initial ? { ...initial } : { ...blank, account_id: defaultAccountId || cash };
+    const init: Record<string, any> = initial ? { ...initial } : { ...blank, account_id: cash };
     setV(init);
     setBank(!!(init.bank_name || init.bank_account_number || init.upi_id || init.txn_reference));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initial, accounts.data, defaultAccountId]);
+  }, [open, initial, accounts.data]);
   const set = (k: string, val: unknown) => setV((p) => ({ ...p, [k]: val }));
   const isTransporterPay = v.payment_type === "transporter_payment" || v.payment_type === "advance_paid";
   const save = useMutation({
@@ -86,11 +86,11 @@ export function PaymentDialog({ open, onOpenChange, initial, thirdParty, default
           <Field label="Date" required><Input type="date" value={v.payment_date ?? ""} onChange={(e) => set("payment_date", e.target.value)} /></Field>
           <Field label="Mode"><select className={selectCls} value={v.mode} onChange={(e) => set("mode", e.target.value)}>{PAY_MODES.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}</select></Field>
           <Field label={v.payment_type?.includes("receipt") || v.payment_type === "advance_received" ? "Received into" : "Paid from"} required>
-            <div role="radiogroup" aria-label="Account" className="flex flex-wrap gap-2">
-              {[...(accounts.data?.filter((a) => a.kind === "cash") ?? []), ...banks].map((a) => (
-                <Button key={a.id} type="button" role="radio" aria-checked={v.account_id === a.id} variant={v.account_id === a.id ? "default" : "outline"} className="min-h-11" onClick={() => set("account_id", a.id)}>{a.display_name}</Button>
-              ))}
-            </div>
+            <select className={selectCls} value={v.account_id ?? ""} onChange={(e) => set("account_id", e.target.value)}>
+              <option value="">— Choose —</option>
+              {accounts.data?.filter((a) => a.kind === "cash").map((a) => <option key={a.id} value={a.id}>Cash</option>)}
+              {banks.map((a) => <option key={a.id} value={a.id}>{a.display_name}</option>)}
+            </select>
             {banks.length === 0 && <Link to="/settings" className="text-xs text-info underline">+ Add bank account</Link>}
           </Field>
           <Field label="Reference"><Input value={v.reference ?? ""} onChange={(e) => set("reference", e.target.value)} /></Field>

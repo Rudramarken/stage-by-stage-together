@@ -18,7 +18,6 @@ import { calcFreight, validateFreight, RATE_UNIT_LABEL, type RateUnit, type Weig
 import { formatINR, todayIST } from "@/lib/format";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
-const unitLabel = (u: unknown) => (u === "unit" ? "Unit" : String(u ?? "kg"));
 type Exp = Record<string, any>;
 type LP = { id?: string; role: "consignor" | "consignee"; party_id: string; goods_description?: string; quantity?: string; weight?: string; loading_point?: string; delivery_point?: string; expenses: Exp[] };
 export type LRValues = Record<string, any> & { parties: LP[]; adjustments: { id?: string; kind: "add" | "deduct"; amount: string; reason: string }[] };
@@ -123,15 +122,11 @@ export function LRForm({ initial }: { initial: LRValues }) {
             <div className="sm:col-span-2"><Field label={role === "consignor" ? "Consignor" : "Consignee"} required>
               <SearchSelect value={p.party_id} onChange={(x) => setP(i, { party_id: x })} options={partyOpts("customer")} placeholder="Choose or type new" allowClear={false}
                 onCreate={(t) => createParty(t, role)} createLabel="Create party" /></Field></div>
-            {/* Consignor: Quantity removed. Consignee: Goods, Quantity, Weight and Loading point removed.
-                Removed inputs only disappear from the screen - values already saved stay untouched because they remain in the form state. */}
-            {role === "consignor" && <>
-              <div className="sm:col-span-2"><Field label="Goods"><Input value={p.goods_description ?? ""} onChange={(e) => setP(i, { goods_description: e.target.value })} /></Field></div>
-              <Field label={`Weight (${unitLabel(v.weight_unit)})`}><Input type="number" min="0" value={p.weight ?? ""} onChange={(e) => setP(i, { weight: e.target.value })} /></Field>
-              <div className="sm:col-span-3"><Field label="Loading point"><Input value={p.loading_point ?? ""} onChange={(e) => setP(i, { loading_point: e.target.value })} /></Field></div>
-              <div className="sm:col-span-3"><Field label="Delivery point"><Input value={p.delivery_point ?? ""} onChange={(e) => setP(i, { delivery_point: e.target.value })} /></Field></div>
-            </>}
-            {role === "consignee" && <div className="sm:col-span-4"><Field label="Delivery point"><Input value={p.delivery_point ?? ""} onChange={(e) => setP(i, { delivery_point: e.target.value })} /></Field></div>}
+            <div className="sm:col-span-2"><Field label="Goods"><Input value={p.goods_description ?? ""} onChange={(e) => setP(i, { goods_description: e.target.value })} /></Field></div>
+            <Field label="Qty"><Input type="number" min="0" value={p.quantity ?? ""} onChange={(e) => setP(i, { quantity: e.target.value })} /></Field>
+            <Field label={`Weight (${v.weight_unit})`}><Input type="number" min="0" value={p.weight ?? ""} onChange={(e) => setP(i, { weight: e.target.value })} /></Field>
+            <div className="sm:col-span-3"><Field label="Loading point"><Input value={p.loading_point ?? ""} onChange={(e) => setP(i, { loading_point: e.target.value })} /></Field></div>
+            <div className="sm:col-span-3"><Field label="Delivery point"><Input value={p.delivery_point ?? ""} onChange={(e) => setP(i, { delivery_point: e.target.value })} /></Field></div>
           </div>
           <div className="mt-3 rounded bg-muted/50 p-3">
             <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2"><p className="min-w-0 text-sm font-medium">{role === "consignor" ? "Consignor" : "Consignee"} expenses</p>
@@ -178,8 +173,12 @@ export function LRForm({ initial }: { initial: LRValues }) {
             <Field label="Loading stop"><select className={selectCls} value={v.loading_stop_id ?? ""} onChange={(e) => set("loading_stop_id", e.target.value)}><option value="">—</option>{stops.map((s: any) => <option key={s.id} value={s.id}>{s.location}</option>)}</select></Field>
             <Field label="Unloading stop"><select className={selectCls} value={v.unloading_stop_id ?? ""} onChange={(e) => set("unloading_stop_id", e.target.value)}><option value="">—</option>{stops.map((s: any) => <option key={s.id} value={s.id}>{s.location}</option>)}</select></Field>
           </>}
+          <div className="sm:col-span-2"><Field label="Goods description"><Input value={v.goods_description ?? ""} onChange={(e) => set("goods_description", e.target.value)} /></Field></div>
+          <Field label="Quantity"><Input type="number" min="0" value={v.quantity ?? ""} onChange={(e) => set("quantity", e.target.value)} /></Field>
           <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2"><Field label="Total weight"><Input type="number" min="0" value={v.weight ?? ""} onChange={(e) => set("weight", e.target.value)} /></Field>
-            <Field label="Unit"><select className={selectCls} value={v.weight_unit} onChange={(e) => set("weight_unit", e.target.value)}><option value="kg">kg</option><option value="quintal">quintal</option><option value="tonne">tonne</option><option value="unit">Unit</option></select></Field></div>
+            <Field label="Unit"><select className={selectCls} value={v.weight_unit} onChange={(e) => set("weight_unit", e.target.value)}><option value="kg">kg</option><option value="quintal">quintal</option><option value="tonne">tonne</option></select></Field></div>
+          <div className="sm:col-span-2"><Field label="Loading point(s)"><Input value={v.loading_point ?? ""} onChange={(e) => set("loading_point", e.target.value)} /></Field></div>
+          <div className="sm:col-span-2"><Field label="Delivery point(s)"><Input value={v.delivery_point ?? ""} onChange={(e) => set("delivery_point", e.target.value)} /></Field></div>
           <div className="sm:col-span-4"><Field label="Notes"><Textarea value={v.notes ?? ""} onChange={(e) => set("notes", e.target.value)} /></Field></div>
         </div>
       </Section>
@@ -211,7 +210,7 @@ export function LRForm({ initial }: { initial: LRValues }) {
         </div>
         <div className="mt-4 rounded-md border border-info/30 bg-accent p-3 text-sm">
           <p className="font-medium">Calculation</p>
-          <p>{v.rate_unit === "fixed" ? `Fixed freight ${formatINR(rate ?? 0)} (not multiplied by weight)` : `${weight ?? 0} ${unitLabel(v.weight_unit)} = ${calc.kg} kg → ${calc.kg / ({ per_kg: 1, per_quintal: 100, per_tonne: 1000 } as any)[v.rate_unit]} ${v.rate_unit.replace("per_", "")} × ${formatINR(rate ?? 0)} = ${formatINR(calc.base)}`}</p>
+          <p>{v.rate_unit === "fixed" ? `Fixed freight ${formatINR(rate ?? 0)} (not multiplied by weight)` : `${weight ?? 0} ${v.weight_unit} = ${calc.kg} kg → ${calc.kg / ({ per_kg: 1, per_quintal: 100, per_tonne: 1000 } as any)[v.rate_unit]} ${v.rate_unit.replace("per_", "")} × ${formatINR(rate ?? 0)} = ${formatINR(calc.base)}`}</p>
           <p>Base {formatINR(calc.base)} + additions {formatINR(calc.additions)} − deductions {formatINR(calc.deductions)} = <b>{formatINR(calc.final)}</b></p>
           <p className="text-muted-foreground">Receivable from: {parties.data?.find((x) => x.id === payer)?.name ?? "(choose parties)"}</p>
         </div>

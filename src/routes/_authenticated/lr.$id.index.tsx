@@ -15,7 +15,7 @@ import { LoadingState, ErrorState, errorMessage } from "@/components/app/states"
 import { Button } from "@/components/ui/button";
 import { loadLR } from "@/lib/lr-load";
 import { useBusiness } from "@/lib/business";
-import { useTransporters, useVehicles, nameOf, FREIGHT_TYPE } from "@/lib/lookups";
+import { useTransporters, nameOf, FREIGHT_TYPE, LR_DELIVERY } from "@/lib/lookups";
 import { RATE_UNIT_LABEL } from "@/lib/freight";
 import { formatDate, formatDateTime, formatINR } from "@/lib/format";
 
@@ -31,7 +31,6 @@ function LRDetail() {
   const navigate = useNavigate();
   const [removal, setRemoval] = useState<RemovalTarget | null>(null);
   const transporters = useTransporters();
-  const vehicles = useVehicles();
   const q = useQuery({ queryKey: ["lr", id], queryFn: () => loadLR(id) });
   const upd = useMutation({
     mutationFn: async (patch: Record<string, unknown>) => {
@@ -46,9 +45,8 @@ function LRDetail() {
   const { lr, expenses, trip } = q.data;
   const cnor = lr.lr_parties.filter((p: any) => p.role === "consignor").sort((a: any, b: any) => a.seq - b.seq);
   const cnee = lr.lr_parties.filter((p: any) => p.role === "consignee").sort((a: any, b: any) => a.seq - b.seq);
-  const unitName = (u: string) => (u === "unit" ? "Unit" : u);
-  // Vehicle number instead of the trip number: LR's own vehicle, else the linked trip's vehicle, else a fallback.
-  const vehicleNo = String(lr.vehicle_number ?? "").trim() || (trip ? nameOf(vehicles.data, trip.vehicle_id, "registration_number") || String(trip.market_vehicle_number ?? "").trim() : "") || "No vehicle linked";
+  const stops = trip ? [...trip.trip_stops].sort((a: any, b: any) => a.seq - b.seq) : [];
+  const stopName = (sid: string) => stops.find((s: any) => s.id === sid)?.location;
 
   return (
     <div className="space-y-4">
@@ -72,21 +70,27 @@ function LRDetail() {
           <div className="text-right"><p className="text-xs uppercase text-muted-foreground">Lorry Receipt / Bilty</p><p className="text-xl font-bold">{lr.lr_number}</p><p>{formatDate(lr.lr_date)}</p>
             {lr.status === "cancelled" && <StatusBadge tone="danger">CANCELLED: {lr.cancel_reason}</StatusBadge>}</div>
         </div>
-        <p className="mt-2">Vehicle: <b>{vehicleNo}</b>{trip && <Link to="/trips/$id" params={{ id: trip.id }} className="no-print ml-2 text-xs text-info hover:underline">View linked trip</Link>}</p>
+        {trip && <p className="mt-2">Trip <Link to="/trips/$id" params={{ id: trip.id }} className="text-info hover:underline">{trip.trip_number}</Link>: {stops.map((s: any) => s.location).join(" → ")}
+          {lr.loading_stop_id && ` · Loads at ${stopName(lr.loading_stop_id)}`}{lr.unloading_stop_id && ` · Unloads at ${stopName(lr.unloading_stop_id)}`}</p>}
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           {[["Consignor(s)", cnor], ["Consignee(s)", cnee]].map(([title, list]: any) => (
             <div key={title} className="rounded border p-3"><p className="mb-1 text-xs font-semibold uppercase text-muted-foreground">{title}</p>
               {list.map((p: any) => (
                 <div key={p.id} className="mb-2"><p className="font-semibold">{p.parties?.name}</p>
-                  {p.role === "consignor" && <p className="text-xs">{[p.goods_description, p.weight && `${p.weight} ${unitName(lr.weight_unit)}`].filter(Boolean).join(" · ")}</p>}
-                  <p className="text-xs text-muted-foreground">{[p.role === "consignor" && p.loading_point && `From ${p.loading_point}`, p.delivery_point && `To ${p.delivery_point}`].filter(Boolean).join(" · ")}</p>
+                  <p className="text-xs">{[p.goods_description, p.quantity && `Qty ${p.quantity}`, p.weight && `${p.weight} ${lr.weight_unit}`].filter(Boolean).join(" · ")}</p>
+                  <p className="text-xs text-muted-foreground">{[p.loading_point && `From ${p.loading_point}`, p.delivery_point && `To ${p.delivery_point}`].filter(Boolean).join(" · ")}</p>
                   {expenses.filter((e) => e.lr_party_id === p.id).map((e) => <p key={e.id} className="text-xs">Expense: {e.category} {formatINR(e.amount)} — {e.responsible === "party" ? "charged to party" : "Gokul's own"} ({e.payment_status})</p>)}
                 </div>))}
             </div>))}
         </div>
         <div className="mt-4 grid gap-2 sm:grid-cols-3">
-          <p><span className="text-muted-foreground">Weight:</span> {lr.weight ? `${lr.weight} ${unitName(lr.weight_unit)}` : "—"}</p>
-          <p><span className="text-muted-foreground">Vehicle:</span> {vehicleNo} {lr.vehicle_type}</p>
+          <p><span className="text-muted-foreground">Goods:</span> {lr.goods_description || "—"}</p>
+          <p><span className="text-muted-foreground">Quantity:</span> {lr.quantity ?? "—"}</p>
+          <p><span className="text-muted-foreground">Weight:</span> {lr.weight ? `${lr.weight} ${lr.weight_unit}` : "—"}</p>
+          <p><span className="text-muted-foreground">From:</span> {lr.loading_point || "—"}</p>
+          <p><span className="text-muted-foreground">To:</span> {lr.delivery_point || "—"}</p>
+          <p><span className="text-muted-foreground">Delivery:</span> {LR_DELIVERY[lr.delivery_status]?.label}</p>
+          <p><span className="text-muted-foreground">Vehicle:</span> {lr.vehicle_number || "—"} {lr.vehicle_type}</p>
           <p><span className="text-muted-foreground">Driver:</span> {lr.driver_name || "—"}</p>
         </div>
         {lr.notes && <p className="mt-3 whitespace-pre-wrap"><span className="text-muted-foreground">Remarks:</span> {lr.notes}</p>}

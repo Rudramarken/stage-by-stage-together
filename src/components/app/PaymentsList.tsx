@@ -67,8 +67,7 @@ export function PaymentsList({ thirdParty, transporterId }: { thirdParty?: boole
   const debitOf = (p: any) => (!p.is_reversed && !isIn(p.payment_type) ? Number(p.amount) : 0);
   const creditOf = (p: any) => (!p.is_reversed && isIn(p.payment_type) ? Number(p.amount) : 0);
   const who = (p: any) => nameOf(transporters.data, p.transporter_id) || nameOf(parties.data, p.party_id);
-  const acct = (id: string) => { const a = accounts.data?.find((x) => x.id === id); return a ? (a.kind === "cash" ? a.display_name : `${a.display_name} ${maskAccount(a.account_number)}`) : "—"; };
-  const pickable = (accounts.data ?? []).filter((a) => a.is_active || a.id === f.account);
+  const acct = (id: string) => { const a = accounts.data?.find((x) => x.id === id); return a ? (a.kind === "cash" ? "Cash" : `${a.display_name} ${maskAccount(a.account_number)}`) : "—"; };
   const rowActions = (p: any) => <RowActions label={p.reference || formatDate(p.payment_date)} actions={[
     { label: "View", icon: Eye, onClick: () => setViewing(p) },
     { label: "Edit", icon: Pencil, disabled: p.is_reversed, onClick: () => setDlg({ open: true, row: p }) },
@@ -86,18 +85,10 @@ export function PaymentsList({ thirdParty, transporterId }: { thirdParty?: boole
             ["", "", "", "", "", "Total received", totIn.toFixed(2), "", ...(showBank ? ["", "", ""] : [])], ["", "", "", "", "", "Total paid", totOut.toFixed(2), "", ...(showBank ? ["", "", ""] : [])],
           ])}>Download CSV</Button>
           <Button onClick={() => setDlg({ open: true, row: null })}><Plus className="mr-1 h-4 w-4" />{thirdParty ? "Record third-party payment" : "New entry"}</Button></>} />
-      {showBank && (
-        <div role="group" aria-label="Choose account" className="mb-4 flex flex-wrap gap-2">
-          <Button type="button" variant={f.account === "" ? "default" : "outline"} aria-pressed={f.account === ""} className="min-h-11" onClick={() => setF({ ...f, account: "" })}>All accounts</Button>
-          {pickable.map((a) => (
-            <Button key={a.id} type="button" variant={f.account === a.id ? "default" : "outline"} aria-pressed={f.account === a.id} className="min-h-11" onClick={() => setF({ ...f, account: a.id })}>{a.display_name}</Button>
-          ))}
-        </div>
-      )}
       <div role="search" aria-label="Filter payments" className="list-filters mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
         <Input aria-label="Search payments" className="sm:col-span-2" placeholder="Search party, payer, reference…" value={f.search} onChange={(e) => setF({ ...f, search: e.target.value })} />
         <select aria-label="Party" className={selectCls} value={f.party} onChange={(e) => setF({ ...f, party: e.target.value })}><option value="">All parties</option>{parties.data?.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
-        {!showBank && <select aria-label="Payment account" className={selectCls} value={f.account} onChange={(e) => setF({ ...f, account: e.target.value })}><option value="">All accounts</option>{accounts.data?.map((a) => <option key={a.id} value={a.id}>{a.display_name}</option>)}</select>}
+        <select aria-label="Payment account" className={selectCls} value={f.account} onChange={(e) => setF({ ...f, account: e.target.value })}><option value="">All accounts</option>{accounts.data?.map((a) => <option key={a.id} value={a.id}>{a.kind === "cash" ? "Cash" : a.display_name}</option>)}</select>
         {!thirdParty && <select aria-label="Payment direction" className={selectCls} value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })}><option value="">Receipts & payments</option><option value="in">Receipts only</option><option value="out">Payments only</option></select>}
         <div className={dateRangeCls}><Input type="date" aria-label="From date" value={f.from} onChange={(e) => setF({ ...f, from: e.target.value })} /><Input type="date" aria-label="To date" value={f.to} onChange={(e) => setF({ ...f, to: e.target.value })} /></div>
       </div>
@@ -134,7 +125,7 @@ export function PaymentsList({ thirdParty, transporterId }: { thirdParty?: boole
       )}
       <RemovalDialog target={removal} onClose={() => setRemoval(null)} />
       {viewing && <RecordDetails title="Payment / receipt" values={[["Date", formatDate(viewing.payment_date)], ["Amount", viewing.amount], ["Reference", viewing.reference], ["Notes", viewing.notes], ["Reversal reason", viewing.reversal_reason]]} onClose={() => setViewing(null)} />}
-      <PaymentDialog open={dlg.open} onOpenChange={(o) => setDlg({ open: o, row: o ? dlg.row : null })} initial={dlg.row} thirdParty={thirdParty} defaultAccountId={f.account || undefined} />
+      <PaymentDialog open={dlg.open} onOpenChange={(o) => setDlg({ open: o, row: o ? dlg.row : null })} initial={dlg.row} thirdParty={thirdParty} />
     </div>
   );
 }

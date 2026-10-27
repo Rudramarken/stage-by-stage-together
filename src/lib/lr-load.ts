@@ -8,7 +8,7 @@ export async function loadLR(id: string) {
   if (e2) throw e2;
   let trip: any = null;
   if (lr.trip_id) {
-    const r = await supabase.from("trips").select("id, trip_number, trip_date, vehicle_id, market_vehicle_number, trip_stops(id, location, seq)").eq("id", lr.trip_id).single();
+    const r = await supabase.from("trips").select("id, trip_number, trip_date, trip_stops(id, location, seq)").eq("id", lr.trip_id).single();
     if (r.error) throw r.error;
     trip = r.data;
   }
