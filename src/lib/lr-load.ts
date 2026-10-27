@@ -8,7 +8,7 @@ export async function loadLR(id: string) {
   if (e2) throw e2;
   let trip: any = null;
   if (lr.trip_id) {
-    const r = await supabase.from("trips").select("id, trip_number, trip_date, trip_stops(id, location, seq)").eq("id", lr.trip_id).single();
+    const r = await supabase.from("trips").select("id, trip_number, trip_date, market_vehicle_number, vehicles(registration_number), trip_stops(id, location, seq)").eq("id", lr.trip_id).single();
     if (r.error) throw r.error;
     trip = r.data;
   }
@@ -26,7 +26,7 @@ export function lrToForm({ lr, expenses }: Awaited<ReturnType<typeof loadLR>>): 
     direct_payment_enabled: lr.direct_payment_enabled, commission_enabled: lr.commission_enabled,
     parties: [...lr_parties].sort((a: any, b: any) => a.seq - b.seq).map((p: any) => ({
       id: p.id, role: p.role, party_id: p.party_id, goods_description: s(p.goods_description), quantity: s(p.quantity), weight: s(p.weight),
-      loading_point: s(p.loading_point), delivery_point: s(p.delivery_point),
+      loading_point: s(p.loading_point), delivery_point: s(p.delivery_point), freight_amount: s(p.freight_amount),
       expenses: expenses.filter((e) => e.lr_party_id === p.id).map((e) => ({ ...e, amount: s(e.amount) })),
     })),
     adjustments: lr_adjustments.map((a: any) => ({ id: a.id, kind: a.kind, amount: s(a.amount), reason: a.reason })),

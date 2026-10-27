@@ -1,8 +1,8 @@
-export type WeightUnit = "kg" | "quintal" | "tonne";
+export type WeightUnit = "kg" | "quintal" | "tonne" | "unit";
 export type RateUnit = "per_kg" | "per_quintal" | "per_tonne" | "fixed";
 export type Adjustment = { kind: "add" | "deduct"; amount: number; reason: string };
 
-const KG: Record<WeightUnit, number> = { kg: 1, quintal: 100, tonne: 1000 };
+const KG: Record<WeightUnit, number> = { kg: 1, quintal: 100, tonne: 1000, unit: 1 };
 const RATE_KG: Record<Exclude<RateUnit, "fixed">, number> = { per_kg: 1, per_quintal: 100, per_tonne: 1000 };
 
 const r2 = (n: number) => Math.round(n * 100) / 100;

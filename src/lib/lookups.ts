@@ -39,8 +39,10 @@ export const PAY_MODES = [{ value: "cash", label: "Cash" }, { value: "upi", labe
 
 export async function createPartyInline(name: string, role: string): Promise<string> {
   const clean = name.trim();
-  const { data: existing } = await supabase.from("parties").select("id").ilike("name", clean).maybeSingle();
-  if (existing) return existing.id;
+  // Exact (case-insensitive) match only: escape LIKE wildcards so "A_B" or "50%" can never match a different party, and never fail on several matches.
+  const { data: existing, error: findErr } = await supabase.from("parties").select("id").ilike("name", clean.replace(/[\\%_]/g, (c) => "\\" + c)).limit(1);
+  if (findErr) throw findErr;
+  if (existing && existing.length > 0) return existing[0].id;
   const { data, error } = await supabase.from("parties").insert({ name: clean, roles: [role] } as never).select("id").single();
   if (error) throw error;
   return data.id;

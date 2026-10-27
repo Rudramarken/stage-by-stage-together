@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -12,21 +12,22 @@ import { Field, Money } from "./ui";
 import { Section, selectCls } from "./Section";
 import { SearchSelect } from "./SearchSelect";
 import { errorMessage } from "./states";
-import { useParties, useDrivers, useTransporters, createPartyInline, EXPENSE_CATEGORIES, PAY_MODES, FREIGHT_TYPE } from "@/lib/lookups";
+import { useParties, useDrivers, useTransporters, createPartyInline, EXPENSE_CATEGORIES, PAY_MODES } from "@/lib/lookups";
 import { TransporterSelect } from "./TransporterSelect";
+import { LRDocuments } from "./LRDocuments";
 import { calcFreight, validateFreight, RATE_UNIT_LABEL, type RateUnit, type WeightUnit } from "@/lib/freight";
 import { formatINR, todayIST } from "@/lib/format";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 type Exp = Record<string, any>;
-type LP = { id?: string; role: "consignor" | "consignee"; party_id: string; goods_description?: string; quantity?: string; weight?: string; loading_point?: string; delivery_point?: string; expenses: Exp[] };
+type LP = { id?: string; role: "consignor" | "consignee"; party_id: string; goods_description?: string; quantity?: string; weight?: string; loading_point?: string; delivery_point?: string; freight_amount?: string; expenses: Exp[] };
 export type LRValues = Record<string, any> & { parties: LP[]; adjustments: { id?: string; kind: "add" | "deduct"; amount: string; reason: string }[] };
 
 export function blankLR(tripId?: string): LRValues {
   return {
     lr_date: todayIST(), trip_id: tripId ?? "", weight_unit: "kg", rate_unit: "fixed", freight_type: "to_pay", delivery_status: "pending",
     freight_payable: "0", direct_payment_enabled: false, commission_enabled: false, commission_mode: "percent", commission_status: "pending",
-    parties: [{ role: "consignor", party_id: "", expenses: [] }, { role: "consignee", party_id: "", expenses: [] }], adjustments: [],
+    parties: [{ role: "consignor", party_id: "", freight_amount: "", expenses: [] }, { role: "consignee", party_id: "", freight_amount: "", expenses: [] }], adjustments: [],
   };
 }
 
@@ -46,6 +47,10 @@ export function LRForm({ initial }: { initial: LRValues }) {
   const isNew = !initial.id;
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const inflight = useRef(false);
+  const savedId = useRef<string | null>(null);
+  // LRs saved before party-wise freight keep their single-party posting and their original Customer freight block. New LRs (and LRs already saved party-wise) enter freight against each consignor/consignee.
+  const legacy = !!initial.id && !initial.parties.some((p) => p.freight_amount !== "" && p.freight_amount != null);
   const set = (k: string, val: unknown) => setV((p) => ({ ...p, [k]: val }));
   const setP = (i: number, patch: Partial<LP>) => setV((p) => ({ ...p, parties: p.parties.map((x, j) => (j === i ? { ...x, ...patch } : x)) }));
   const setE = (i: number, k: number, patch: Exp) => setP(i, { expenses: v.parties[i].expenses.map((e, j) => (j === k ? { ...e, ...patch } : e)) });
@@ -78,14 +83,27 @@ export function LRForm({ initial }: { initial: LRValues }) {
   const tRate = v.transporter_rate === "" || v.transporter_rate == null ? null : Number(v.transporter_rate);
   const tUnit = (v.transporter_rate_unit || "") as RateUnit | "";
   const tCalc = tUnit && tRate != null ? calcFreight(tWeight, (v.transporter_weight_unit || "kg") as WeightUnit, tRate, tUnit) : null;
-  const commission = !v.commission_enabled ? 0 : v.commission_mode === "percent" ? Math.round(calc.final * Number(v.commission_value || 0)) / 100 : Number(v.commission_value || 0);
-  const partyOpts = (role: string) => (parties.data ?? []).filter((p) => p.is_active).map((p) => ({ value: p.id, label: p.name, hint: (p.roles ?? []).includes(role) ? "" : (p.roles ?? []).join(", ") }));
+  const pf = v.parties.map((p) => (p.freight_amount === "" || p.freight_amount == null ? null : Number(p.freight_amount)));
+  const partyTotal = r2(pf.reduce<number>((a, n) => a + (n != null && Number.isFinite(n) ? n : 0), 0));
+  const finalFreight = legacy ? calc.final : partyTotal;
+  const commission = !v.commission_enabled ? 0 : v.commission_mode === "percent" ? Math.round(finalFreight * Number(v.commission_value || 0)) / 100 : Number(v.commission_value || 0);
+  const partyOpts = (role: string, selected?: string) => (parties.data ?? []).filter((p) => p.is_active || p.id === selected).map((p) => ({ value: p.id, label: p.name, hint: (p.roles ?? []).includes(role) ? "" : (p.roles ?? []).join(", ") }));
   const createParty = async (name: string, role: string) => { const id = await createPartyInline(name, "customer"); await qc.invalidateQueries({ queryKey: ["parties"] }); void role; return id; };
 
   async function save() {
-    if (busy) return;
+    if (busy || inflight.current) return;
+    if (savedId.current) { nav({ to: "/lr/$id", params: { id: savedId.current } }); return; }
     setErr(null);
-    const fe = validateFreight(weight, rate, v.rate_unit as RateUnit, adj);
+    if (!legacy) {
+      for (let i = 0; i < pf.length; i++) {
+        const n = pf[i];
+        if (n == null) continue;
+        if (!Number.isFinite(n) || n < 0) return setErr("Freight amounts must be numbers of 0 or more");
+        if (Math.abs(n * 100 - Math.round(n * 100)) > 1e-6) return setErr("Freight amounts can have at most 2 decimal places");
+      }
+      if (!pf.some((n) => n != null)) return setErr("Enter the freight against at least one consignor or consignee");
+    }
+    const fe = legacy ? validateFreight(weight, rate, v.rate_unit as RateUnit, adj) : validateFreight(weight, partyTotal, "fixed", []);
     if (fe) return setErr(fe);
     if (!v.parties.some((p) => p.role === "consignor" && p.party_id) || !v.parties.some((p) => p.role === "consignee" && p.party_id)) return setErr("Add at least one consignor and one consignee");
     if (v.parties.some((p) => !p.party_id)) return setErr("Choose a party for every consignor/consignee row (or remove the empty row)");
@@ -101,17 +119,21 @@ export function LRForm({ initial }: { initial: LRValues }) {
     if (v.commission_enabled && !v.transporter_id && !trip?.transporter_id) return setErr("Choose the transporter who owes the commission");
     if (initial.commission_enabled && !v.commission_enabled && !v.commission_cancel_reason?.trim()) return setErr("Enter a reason for turning commission off");
     for (const p of v.parties) for (const e of p.expenses) if (!(Number(e.amount) > 0)) return setErr("Every consignor/consignee expense needs an amount");
+    inflight.current = true;
     setBusy(true);
     try {
-      const { data, error } = await supabase.rpc("save_lr", { p: v as never });
+      // Party-wise LR: the LR total is the sum of the party freights, stored as a fixed freight so the existing database calculation gives the same total.
+      const payload = legacy ? v : { ...v, rate_unit: "fixed", rate: String(partyTotal), adjustments: [] };
+      const { data, error } = await supabase.rpc("save_lr", { p: payload as never });
       if (error) throw error;
+      if (isNew) savedId.current = data as string;
       toast.success("LR saved");
       qc.invalidateQueries();
       nav({ to: "/lr/$id", params: { id: data as string } });
     } catch (e) {
       const m = errorMessage(e);
       setErr(/lrs_business_id_lr_number_key|duplicate/i.test(m) ? "Could not get a new LR number. Please try saving again." : m);
-    } finally { setBusy(false); }
+    } finally { inflight.current = false; setBusy(false); }
   }
 
   const PartyBlock = ({ role }: { role: "consignor" | "consignee" }) => (
@@ -119,14 +141,14 @@ export function LRForm({ initial }: { initial: LRValues }) {
       {v.parties.map((p, i) => p.role !== role ? null : (
         <div key={i} className="rounded-md border p-3">
           <div className="grid gap-3 sm:grid-cols-6">
-            <div className="sm:col-span-2"><Field label={role === "consignor" ? "Consignor" : "Consignee"} required>
-              <SearchSelect value={p.party_id} onChange={(x) => setP(i, { party_id: x })} options={partyOpts("customer")} placeholder="Choose or type new" allowClear={false}
+            <div className={role === "consignor" ? "sm:col-span-2" : legacy ? "sm:col-span-3" : "sm:col-span-2"}><Field label={role === "consignor" ? "Consignor" : "Consignee"} required>
+              <SearchSelect value={p.party_id} onChange={(x) => setP(i, { party_id: x })} options={partyOpts("customer", p.party_id)} placeholder="Choose or type new" allowClear={false}
                 onCreate={(t) => createParty(t, role)} createLabel="Create party" /></Field></div>
-            <div className="sm:col-span-2"><Field label="Goods"><Input value={p.goods_description ?? ""} onChange={(e) => setP(i, { goods_description: e.target.value })} /></Field></div>
-            <Field label="Qty"><Input type="number" min="0" value={p.quantity ?? ""} onChange={(e) => setP(i, { quantity: e.target.value })} /></Field>
-            <Field label={`Weight (${v.weight_unit})`}><Input type="number" min="0" value={p.weight ?? ""} onChange={(e) => setP(i, { weight: e.target.value })} /></Field>
-            <div className="sm:col-span-3"><Field label="Loading point"><Input value={p.loading_point ?? ""} onChange={(e) => setP(i, { loading_point: e.target.value })} /></Field></div>
-            <div className="sm:col-span-3"><Field label="Delivery point"><Input value={p.delivery_point ?? ""} onChange={(e) => setP(i, { delivery_point: e.target.value })} /></Field></div>
+            {role === "consignor" && <div className="sm:col-span-2"><Field label="Goods"><Input value={p.goods_description ?? ""} onChange={(e) => setP(i, { goods_description: e.target.value })} /></Field></div>}
+            {role === "consignor" && <div className={legacy ? "sm:col-span-2" : "sm:col-span-1"}><Field label={`Weight (${v.weight_unit})`}><Input type="number" min="0" value={p.weight ?? ""} onChange={(e) => setP(i, { weight: e.target.value })} /></Field></div>}
+            {!legacy && <div className={role === "consignor" ? "sm:col-span-1" : "sm:col-span-2"}><Field label="Freight (₹)" hint={role === "consignee" ? "Amount this party owes" : undefined}><Input type="number" min="0" step="0.01" inputMode="decimal" value={p.freight_amount ?? ""} onChange={(e) => setP(i, { freight_amount: e.target.value })} /></Field></div>}
+            {role === "consignor" && <div className="sm:col-span-3"><Field label="Loading point"><Input value={p.loading_point ?? ""} onChange={(e) => setP(i, { loading_point: e.target.value })} /></Field></div>}
+            <div className={role === "consignor" ? "sm:col-span-3" : legacy ? "sm:col-span-3" : "sm:col-span-2"}><Field label="Delivery point"><Input value={p.delivery_point ?? ""} onChange={(e) => setP(i, { delivery_point: e.target.value })} /></Field></div>
           </div>
           <div className="mt-3 rounded bg-muted/50 p-3">
             <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2"><p className="min-w-0 text-sm font-medium">{role === "consignor" ? "Consignor" : "Consignee"} expenses</p>
@@ -150,13 +172,16 @@ export function LRForm({ initial }: { initial: LRValues }) {
           {v.parties.filter((x) => x.role === role).length > 1 && <Button type="button" variant="ghost" size="sm" className="mt-2 text-destructive" onClick={() => setV({ ...v, parties: v.parties.filter((_, j) => j !== i) })}>Remove this {role}</Button>}
         </div>
       ))}
-      <Button type="button" variant="outline" size="sm" onClick={() => setV({ ...v, parties: [...v.parties, { role, party_id: "", expenses: [] }] })}><Plus className="mr-1 h-4 w-4" />Add {role === "consignor" ? "Consignor" : "Consignee"}</Button>
+      <Button type="button" variant="outline" size="sm" onClick={() => setV({ ...v, parties: [...v.parties, { role, party_id: "", ...(legacy ? {} : { freight_amount: "" }), expenses: [] }] })}><Plus className="mr-1 h-4 w-4" />Add {role === "consignor" ? "Consignor" : "Consignee"}</Button>
     </div>
   );
 
   const firstConsignor = v.parties.find((p) => p.role === "consignor")?.party_id;
   const payer = v.freight_type === "paid" ? firstConsignor : v.freight_type === "to_pay" ? v.parties.find((p) => p.role === "consignee")?.party_id : v.billing_party_id || firstConsignor;
-  const dp = v.direct_payment_enabled ? Math.min(Number(v.direct_payment_amount || 0), calc.final) : 0;
+  const dp = v.direct_payment_enabled ? Math.min(Number(v.direct_payment_amount || 0), finalFreight) : 0;
+  // Party-wise LR: the direct-payment credit goes to the first consignee that has freight, else the first party that has freight (same rule as the database).
+  const dpIdx = (() => { const w = v.parties.map((p, i) => ({ p, i, n: pf[i] })).filter((x) => x.n != null && x.n > 0); return (w.find((x) => x.p.role === "consignee") ?? w[0])?.i ?? -1; })();
+  const dpPartyName = dpIdx >= 0 ? parties.data?.find((x) => x.id === v.parties[dpIdx].party_id)?.name : undefined;
   const autoComm = v.direct_payment_enabled ? Math.max(0, r2(Number(v.direct_payment_amount || 0) - Number(v.freight_payable || 0))) : null;
   useEffect(() => {
     if (!commissionAuto || !v.commission_enabled || autoComm == null || autoComm <= 0) return;
@@ -173,12 +198,8 @@ export function LRForm({ initial }: { initial: LRValues }) {
             <Field label="Loading stop"><select className={selectCls} value={v.loading_stop_id ?? ""} onChange={(e) => set("loading_stop_id", e.target.value)}><option value="">—</option>{stops.map((s: any) => <option key={s.id} value={s.id}>{s.location}</option>)}</select></Field>
             <Field label="Unloading stop"><select className={selectCls} value={v.unloading_stop_id ?? ""} onChange={(e) => set("unloading_stop_id", e.target.value)}><option value="">—</option>{stops.map((s: any) => <option key={s.id} value={s.id}>{s.location}</option>)}</select></Field>
           </>}
-          <div className="sm:col-span-2"><Field label="Goods description"><Input value={v.goods_description ?? ""} onChange={(e) => set("goods_description", e.target.value)} /></Field></div>
-          <Field label="Quantity"><Input type="number" min="0" value={v.quantity ?? ""} onChange={(e) => set("quantity", e.target.value)} /></Field>
           <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2"><Field label="Total weight"><Input type="number" min="0" value={v.weight ?? ""} onChange={(e) => set("weight", e.target.value)} /></Field>
-            <Field label="Unit"><select className={selectCls} value={v.weight_unit} onChange={(e) => set("weight_unit", e.target.value)}><option value="kg">kg</option><option value="quintal">quintal</option><option value="tonne">tonne</option></select></Field></div>
-          <div className="sm:col-span-2"><Field label="Loading point(s)"><Input value={v.loading_point ?? ""} onChange={(e) => set("loading_point", e.target.value)} /></Field></div>
-          <div className="sm:col-span-2"><Field label="Delivery point(s)"><Input value={v.delivery_point ?? ""} onChange={(e) => set("delivery_point", e.target.value)} /></Field></div>
+            <Field label="Unit"><select className={selectCls} value={v.weight_unit} onChange={(e) => set("weight_unit", e.target.value)}><option value="kg">kg</option><option value="quintal">quintal</option><option value="tonne">tonne</option><option value="unit">Unit</option></select></Field></div>
           <div className="sm:col-span-4"><Field label="Notes"><Textarea value={v.notes ?? ""} onChange={(e) => set("notes", e.target.value)} /></Field></div>
         </div>
       </Section>
@@ -186,10 +207,10 @@ export function LRForm({ initial }: { initial: LRValues }) {
       <Section n={2} title="Consignors (and their expenses)">{PartyBlock({ role: "consignor" })}</Section>
       <Section n={3} title="Consignees (and their expenses)">{PartyBlock({ role: "consignee" })}</Section>
 
+      {legacy ? (
       <Section n={4} title="Customer freight">
+        <p className="mb-3 text-xs text-muted-foreground">This LR was saved before party-wise freight, so its freight keeps the original single-party posting and is unchanged.</p>
         <div className="grid gap-4 sm:grid-cols-4">
-          <Field label="Freight type"><select className={selectCls} value={v.freight_type} onChange={(e) => set("freight_type", e.target.value)}>{Object.entries(FREIGHT_TYPE).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>
-          {v.freight_type === "tbb" && <Field label="Party to be billed"><select className={selectCls} value={v.billing_party_id ?? ""} onChange={(e) => set("billing_party_id", e.target.value)}><option value="">First consignor (default)</option>{v.parties.filter((p) => p.party_id).map((p, i) => <option key={i} value={p.party_id}>{parties.data?.find((x) => x.id === p.party_id)?.name} ({p.role})</option>)}</select></Field>}
           <Field label="Rate unit"><select className={selectCls} value={v.rate_unit} onChange={(e) => set("rate_unit", e.target.value)}>{Object.entries(RATE_UNIT_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>
           <Field label={v.rate_unit === "fixed" ? "Fixed freight (₹)" : "Rate (₹)"} required><Input type="number" min="0" step="0.01" value={v.rate ?? ""} onChange={(e) => set("rate", e.target.value)} /></Field>
         </div>
@@ -215,6 +236,17 @@ export function LRForm({ initial }: { initial: LRValues }) {
           <p className="text-muted-foreground">Receivable from: {parties.data?.find((x) => x.id === payer)?.name ?? "(choose parties)"}</p>
         </div>
       </Section>
+      ) : (
+      <Section n={4} title="Customer freight (by consignor / consignee)">
+        <div className="rounded-md border border-info/30 bg-accent p-3 text-sm">
+          <p className="font-medium">LR customer freight</p>
+          {v.parties.map((p, i) => pf[i] == null ? null : <p key={i}>{parties.data?.find((x) => x.id === p.party_id)?.name ?? "(choose party)"} <span className="text-muted-foreground">({p.role})</span>: {formatINR(Number.isFinite(pf[i]) ? (pf[i] as number) : 0)}</p>)}
+          {!pf.some((n) => n != null) && <p className="text-muted-foreground">Enter the freight in the Freight (₹) box of the consignor and/or consignee who owes it. You can split it between several parties.</p>}
+          <p className="mt-1">Total customer freight = <b>{formatINR(partyTotal)}</b></p>
+          <p className="text-muted-foreground">Each amount is posted once to that party's ledger. Editing the LR updates the same entries.</p>
+        </div>
+      </Section>
+      )}
 
       <Section n={5} title="Transporter / freight payable">
         <div className="grid gap-4 sm:grid-cols-4">
@@ -223,7 +255,7 @@ export function LRForm({ initial }: { initial: LRValues }) {
           <Field label="Vehicle number"><Input value={v.vehicle_number ?? ""} onChange={(e) => set("vehicle_number", e.target.value)} /></Field>
           <Field label="Transporter rate unit" hint="Leave on Manual to type the amount yourself"><select className={selectCls} value={v.transporter_rate_unit ?? ""} onChange={(e) => setTP({ transporter_rate_unit: e.target.value })}><option value="">Manual (type amount)</option>{Object.entries(RATE_UNIT_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>
           {v.transporter_rate_unit && v.transporter_rate_unit !== "fixed" && <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2"><Field label="Weight for transporter" hint={weight ? `LR weight: ${weight} ${v.weight_unit}` : undefined}><Input type="number" min="0" value={v.transporter_weight ?? ""} onChange={(e) => setTP({ transporter_weight: e.target.value })} /></Field>
-            <Field label="Unit"><select className={selectCls} value={v.transporter_weight_unit || "kg"} onChange={(e) => setTP({ transporter_weight_unit: e.target.value })}><option value="kg">kg</option><option value="quintal">quintal</option><option value="tonne">tonne</option></select></Field></div>}
+            <Field label="Unit"><select className={selectCls} value={v.transporter_weight_unit || "kg"} onChange={(e) => setTP({ transporter_weight_unit: e.target.value })}><option value="kg">kg</option><option value="quintal">quintal</option><option value="tonne">tonne</option><option value="unit">Unit</option></select></Field></div>}
           {v.transporter_rate_unit && <Field label={v.transporter_rate_unit === "fixed" ? "Fixed freight to transporter (₹)" : "Transporter rate (₹)"}><Input type="number" min="0" step="0.01" value={v.transporter_rate ?? ""} onChange={(e) => setTP({ transporter_rate: e.target.value })} /></Field>}
           <Field label="Add (+) to transporter freight (₹)" hint="Freight difference, commission etc."><Input type="number" min="0" step="0.01" value={v.transporter_additions ?? ""} onChange={(e) => setTAdj({ transporter_additions: e.target.value })} /></Field>
           <div className="sm:col-span-1"><Field label="Reason for add"><Input value={v.transporter_additions_reason ?? ""} onChange={(e) => set("transporter_additions_reason", e.target.value)} /></Field></div>
@@ -240,7 +272,7 @@ export function LRForm({ initial }: { initial: LRValues }) {
         <div className="grid gap-4 sm:grid-cols-4">
           <label className="flex items-center gap-2 text-sm sm:col-span-2"><Switch checked={v.direct_payment_enabled} onCheckedChange={(c) => set("direct_payment_enabled", c)} />Consignee paid the driver directly?</label>
           {v.direct_payment_enabled && <Field label="Direct payment amount (₹)"><Input type="number" min="0" value={v.direct_payment_amount ?? ""} onChange={(e) => set("direct_payment_amount", e.target.value)} /></Field>}
-          {v.direct_payment_enabled && <p className="text-xs text-muted-foreground sm:col-span-4">Not Gokul cash. Reduces the party's freight receivable by {formatINR(dp)} and the transporter payable by {formatINR(Math.min(dp, Number(v.freight_payable || 0)))}.</p>}
+          {v.direct_payment_enabled && <p className="text-xs text-muted-foreground sm:col-span-4">Not Gokul cash. Reduces the party's freight receivable by {formatINR(dp)} and the transporter payable by {formatINR(Math.min(dp, Number(v.freight_payable || 0)))}.{!legacy && dpPartyName ? ` Credited to ${dpPartyName}.` : ""}</p>}
           <label className="flex items-center gap-2 text-sm sm:col-span-4"><Switch checked={v.commission_enabled} onCheckedChange={(c) => set("commission_enabled", c)} />Commission applicable?</label>
           {v.commission_enabled && <>
             <Field label="Commission type"><select className={selectCls} value={v.commission_mode} onChange={(e) => { setCommissionAuto(false); set("commission_mode", e.target.value); }}><option value="percent">% of freight</option><option value="fixed">Fixed ₹</option></select></Field>
@@ -255,7 +287,11 @@ export function LRForm({ initial }: { initial: LRValues }) {
         </div>
       </Section>
 
-      <Section n={7} title="Save">
+      <Section n={7} title="Documents (optional)">
+        {isNew ? <p className="text-sm text-muted-foreground">Save the LR first, then add documents (PDF or image) from this page or the LR details page.</p> : <LRDocuments lrId={initial.id as string} />}
+      </Section>
+
+      <Section n={8} title="Save">
         {err && <p role="alert" className="mb-3 rounded bg-destructive/10 p-2 text-sm text-destructive">{err}</p>}
         <Button onClick={save} disabled={busy}>{busy ? "Saving…" : "Save LR"}</Button>
       </Section>

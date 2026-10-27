@@ -15,7 +15,9 @@ import { LoadingState, ErrorState, errorMessage } from "@/components/app/states"
 import { Button } from "@/components/ui/button";
 import { loadLR } from "@/lib/lr-load";
 import { useBusiness } from "@/lib/business";
-import { useTransporters, nameOf, FREIGHT_TYPE, LR_DELIVERY } from "@/lib/lookups";
+import { useTransporters, nameOf } from "@/lib/lookups";
+import { LRDocuments } from "@/components/app/LRDocuments";
+import { calcLrProfit, lrVehicleNumber } from "@/lib/lr-summary";
 import { RATE_UNIT_LABEL } from "@/lib/freight";
 import { formatDate, formatDateTime, formatINR } from "@/lib/format";
 
@@ -45,8 +47,12 @@ function LRDetail() {
   const { lr, expenses, trip } = q.data;
   const cnor = lr.lr_parties.filter((p: any) => p.role === "consignor").sort((a: any, b: any) => a.seq - b.seq);
   const cnee = lr.lr_parties.filter((p: any) => p.role === "consignee").sort((a: any, b: any) => a.seq - b.seq);
+  const partyWise = lr.lr_parties.some((p: any) => p.freight_amount != null);
   const stops = trip ? [...trip.trip_stops].sort((a: any, b: any) => a.seq - b.seq) : [];
   const stopName = (sid: string) => stops.find((s: any) => s.id === sid)?.location;
+  const vehicle = lrVehicleNumber({ vehicle_number: lr.vehicle_number, trips: trip ? { market_vehicle_number: trip.market_vehicle_number, vehicles: trip.vehicles } : null });
+  const gokulExpenses = expenses.filter((e) => e.responsible === "gokul").reduce((a: number, e) => a + Number(e.amount || 0), 0);
+  const profit = calcLrProfit({ status: lr.status, finalFreight: Number(lr.final_freight), freightPayable: Number(lr.freight_payable), hasTransporter: !!lr.transporter_id, tripLinked: !!lr.trip_id, gokulExpenses, commissionEnabled: !!lr.commission_enabled, commissionAmount: Number(lr.commission_amount || 0), directPaymentEnabled: !!lr.direct_payment_enabled });
 
   return (
     <div className="space-y-4">
@@ -77,27 +83,24 @@ function LRDetail() {
             <div key={title} className="rounded border p-3"><p className="mb-1 text-xs font-semibold uppercase text-muted-foreground">{title}</p>
               {list.map((p: any) => (
                 <div key={p.id} className="mb-2"><p className="font-semibold">{p.parties?.name}</p>
-                  <p className="text-xs">{[p.goods_description, p.quantity && `Qty ${p.quantity}`, p.weight && `${p.weight} ${lr.weight_unit}`].filter(Boolean).join(" · ")}</p>
+                  <p className="text-xs">{[p.goods_description, p.weight && `${p.weight} ${lr.weight_unit === "unit" ? "Unit" : lr.weight_unit}`].filter(Boolean).join(" · ")}</p>
                   <p className="text-xs text-muted-foreground">{[p.loading_point && `From ${p.loading_point}`, p.delivery_point && `To ${p.delivery_point}`].filter(Boolean).join(" · ")}</p>
+                  {p.freight_amount != null && <p className="text-xs">Freight: {formatINR(p.freight_amount)}</p>}
                   {expenses.filter((e) => e.lr_party_id === p.id).map((e) => <p key={e.id} className="text-xs">Expense: {e.category} {formatINR(e.amount)} — {e.responsible === "party" ? "charged to party" : "Gokul's own"} ({e.payment_status})</p>)}
                 </div>))}
             </div>))}
         </div>
         <div className="mt-4 grid gap-2 sm:grid-cols-3">
-          <p><span className="text-muted-foreground">Goods:</span> {lr.goods_description || "—"}</p>
-          <p><span className="text-muted-foreground">Quantity:</span> {lr.quantity ?? "—"}</p>
-          <p><span className="text-muted-foreground">Weight:</span> {lr.weight ? `${lr.weight} ${lr.weight_unit}` : "—"}</p>
-          <p><span className="text-muted-foreground">From:</span> {lr.loading_point || "—"}</p>
-          <p><span className="text-muted-foreground">To:</span> {lr.delivery_point || "—"}</p>
-          <p><span className="text-muted-foreground">Delivery:</span> {LR_DELIVERY[lr.delivery_status]?.label}</p>
-          <p><span className="text-muted-foreground">Vehicle:</span> {lr.vehicle_number || "—"} {lr.vehicle_type}</p>
+          <p><span className="text-muted-foreground">Weight:</span> {lr.weight ? `${lr.weight} ${lr.weight_unit === "unit" ? "Unit" : lr.weight_unit}` : "—"}</p>
+          <p><span className="text-muted-foreground">Vehicle:</span> {vehicle ?? "—"}</p>
           <p><span className="text-muted-foreground">Driver:</span> {lr.driver_name || "—"}</p>
         </div>
         {lr.notes && <p className="mt-3 whitespace-pre-wrap"><span className="text-muted-foreground">Remarks:</span> {lr.notes}</p>}
         <table className="mt-4 w-full border text-sm">
           <tbody>
-            <tr className="border-b"><td className="p-2">Freight type</td><td className="p-2 text-right">{FREIGHT_TYPE[lr.freight_type]}</td></tr>
-            <tr className="border-b"><td className="p-2">Base freight ({RATE_UNIT_LABEL[lr.rate_unit as keyof typeof RATE_UNIT_LABEL]} @ {formatINR(lr.rate)})</td><td className="p-2 text-right"><Money value={lr.base_freight} /></td></tr>
+            {partyWise
+              ? [...cnor, ...cnee].filter((p: any) => p.freight_amount != null).map((p: any) => <tr key={p.id} className="border-b"><td className="p-2">Freight — {p.parties?.name} ({p.role})</td><td className="p-2 text-right"><Money value={p.freight_amount} /></td></tr>)
+              : <tr className="border-b"><td className="p-2">Base freight ({RATE_UNIT_LABEL[lr.rate_unit as keyof typeof RATE_UNIT_LABEL]} @ {formatINR(lr.rate)})</td><td className="p-2 text-right"><Money value={lr.base_freight} /></td></tr>}
             {lr.lr_adjustments.map((a: any) => <tr key={a.id} className="border-b"><td className="p-2">{a.kind === "add" ? "+" : "−"} {a.reason}</td><td className="p-2 text-right">{a.kind === "add" ? "" : "−"}<Money value={a.amount} /></td></tr>)}
             <tr className="bg-muted font-bold"><td className="p-2">Total freight</td><td className="p-2 text-right"><Money value={lr.final_freight} /></td></tr>
           </tbody>
@@ -111,6 +114,17 @@ function LRDetail() {
         <div><p className="text-muted-foreground">Freight payable to transporter</p><p><Money value={lr.freight_payable} /> <span className="text-xs text-muted-foreground">(paid/remaining in Transporter Settlements)</span></p>{lr.transporter_rate_unit && lr.transporter_rate != null && <p className="text-xs text-muted-foreground">{lr.transporter_rate_unit === "fixed" ? `Fixed ${formatINR(lr.transporter_rate)}` : `${lr.transporter_weight ?? 0} ${lr.transporter_weight_unit ?? "kg"} @ ${formatINR(lr.transporter_rate)} ${(RATE_UNIT_LABEL[lr.transporter_rate_unit as keyof typeof RATE_UNIT_LABEL] ?? "").toLowerCase()}`}</p>}{Number(lr.transporter_additions) > 0 && <p className="text-xs text-muted-foreground">+ {formatINR(lr.transporter_additions)} added{lr.transporter_additions_reason ? ` (${lr.transporter_additions_reason})` : ""}</p>}{Number(lr.transporter_shortage) > 0 && <p className="text-xs text-muted-foreground">− {formatINR(lr.transporter_shortage)} shortage{lr.transporter_shortage_reason ? ` (${lr.transporter_shortage_reason})` : ""}</p>}</div>
         <div><p className="text-muted-foreground">Direct payment to driver</p><p>{lr.direct_payment_enabled ? <Money value={lr.direct_payment_amount} /> : "No"}</p></div>
       </div>
+
+      <div className="no-print rounded-lg border bg-card p-4 text-sm">
+        <p className="font-medium">Profit on this LR {profit.state === "provisional" && <StatusBadge tone="warning">Provisional</StatusBadge>}{profit.state === "insufficient" && <StatusBadge tone="muted">Not enough data</StatusBadge>}</p>
+        {profit.profit == null ? <p className="mt-1 text-muted-foreground">{profit.notes.join(" ")}</p> : <>
+          <p className="mt-1 text-lg font-semibold"><Money value={profit.profit} /></p>
+          <p className="text-xs text-muted-foreground">Customer freight <Money value={lr.final_freight} /> − transporter freight payable <Money value={lr.freight_payable} /> − Gokul expenses on this LR <Money value={gokulExpenses} />{profit.commissionAdded > 0 && <> + commission <Money value={profit.commissionAdded} /></>}</p>
+          {profit.notes.map((n) => <p key={n} className="text-xs text-muted-foreground">{n}</p>)}
+        </>}
+      </div>
+
+      <LRDocuments lrId={id} readOnly={lr.status === "cancelled"} />
     </div>
   );
 }
