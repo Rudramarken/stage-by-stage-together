@@ -1223,6 +1223,7 @@ export type Database = {
           kind: string
           opening_balance: number
           opening_date: string | null
+          system_key: string | null
           updated_at: string
         }
         Insert: {
@@ -1239,6 +1240,7 @@ export type Database = {
           kind?: string
           opening_balance?: number
           opening_date?: string | null
+          system_key?: string | null
           updated_at?: string
         }
         Update: {
@@ -1255,6 +1257,7 @@ export type Database = {
           kind?: string
           opening_balance?: number
           opening_date?: string | null
+          system_key?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -2107,6 +2110,26 @@ export type Database = {
           },
         ]
       }
+      account_movements: {
+        Row: {
+          account_id: string | null
+          amount: number | null
+          business_id: string | null
+          created_at: string | null
+          description: string | null
+          direction: string | null
+          driver_id: string | null
+          movement_date: string | null
+          other_name: string | null
+          party_id: string | null
+          reference: string | null
+          source_id: string | null
+          source_table: string | null
+          source_type: string | null
+          transporter_id: string | null
+        }
+        Relationships: []
+      }
       commission_balances: {
         Row: {
           amount: number | null
@@ -2168,6 +2191,26 @@ export type Database = {
       }
     }
     Functions: {
+      account_balances_as_of: {
+        Args: { p_as_of?: string }
+        Returns: {
+          account_id: string
+          balance: number
+          entries_before_opening: number
+          opening_balance: number
+          opening_date: string
+          payments: number
+          receipts: number
+        }[]
+      }
+      account_unassigned_outflows: {
+        Args: never
+        Returns: {
+          amount: number
+          entries: number
+          source: string
+        }[]
+      }
       current_business_id: { Args: never; Returns: string }
       get_or_create_transporter: { Args: { p_name: string }; Returns: string }
       get_or_create_transporter_for_party: {
@@ -2248,6 +2291,7 @@ export type Database = {
         Returns: undefined
       }
       save_lr: { Args: { p: Json }; Returns: string }
+      save_payment: { Args: { p: Json }; Returns: string }
       save_transporter_manual_entry: {
         Args: {
           p_amount: number
