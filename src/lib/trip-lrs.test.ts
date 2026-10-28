@@ -4,6 +4,24 @@ import { blankTripLr, isBlankTripLr, tripLrFreightTotal, tripLrPayload, validate
 const filled = () => { const d = blankTripLr(); d.consignors[0] = { party_id: "A", freight_amount: "1000" }; d.consignees[0] = { party_id: "B", freight_amount: "500.50" }; return d; };
 
 describe("trip LR rows", () => {
+  it("preserves six independent fields for all three parties without inventing a calculation", () => {
+    const d = filled();
+    Object.assign(d.consignors[0], { weight: "100", rate: "2", shortage: "3", addition: "4", freight_date: "2026-10-21" });
+    Object.assign(d.consignees[0], { weight: "200", rate: "5", shortage: "6", addition: "7", freight_date: "2026-10-22" });
+    Object.assign(d, { transporter_weight: "300", transporter_rate: "8", freight_payable: "900", transporter_shortage: "9", transporter_additions: "10", transporter_freight_date: "2026-10-23" });
+    const p = tripLrPayload(d, { id: "T1", trip_date: "2026-10-01", transporter_id: "TR" });
+    expect(p.parties).toEqual(expect.arrayContaining([
+      expect.objectContaining({ weight: "100", rate: "2", freight_amount: "1000", shortage: "3", addition: "4", freight_date: "2026-10-21" }),
+      expect.objectContaining({ weight: "200", rate: "5", freight_amount: "500.50", shortage: "6", addition: "7", freight_date: "2026-10-22" }),
+    ]));
+    expect(p).toMatchObject({ transporter_weight: "300", transporter_rate: "8", freight_payable: "900", transporter_shortage: "9", transporter_additions: "10", transporter_freight_date: "2026-10-23", rate: "1500.5" });
+  });
+  it("recognizes party details as entered data and retains saved party identity", () => {
+    const d = blankTripLr(); d.consignors[0].weight = "100";
+    expect(isBlankTripLr(d)).toBe(false);
+    const f = filled(); f.consignors[0].id = "existing-party-row";
+    expect((tripLrPayload(f, { id: "T1", trip_date: "2026-10-01" }).parties as { id?: string }[])[0].id).toBe("existing-party-row");
+  });
   it("an untouched row is ignored, a saved row is not blank", () => {
     expect(isBlankTripLr(blankTripLr())).toBe(true);
     expect(isBlankTripLr({ ...blankTripLr(), savedId: "x" })).toBe(false);
