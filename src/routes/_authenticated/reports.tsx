@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAccounts, useDrivers, useParties, useTransporters, useVehicles, nameOf, PAYMENT_TYPE, TRIP_STATUS, FREIGHT_TYPE } from "@/lib/lookups";
 import { downloadCSV, formatDate, formatINR } from "@/lib/format";
+import { accountLabel } from "@/lib/accounts";
 
 export const Route = createFileRoute("/_authenticated/reports")({
   head: () => pageHead("Reports — Gokul Cargo Movers", "Reports records for Gokul Cargo Movers transport management."),
@@ -88,8 +89,17 @@ function Reports() {
       case "third_party": return { cols: [{ label: "Date" }, { label: "Original party" }, { label: "Paid by" }, { label: "Reference" }, { label: "Received", money: true, total: true }],
         rows: D.pays.filter((p) => p.payment_type === "third_party_receipt" && inR(p.payment_date)).map((p) => [formatDate(p.payment_date), nameOf(parties.data, p.party_id), p.payer_name ?? "", p.reference ?? "", Number(p.amount)]) };
       case "by_account": { const isIn = (t: string) => ["customer_receipt", "advance_received", "third_party_receipt"].includes(t);
-        return { cols: [{ label: "Account" }, { label: "Received", money: true, total: true }, { label: "Paid", money: true, total: true }], note: "Payments & receipts only (trip expenses/salary are listed in their own reports). No account balances are kept.",
-          rows: (accounts.data ?? []).map((a) => { const ps = D.pays.filter((p) => p.account_id === a.id && inR(p.payment_date)); const cr = D.receipts.filter((r) => !r.salary_payment_id && r.account_id === a.id && inR(r.receipt_date)); return [a.kind === "cash" ? "Cash" : a.display_name, ps.filter((p) => isIn(p.payment_type)).reduce((s, p) => s + Number(p.amount), 0) + cr.reduce((s, r) => s + Number(r.amount), 0), ps.filter((p) => !isIn(p.payment_type)).reduce((s, p) => s + Number(p.amount), 0)]; }) }; }
+        // Same rules as the account_movements view: each entry counted once, for the account it was recorded against.
+        return { cols: [{ label: "Account" }, { label: "Received", money: true, total: true }, { label: "Paid", money: true, total: true }], note: "Payments & receipts, expenses paid by Gokul, advances, salary payments and commission cash receipts that have an account selected. Entries with no account are not listed. Balances: Payments > Bank / Cash statement.",
+          rows: (accounts.data ?? []).map((a) => {
+            const ps = D.pays.filter((p) => p.account_id === a.id && inR(p.payment_date));
+            const cr = D.receipts.filter((r) => !r.salary_payment_id && r.account_id === a.id && inR(r.receipt_date));
+            const ex = D.exps.filter((e) => e.account_id === a.id && e.payment_status === "paid" && e.responsible === "gokul" && inR(e.expense_date));
+            const ad = D.advs.filter((x) => x.account_id === a.id && inR(x.advance_date));
+            const sp = D.salp.filter((x) => x.account_id === a.id && Number(x.amount) > 0 && inR(x.payment_date));
+            const sum = (rows: any[]) => rows.reduce((s, r) => s + Number(r.amount), 0);
+            return [accountLabel(a), sum(ps.filter((p) => isIn(p.payment_type))) + sum(cr), sum(ps.filter((p) => !isIn(p.payment_type))) + sum(ex) + sum(ad) + sum(sp)];
+          }) }; }
       case "vehicle_trips": return { cols: [{ label: "Vehicle" }, { label: "Trips" }, { label: "Freight billed", money: true, total: true }],
         rows: (() => { const m = new Map<string, [number, number]>(); for (const t of D.trips.filter((t) => t.status !== "cancelled" && inR(t.trip_date))) { const k = t.vehicle_mode === "own" ? nameOf(vehicles.data, t.vehicle_id, "registration_number") || "(none)" : `${t.market_vehicle_number} (market)`; const x = m.get(k) ?? [0, 0]; m.set(k, [x[0] + 1, x[1] + t.lrs.filter((l: any) => l.status === "active").reduce((s: number, l: any) => s + Number(l.final_freight), 0)]); } return [...m.entries()].map(([k, [n, a]]) => [k, n, a]); })() };
       case "route_freight": return { cols: [{ label: "Route" }, { label: "Freight billed", money: true, total: true }],

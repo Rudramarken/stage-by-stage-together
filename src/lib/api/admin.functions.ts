@@ -31,7 +31,10 @@ export const setupFirstBusiness = createServerFn({ method: "POST" })
     const steps = [
       supabaseAdmin.from("business_members").insert({ business_id: biz.id, user_id: created.user.id, email: data.email, display_name: data.displayName, role: "owner" }),
       supabaseAdmin.from("business_settings").insert({ business_id: biz.id }),
-      supabaseAdmin.from("payment_accounts").insert({ business_id: biz.id, kind: "cash", display_name: "Cash" }),
+      supabaseAdmin.from("payment_accounts").insert([
+        { business_id: biz.id, kind: "cash", display_name: "Cash", system_key: "cash" },
+        { business_id: biz.id, kind: "cash", display_name: "Cash (Narinder)", system_key: "cash_narinder" },
+      ]),
     ];
     for (const s of steps) {
       const { error } = await s;

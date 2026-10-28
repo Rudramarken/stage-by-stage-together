@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { maskAccount, formatINR, formatDate } from "@/lib/format";
+import { useAccountBalances, useUnassignedOutflows } from "@/lib/accounts";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => pageHead("Business Settings — Gokul Cargo Movers", "Business Settings records for Gokul Cargo Movers transport management."),
@@ -45,51 +46,40 @@ function SettingsPage() {
   );
 }
 
-const RECEIPT_TYPES = ["customer_receipt", "advance_received", "third_party_receipt"];
-
 function AccountsTab() {
-  // Running balance = opening balance + receipts - payments dated on/after the opening date (reversed entries ignored).
-  const movement = useQuery({
-    queryKey: ["account-payment-movement"],
-    queryFn: async () => {
-      const rows: { account_id: string; payment_type: string; amount: number; payment_date: string }[] = [];
-      for (let from = 0; ; from += 1000) {
-        const { data, error } = await supabase.from("payments").select("account_id, payment_type, amount, payment_date")
-          .eq("is_reversed", false).order("id").range(from, from + 999);
-        if (error) throw error;
-        rows.push(...(data as typeof rows));
-        if (!data || data.length < 1000) break;
-      }
-      return rows;
-    },
-  });
-  const balanceOf = (acct: Record<string, any>) => {
-    const opening = Number(acct.opening_balance ?? 0);
-    if (!movement.data) return null;
-    let bal = opening;
-    for (const m of movement.data) {
-      if (m.account_id !== acct.id) continue;
-      if (acct.opening_date && m.payment_date < acct.opening_date) continue;
-      bal += RECEIPT_TYPES.includes(m.payment_type) ? Number(m.amount) : -Number(m.amount);
-    }
-    return bal;
-  };
+  const { role } = useBusiness();
+  const canEdit = role === "owner" || role === "admin";
+  // Balance = opening balance + receipts - payments on/after the opening date, from every money source (see account_movements in migration 0022).
+  const balances = useAccountBalances();
+  const unassigned = useUnassignedOutflows();
+  const balanceOf = (acct: Record<string, any>) => balances.data?.find((b) => b.account_id === acct.id) ?? null;
+  const total = (balances.data ?? []).reduce((s, b) => s + Number(b.balance), 0);
   return (
     <>
       <p className="mb-3 text-sm text-muted-foreground">
-        Set an opening balance and the date you start working from, so each account matches your bank statement from that date.
-        Balance = opening balance + receipts − payments recorded on or after that date (reversed entries ignored). The Cash account is permanent.
+        Cash and Cash (Narinder) are two separate permanent accounts; each bank account you add is separate too. Set an opening balance and the date you start working from:
+        the opening balance is the balance at the start of that date and is counted once. Balance = opening balance + receipts − payments recorded on or after that date (reversed and cancelled entries ignored).
+        {!canEdit && " Only an Owner or Admin can add or change accounts."}
       </p>
-      <MasterCrud hideHeader table="payment_accounts" title="Accounts" singular="Bank account" orderBy="display_name"
+      {balances.isError && <p role="alert" className="mb-3 rounded bg-destructive/10 p-2 text-sm text-destructive">Could not load balances: {errorMessage(balances.error)}. If this is a new setup, run migration 0022 first.</p>}
+      {balances.data && <p className="mb-3 text-sm">Total cash + bank (sum of all accounts below): <b>{formatINR(total)}</b></p>}
+      {unassigned.data && unassigned.data.length > 0 && (
+        <p role="status" className="mb-3 rounded border border-warning/40 bg-warning/10 p-2 text-sm">
+          Provisional balances: {unassigned.data.map((u) => `${u.source}: ${u.entries} entr${Number(u.entries) === 1 ? "y" : "ies"} (${formatINR(u.amount)})`).join("; ")} have no cash/bank account selected, so they are not in any balance.
+        </p>
+      )}
+      <MasterCrud hideHeader readOnly={!canEdit} table="payment_accounts" title="Accounts" singular="Bank account" orderBy="display_name"
         searchKeys={["display_name", "bank_name", "account_holder"]}
         canArchive={(r) => r.kind !== "cash"}
-        transform={(v, row) => ({ ...v, kind: row?.kind === "cash" ? "cash" : "bank", opening_balance: v.opening_balance ?? 0 })}
+        transform={(v, row) => row?.kind === "cash"
+          ? { ...v, kind: "cash", display_name: row.display_name, bank_name: null, account_holder: null, account_number: null, ifsc: null, opening_balance: v.opening_balance ?? 0 }
+          : { ...v, kind: "bank", opening_balance: v.opening_balance ?? 0 }}
         validate={(v) => (Number(v.opening_balance || 0) !== 0 && !v.opening_date ? "Opening date is required when an opening balance is entered" : null)}
         fields={[
-          { name: "display_name", label: "Display name", required: true, hint: "e.g. HDFC Current" },
+          { name: "display_name", label: "Display name", required: true, hint: "e.g. HDFC Current. The names Cash and Cash (Narinder) are fixed." },
           { name: "bank_name", label: "Bank name" },
           { name: "account_holder", label: "Account holder" },
-          { name: "account_number", label: "Account number" },
+          { name: "account_number", label: "Account number", sensitive: true, hint: "Optional. Only the last 4 digits are shown in lists." },
           { name: "ifsc", label: "IFSC" },
           { name: "opening_balance", label: "Opening balance (₹)", type: "number", allowNegative: true, hint: "Balance at the start of the opening date. Use a minus value for an overdraft." },
           { name: "opening_date", label: "Opening date", type: "date", hint: "The date you start recording from" },
@@ -101,7 +91,7 @@ function AccountsTab() {
           { label: "Account no.", render: (r) => maskAccount(r.account_number) },
           { label: "IFSC", render: (r) => r.ifsc ?? "—" },
           { label: "Opening balance", render: (r) => (r.opening_date || Number(r.opening_balance) ? <span>{formatINR(r.opening_balance)}<span className="block text-xs text-muted-foreground">as of {formatDate(r.opening_date)}</span></span> : "—") },
-          { label: "Current balance", render: (r) => { const b = balanceOf(r); return b == null ? "…" : <span className="font-medium">{formatINR(b)}</span>; } },
+          { label: "Current balance", render: (r) => { const b = balanceOf(r); return b == null ? "…" : <span className="font-medium">{formatINR(b.balance)}{b.entries_before_opening > 0 && <span className="block text-xs font-normal text-muted-foreground">{b.entries_before_opening} entr{b.entries_before_opening === 1 ? "y" : "ies"} before the opening date not counted</span>}</span>; } },
         ]}
       />
     </>

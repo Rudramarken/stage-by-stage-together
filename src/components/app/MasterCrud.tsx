@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader, StatusBadge, Field } from "./ui";
 import { LoadingState, ErrorState, EmptyState, errorMessage } from "./states";
+import { maskAccount } from "@/lib/format";
 
 export type FieldDef = {
   name: string;
@@ -27,6 +28,8 @@ export type FieldDef = {
   full?: boolean;
   showIf?: (v: Record<string, unknown>) => boolean;
   allowNegative?: boolean;
+  /** Shown masked (e.g. XXXX1234) in the read-only View dialog. The edit form still needs the full value. */
+  sensitive?: boolean;
 };
 
 export type ColumnDef = { label: string; render: (row: Record<string, any>) => ReactNode };
@@ -47,6 +50,8 @@ type Props = {
   canArchive?: (row: Record<string, any>) => boolean;
   rowLink?: (row: Record<string, any>) => ReactNode;
   hideHeader?: boolean;
+  /** View only: hides Add / Edit / Archive for users who may not change this master list. */
+  readOnly?: boolean;
   transform?: (v: Record<string, any>, row?: Record<string, any> | null) => Record<string, any>;
 };
 
@@ -142,9 +147,9 @@ export function MasterCrud(p: Props) {
     <div>
       {!p.hideHeader && (
         <PageHeader title={p.title} description={p.description}
-          actions={<Button onClick={() => openForm()}><Plus className="mr-1 h-4 w-4" />Add {p.singular}</Button>} />
+          actions={p.readOnly ? undefined : <Button onClick={() => openForm()}><Plus className="mr-1 h-4 w-4" />Add {p.singular}</Button>} />
       )}
-      {p.hideHeader && <div className="mb-3 flex justify-end"><Button size="sm" onClick={() => openForm()}><Plus className="mr-1 h-4 w-4" />Add {p.singular}</Button></div>}
+      {p.hideHeader && !p.readOnly && <div className="mb-3 flex justify-end"><Button size="sm" onClick={() => openForm()}><Plus className="mr-1 h-4 w-4" />Add {p.singular}</Button></div>}
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -160,7 +165,7 @@ export function MasterCrud(p: Props) {
         rows.length === 0 ? (
           <EmptyState title={(q.data?.length ?? 0) === 0 ? `No ${p.title.toLowerCase()} yet` : "No matches"}
             hint={(q.data?.length ?? 0) === 0 ? `Add your first ${p.singular.toLowerCase()} to get started.` : "Try a different search or filter."}
-            action={(q.data?.length ?? 0) === 0 ? <Button onClick={() => openForm()}><Plus className="mr-1 h-4 w-4" />Add {p.singular}</Button> : undefined} />
+            action={(q.data?.length ?? 0) === 0 && !p.readOnly ? <Button onClick={() => openForm()}><Plus className="mr-1 h-4 w-4" />Add {p.singular}</Button> : undefined} />
         ) : (
           <div className="overflow-x-auto rounded-lg border bg-card">
             <Table>
@@ -174,11 +179,11 @@ export function MasterCrud(p: Props) {
                     {p.columns.map((c) => <TableCell key={c.label}>{c.render(r)}</TableCell>)}
                     <TableCell>{r.is_active ? <StatusBadge tone="success">Active</StatusBadge> : <StatusBadge>Archived</StatusBadge>}</TableCell>
                     <TableCell className={actionCell}>
-                      <RowActions label={String(r.name ?? r.registration_number ?? `${r.origin} → ${r.destination}`)} actions={[
+                      <RowActions label={String(r.name ?? r.display_name ?? r.registration_number ?? `${r.origin} → ${r.destination}`)} actions={[
                         { label: "View", icon: Eye, onClick: () => setViewing(r) },
-                        { label: "Edit", icon: Pencil, onClick: () => openForm(r) },
-                        ...((p.canArchive?.(r) ?? true) ? [{ label: r.is_active ? "Archive" : "Restore", icon: r.is_active ? Archive : ArchiveRestore, onClick: () => setRemoval({ table: p.table, id: r.id, label: String(r.name ?? r.registration_number ?? `${r.origin} → ${r.destination}`), action: r.is_active ? "archive" : "restore" }) }] : []),
-                        ...(role === "owner" && p.table !== "payment_accounts" ? [{ label: "Delete permanently", icon: Trash2, destructive: true, onClick: () => setRemoval({ table: p.table, id: r.id, label: String(r.name ?? r.registration_number ?? `${r.origin} → ${r.destination}`), action: "delete" as const }) }] : []),
+                        ...(p.readOnly ? [] : [{ label: "Edit", icon: Pencil, onClick: () => openForm(r) }]),
+                        ...(!p.readOnly && (p.canArchive?.(r) ?? true) ? [{ label: r.is_active ? "Archive" : "Restore", icon: r.is_active ? Archive : ArchiveRestore, onClick: () => setRemoval({ table: p.table, id: r.id, label: String(r.name ?? r.display_name ?? r.registration_number ?? `${r.origin} → ${r.destination}`), action: r.is_active ? "archive" : "restore" }) }] : []),
+                        ...(role === "owner" && p.table !== "payment_accounts" ? [{ label: "Delete permanently", icon: Trash2, destructive: true, onClick: () => setRemoval({ table: p.table, id: r.id, label: String(r.name ?? r.display_name ?? r.registration_number ?? `${r.origin} → ${r.destination}`), action: "delete" as const }) }] : []),
                       ]} />{p.rowLink?.(r)}
                     </TableCell>
                   </TableRow>
@@ -217,7 +222,7 @@ export function MasterCrud(p: Props) {
       </Dialog>
 
       <RemovalDialog target={removal} onClose={() => setRemoval(null)} />
-      {viewing && <RecordDetails title={p.singular} values={p.fields.map((f) => [f.label, viewing[f.name]])} onClose={() => setViewing(null)} />}
+      {viewing && <RecordDetails title={p.singular} values={p.fields.map((f) => [f.label, f.sensitive ? maskAccount(viewing[f.name]) : viewing[f.name]])} onClose={() => setViewing(null)} />}
     </div>
   );
 }
