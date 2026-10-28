@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, Truck, UserRound, Route as RouteIcon, MapPinned, FileText, Wallet, HandCoins,
-  Handshake, BookOpen, BookUser, Scale, BarChart3, Settings, History, Menu, LogOut, ShieldCheck, Star,
+  BookOpen, BookUser, Scale, BarChart3, Settings, History, Menu, LogOut, ShieldCheck, Star, FileSearch,
 } from "lucide-react";
 import { useNavFavourites, allowedFavourites } from "@/lib/nav-favourites";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,8 +21,10 @@ export const NAV = [
   { to: "/lr", label: "LR / Bilty Register", icon: FileText },
   { to: "/payments", label: "Payments & Receipts", icon: Wallet },
   { to: "/third-party", label: "Third-Party Payments", icon: HandCoins },
-  { to: "/transporter-settlements", label: "Transporter Settlements", icon: Handshake },
-  { to: "/party-ledger", label: "Party Ledger", icon: BookOpen },
+  // Transporter Settlements has no menu entry of its own: the transporter ledger, opening balance, manual entries, payments and
+  // settlement table are inside Party Ledger -> "Transporter" tab. The old /transporter-settlements URL still works.
+  { to: "/party-ledger", label: "Party / Transporter Ledger", icon: BookOpen },
+  { to: "/history", label: "Party / Transporter History", icon: FileSearch },
   { to: "/driver-ledger", label: "Driver Ledger", icon: BookUser },
   { to: "/outstanding", label: "Outstanding Balances", icon: Scale },
   { to: "/reports", label: "Reports", icon: BarChart3 },
@@ -51,20 +53,23 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
             active ? "text-sidebar-accent-foreground font-medium" : "text-sidebar-foreground")}>
           <Icon aria-hidden="true" className={cn("h-4 w-4 shrink-0", active && "text-sidebar-primary")} /><span className="min-w-0">{n.label}</span>
         </Link>
-        {fav.available && (
-          <button type="button" aria-pressed={isFav} aria-label={isFav ? `Remove ${n.label} from favourites` : `Add ${n.label} to favourites`}
-            title={isFav ? "Remove from favourites" : "Add to favourites"}
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); fav.toggle(n.to, !isFav); }}
-            className="mr-1 flex h-11 w-9 shrink-0 items-center justify-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring">
-            <Star aria-hidden="true" className={cn("h-4 w-4", isFav ? "fill-yellow-400 text-yellow-400" : "text-sidebar-foreground/50 hover:text-sidebar-foreground")} />
-          </button>
-        )}
+        <button type="button" data-testid={`fav-star-${n.to.slice(1)}`} aria-pressed={isFav} aria-label={isFav ? `Remove ${n.label} from favourites` : `Add ${n.label} to favourites`}
+          title={isFav ? "Remove from favourites" : "Add to favourites"}
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); fav.toggle(n.to, !isFav); }}
+          className="mr-1 flex h-11 w-10 shrink-0 items-center justify-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring">
+          <Star aria-hidden="true" className={cn("h-5 w-5", isFav ? "fill-yellow-400 text-yellow-400" : "text-sidebar-foreground/70 hover:text-yellow-400")} />
+        </button>
       </div>
     );
   };
 
   return (
     <nav aria-label="Main navigation" className="flex flex-col gap-1 p-3">
+      {fav.loadError && (
+        <p role="status" title={fav.loadError} className="mb-1 rounded-md border border-yellow-400/40 bg-yellow-400/10 px-3 py-2 text-xs text-sidebar-foreground">
+          Favourites cannot be saved yet: the database setup (migration 0023) is not applied. Stars will work after it is.
+        </p>
+      )}
       {favItems.length > 0 && (
         <>
           <p className="px-3 pb-1 pt-1 text-xs font-semibold uppercase tracking-wide text-sidebar-foreground/70">Favourites</p>

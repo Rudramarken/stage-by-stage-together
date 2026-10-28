@@ -16,6 +16,7 @@ import { selectCls } from "@/components/app/Section";
 import { lrVehicleNumber, lrVehicleLabel, lrProfitFromRow } from "@/lib/lr-summary";
 import { formatDate } from "@/lib/format";
 import { exportRows, money2 } from "@/lib/export";
+import { fetchAllRows } from "@/lib/accounts";
 
 export const Route = createFileRoute("/_authenticated/lr/")({
   head: () => pageHead("LR / Bilty Register — Gokul Cargo Movers", "LR / Bilty Register records for Gokul Cargo Movers transport management."),
@@ -30,9 +31,8 @@ function LRList() {
   const q = useQuery({
     queryKey: ["lrs"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("lrs").select("*, trips(trip_number, market_vehicle_number, vehicles(registration_number)), lr_parties(role, parties(name)), expenses(amount, responsible, scope, is_cancelled)").order("lr_date", { ascending: false }).order("lr_number", { ascending: false });
-      if (error) throw error;
-      return data as any[];
+      // Read in pages of 1000 so older LRs are not silently dropped from the register and the CSV (stable order: date, number, id).
+      return fetchAllRows<any>((a, b) => supabase.from("lrs").select("*, trips(trip_number, market_vehicle_number, vehicles(registration_number)), lr_parties(role, parties(name)), expenses(amount, responsible, scope, is_cancelled)").order("lr_date", { ascending: false }).order("lr_number", { ascending: false }).order("id").range(a, b) as any);
     },
   });
   const rows = useMemo(() => (q.data ?? []).filter((l) => {

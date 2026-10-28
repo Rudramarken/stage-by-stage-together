@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useBusiness } from "@/lib/business";
+import { errorMessage } from "@/components/app/states";
 
 // Table added by drizzle/migrations/0023_user_nav_favourites.sql. It is not in the generated types.ts, so it is addressed untyped here.
 const table = () => (supabase as any).from("user_nav_favourites");
@@ -48,8 +49,10 @@ export function useNavFavourites() {
     onSettled: () => qc.invalidateQueries({ queryKey: key }),
   });
   return {
-    /** false until the table exists / the query succeeded: the UI hides the stars instead of pretending to save. */
-    available: q.isSuccess,
+    /** true once the saved favourites have loaded. The stars are shown either way; when this is false a toggle will fail with the real database error and be rolled back (never a false "saved"). */
+    ready: q.isSuccess,
+    /** The real reason the favourites could not be loaded (for example migration 0023 not applied), else null. */
+    loadError: q.isError ? errorMessage(q.error) : null,
     favourites: q.data ?? [],
     toggle: (navKey: string, on: boolean) => { if (!toggle.isPending) toggle.mutate({ navKey, on }); },
     pending: toggle.isPending,

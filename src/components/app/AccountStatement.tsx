@@ -7,18 +7,23 @@ import { selectCls } from "./Section";
 import { LoadingState, ErrorState, EmptyState } from "./states";
 import { useAccounts, useDrivers, useParties, useTransporters, nameOf, PAYMENT_TYPE } from "@/lib/lookups";
 import { accountLabel, buildStatement, useAccountBalances, useAccountMovements, useUnassignedOutflows, type Movement } from "@/lib/accounts";
-import { downloadCSV, formatDate, formatINR } from "@/lib/format";
+import { formatDate, formatINR } from "@/lib/format";
+import { exportExcel, exportRows } from "@/lib/export";
+import { PeriodPicker, usePeriod } from "./PeriodPicker";
 
 const SOURCE_LABEL: Record<string, string> = { expense: "Expense", advance: "Advance", salary_payment: "Salary", commission_receipt: "Commission receipt" };
 const typeLabel = (m: Movement) => PAYMENT_TYPE[m.source_type] ?? SOURCE_LABEL[m.source_type] ?? m.source_type;
 
-/** One account at a time: opening balance, every movement through that account, running and closing balance. The total position sums the separate accounts. */
-export function AccountStatement() {
+/**
+ * Statement of the account chosen on the account cards (no dropdown): opening balance, every movement through that account
+ * in the chosen month / year / date range, running and closing balance, with CSV and Excel downloads that equal the screen.
+ */
+export function AccountStatement({ accountId = "" }: { accountId?: string }) {
   const accounts = useAccounts(); const parties = useParties(); const transporters = useTransporters(); const drivers = useDrivers();
   const balances = useAccountBalances(); const unassigned = useUnassignedOutflows();
-  const [accountId, setAccountId] = useState("");
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
+  const { sel, setSel, period } = usePeriod();
+  const from = period.from ?? "";
+  const to = period.to ?? "";
   const list = accounts.data ?? [];
   const acct = list.find((a) => a.id === (accountId || list[0]?.id));
   const mq = useAccountMovements(acct?.id);
@@ -30,37 +35,31 @@ export function AccountStatement() {
   const total = (balances.data ?? []).reduce((s, b) => s + Number(b.balance), 0);
   const before = balances.data?.find((b) => b.account_id === acct?.id)?.entries_before_opening ?? 0;
 
+  // CSV and Excel come from the same rows as the table (the same buildStatement result).
+  const tableRows = (): (string | number | null)[][] => (!st || !acct ? [] : [
+    ["Account", accountLabel(acct)], ["Period", period.label], [],
+    ["Date", "Particulars", "Type", "Reference", "Deposit (INR)", "Withdrawal (INR)", "Balance (INR)"],
+    [periodStart ? formatDate(periodStart) : "", "Opening balance", "", "", "", "", st.start],
+    ...st.lines.map(({ m, deposit, withdrawal, balance }) => [formatDate(m.movement_date), who(m), typeLabel(m), m.reference ?? "", deposit || null, withdrawal || null, balance]),
+    ["", "Total / Closing balance", "", "", st.totDeposit, st.totWithdrawal, st.closing],
+  ]);
+  const tableToCsv = () => tableRows().map((r) => r.map((c, i) => (typeof c === "number" && i >= 4 ? c.toFixed(2) : c)));
+
   return (
     <div>
-      {balances.data && (
-        <div className="mb-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4" aria-label="Account balances">
-          {list.filter((a) => a.is_active || Number(balances.data!.find((b) => b.account_id === a.id)?.balance ?? 0) !== 0).map((a) => (
-            <button key={a.id} type="button" onClick={() => setAccountId(a.id)} className={`rounded-lg border bg-card p-3 text-left ${a.id === acct?.id ? "ring-2 ring-primary" : ""}`}>
-              <div className="text-xs text-muted-foreground">{accountLabel(a)}{a.is_active ? "" : " (inactive)"}</div>
-              <div className="text-lg font-semibold"><Money value={balances.data!.find((b) => b.account_id === a.id)?.balance ?? 0} /></div>
-            </button>
-          ))}
-          <div className="rounded-lg border bg-muted p-3"><div className="text-xs text-muted-foreground">Total cash + bank (sum of the accounts above)</div><div className="text-lg font-semibold"><Money value={total} /></div></div>
-        </div>
-      )}
       {balances.isError && <ErrorState error={balances.error} onRetry={() => balances.refetch()} />}
       {unassigned.data && unassigned.data.length > 0 && (
         <p role="status" className="mb-4 rounded border border-warning/40 bg-warning/10 p-2 text-sm">
           Provisional balances: {unassigned.data.map((u) => `${u.source} ${u.entries} entr${Number(u.entries) === 1 ? "y" : "ies"} (${formatINR(u.amount)})`).join("; ")} were paid without choosing a cash/bank account, so no account includes them. Open the entry and choose the account to include it.
         </p>
       )}
-      <div role="search" aria-label="Statement filters" className="list-filters mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-        <select aria-label="Statement account" className={`${selectCls} sm:col-span-2`} value={acct?.id ?? ""} onChange={(e) => setAccountId(e.target.value)}>
-          {list.filter((a) => a.is_active || a.id === acct?.id).map((a) => <option key={a.id} value={a.id}>{accountLabel(a)}</option>)}
-        </select>
-        <Input type="date" aria-label="Statement from date" value={from} onChange={(e) => setFrom(e.target.value)} />
-        <Input type="date" aria-label="Statement to date" value={to} onChange={(e) => setTo(e.target.value)} />
-        <Button variant="outline" disabled={!st || !acct} onClick={() => st && acct && downloadCSV(`statement-${accountLabel(acct).replace(/\s+/g, "-")}.csv`, [
-          ["Date", "Particulars", "Type", "Reference", "Deposit", "Withdrawal", "Balance"],
-          [periodStart ? formatDate(periodStart) : "", "Opening balance", "", "", "", "", st.start.toFixed(2)],
-          ...st.lines.map(({ m, deposit, withdrawal, balance }) => [formatDate(m.movement_date), who(m), typeLabel(m), m.reference, deposit ? deposit.toFixed(2) : "", withdrawal ? withdrawal.toFixed(2) : "", balance.toFixed(2)]),
-          ["", "Total / Closing balance", "", "", st.totDeposit.toFixed(2), st.totWithdrawal.toFixed(2), st.closing.toFixed(2)],
-        ])}>Download statement CSV</Button>
+      <div className="mb-4 space-y-3">
+        <p className="text-sm">Statement for: <b>{acct ? accountLabel(acct) : "—"}</b> <span className="text-muted-foreground">(choose another account with its card above)</span></p>
+        <PeriodPicker sel={sel} onChange={setSel} period={period} idPrefix="account-period" />
+        <div className="no-print flex flex-wrap gap-2">
+          <Button variant="outline" disabled={!st || !acct || !!period.error} onClick={() => st && acct && exportRows(`statement-${accountLabel(acct)}${from ? `-from-${from}` : ""}${to ? `-to-${to}` : ""}`, tableToCsv())}>Download statement CSV</Button>
+          <Button variant="outline" disabled={!st || !acct || !!period.error} onClick={() => st && acct && exportExcel(`statement-${accountLabel(acct)}${from ? `-from-${from}` : ""}${to ? `-to-${to}` : ""}`, { rows: tableRows(), moneyCols: [4, 5, 6], sheetName: "Statement" })}>Download Excel</Button>
+        </div>
       </div>
       {mq.isPending && acct ? <LoadingState /> : mq.isError ? <ErrorState error={mq.error} onRetry={() => mq.refetch()} /> : accounts.isPending ? <LoadingState /> : !acct || !st ? <EmptyState title="No account found" hint="Add a bank account in Business Settings first." /> : (
         <div className="overflow-x-auto rounded-lg border bg-card">

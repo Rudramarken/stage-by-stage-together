@@ -16,6 +16,7 @@ import { selectCls } from "@/components/app/Section";
 import { useDrivers, useTransporters, useVehicles, nameOf, TRIP_STATUS } from "@/lib/lookups";
 import { formatDate } from "@/lib/format";
 import { exportRows } from "@/lib/export";
+import { fetchAllRows } from "@/lib/accounts";
 
 export const Route = createFileRoute("/_authenticated/trips/")({
   head: () => pageHead("Trips — Gokul Cargo Movers", "Trips records for Gokul Cargo Movers transport management."),
@@ -31,9 +32,8 @@ function TripsList() {
   const q = useQuery({
     queryKey: ["trips"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("trips").select("*, trip_stops(location, seq), lrs(id, lr_number, lr_parties(party_id, parties(name)))").order("trip_date", { ascending: false }).order("created_at", { ascending: false });
-      if (error) throw error;
-      return data;
+      // Read in pages of 1000 so older trips are not silently dropped from the list and the CSV (stable order: date, created, id).
+      return fetchAllRows<any>((a, b) => supabase.from("trips").select("*, trip_stops(location, seq), lrs(id, lr_number, lr_parties(party_id, parties(name)))").order("trip_date", { ascending: false }).order("created_at", { ascending: false }).order("id").range(a, b) as any);
     },
   });
   const rows = useMemo(() => (q.data ?? []).filter((t: any) => {

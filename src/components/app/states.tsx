@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { AlertTriangle, Inbox, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { explainDbError } from "@/lib/db-errors";
 
 export function LoadingState({ label = "Loading…", timeoutMs = 15000, onRetry }: { label?: string; timeoutMs?: number; onRetry?: () => void }) {
   const [slow, setSlow] = useState(false);
@@ -20,9 +21,10 @@ export function LoadingState({ label = "Loading…", timeoutMs = 15000, onRetry 
 
 export function errorMessage(e: unknown): string {
   if (!e) return "Unknown error";
-  if (e instanceof Error) return e.message;
-  if (typeof e === "object" && e && "message" in e) return String((e as { message: unknown }).message);
-  return String(e);
+  // The real database message is always kept; explainDbError only appends a fix hint for schema-cache / missing-migration errors.
+  if (e instanceof Error) return explainDbError(e.message);
+  if (typeof e === "object" && e && "message" in e) return explainDbError(String((e as { message: unknown }).message));
+  return explainDbError(String(e));
 }
 
 export function ErrorState({ error, onRetry, extra }: { error: unknown; onRetry?: () => void; extra?: ReactNode }) {

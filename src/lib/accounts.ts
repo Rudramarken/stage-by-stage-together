@@ -7,7 +7,7 @@ export const isReceiptType = (t: string) => RECEIPT_TYPES.includes(t);
 
 export type AccountRow = { id: string; kind: "cash" | "bank"; display_name: string; account_number?: string | null; is_active: boolean; opening_balance?: number | string | null; opening_date?: string | null; system_key?: string | null };
 
-/** One label everywhere. Cash accounts use their own name ("Cash", "Cash (Narinder)"), banks show the masked number. */
+/** One label everywhere. Cash accounts use their own name ("Cash", "Cash Received by Narinder"), banks show the masked number. */
 export function accountLabel(a: Pick<AccountRow, "kind" | "display_name" | "account_number"> | null | undefined): string {
   if (!a) return "—";
   return a.kind === "cash" ? a.display_name : `${a.display_name}${a.account_number ? ` ${maskAccount(a.account_number)}` : ""}`;

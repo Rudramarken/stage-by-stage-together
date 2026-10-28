@@ -57,7 +57,7 @@ function AccountsTab() {
   return (
     <>
       <p className="mb-3 text-sm text-muted-foreground">
-        Cash and Cash (Narinder) are two separate permanent accounts; each bank account you add is separate too. Set an opening balance and the date you start working from:
+        Cash and Cash Received by Narinder are two separate permanent accounts; each bank account you add is separate too. Set an opening balance and the date you start working from:
         the opening balance is the balance at the start of that date and is counted once. Balance = opening balance + receipts − payments recorded on or after that date (reversed and cancelled entries ignored).
         {!canEdit && " Only an Owner or Admin can add or change accounts."}
       </p>
@@ -76,7 +76,7 @@ function AccountsTab() {
           : { ...v, kind: "bank", opening_balance: v.opening_balance ?? 0 }}
         validate={(v) => (Number(v.opening_balance || 0) !== 0 && !v.opening_date ? "Opening date is required when an opening balance is entered" : null)}
         fields={[
-          { name: "display_name", label: "Display name", required: true, hint: "e.g. HDFC Current. The names Cash and Cash (Narinder) are fixed." },
+          { name: "display_name", label: "Display name", required: true, hint: "e.g. HDFC Current. The names Cash and Cash Received by Narinder are fixed." },
           { name: "bank_name", label: "Bank name" },
           { name: "account_holder", label: "Account holder" },
           { name: "account_number", label: "Account number", sensitive: true, hint: "Optional. Only the last 4 digits are shown in lists." },

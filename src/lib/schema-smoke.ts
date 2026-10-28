@@ -21,6 +21,10 @@ export const SCHEMA_COLUMNS: Record<string, string[]> = {
   expenses: ["id", "scope", "trip_id", "lr_id", "lr_party_id", "category", "amount", "expense_date", "paid_by", "paid_to", "responsible", "responsible_party_id", "payment_method", "account_id", "payment_status", "reference", "notes", "is_cancelled"],
   advances: ["id", "trip_id", "recipient_type", "driver_id", "transporter_id", "party_id", "other_name", "advance_date", "amount", "payment_method", "account_id", "reference", "notes", "is_cancelled"],
   payments: ["id", "payment_type", "party_id", "transporter_id", "payer_name", "amount", "payment_date", "mode", "account_id", "reference", "notes", "lr_id", "trip_id", "bank_name", "bank_holder", "bank_account_number", "bank_ifsc", "upi_id", "txn_reference", "is_reversed", "reversal_reason"],
+  // Added by migrations 0022 / 0023 / 0024. A missing one here is exactly what produces "Could not find the table ... in the schema cache".
+  account_movements: ["business_id", "account_id", "movement_date", "created_at", "source_table", "source_id", "source_type", "direction", "amount", "reference", "description", "party_id", "transporter_id", "driver_id", "other_name"],
+  party_manual_entries: ["id", "party_id", "entry_date", "entry_side", "amount", "reference", "notes", "is_reversed", "reversal_reason"],
+  user_nav_favourites: ["id", "user_id", "nav_key"],
   payment_allocations: ["id", "payment_id", "lr_id", "target", "amount"],
   salary_entries: ["id", "driver_id", "period", "due_date", "amount", "notes", "is_cancelled"],
   salary_payments: ["id", "driver_id", "salary_entry_id", "payment_date", "amount", "recovered_advance", "recovered_commission", "payment_method", "account_id", "reference", "is_reversed"],

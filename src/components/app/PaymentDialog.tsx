@@ -27,7 +27,7 @@ export function PaymentDialog({ open, onOpenChange, initial, thirdParty }: { ope
       return data;
     },
   });
-  // Account is deliberately left unselected for a new entry: the user must pick Cash, Cash (Narinder) or a bank (no silent default).
+  // Account is deliberately left unselected for a new entry: the user must pick Cash, Cash Received by Narinder or a bank (no silent default).
   const blank = { payment_type: thirdParty ? "third_party_receipt" : "customer_receipt", payment_date: todayIST(), mode: "cash", account_id: "", allocate_amount: "" };
   const [v, setV] = useState<Record<string, any>>(blank);
   const [bank, setBank] = useState(false);
@@ -58,7 +58,7 @@ export function PaymentDialog({ open, onOpenChange, initial, thirdParty }: { ope
       if (busy.current) throw new Error("Already saving");
       if (!(Number(v.amount) > 0)) throw new Error("Amount must be greater than 0");
       if (Math.abs(Math.round(Number(v.amount) * 100) - Number(v.amount) * 100) > 1e-6) throw new Error("Amount can have at most 2 decimals");
-      if (!v.account_id || !selected) throw new Error("Choose Cash, Cash (Narinder) or a saved bank account");
+      if (!v.account_id || !selected) throw new Error("Choose Cash, Cash Received by Narinder or a saved bank account");
       if (selected.kind === "bank" && (!v.mode || v.mode === "cash")) throw new Error("Choose how the bank payment was made");
       if (!v.party_id && !v.transporter_id) throw new Error(isTransporterPay ? "Choose the transporter or party" : "Choose the party");
       if (v.payment_type === "third_party_receipt" && !v.payer_name?.trim()) throw new Error("Enter who actually paid");

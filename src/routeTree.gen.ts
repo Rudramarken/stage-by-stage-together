@@ -18,6 +18,7 @@ import { Route as AuthenticatedAuditRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDriverLedgerRouteImport } from './routes/_authenticated/driver-ledger'
 import { Route as AuthenticatedDriversRouteImport } from './routes/_authenticated/drivers'
+import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedOutstandingRouteImport } from './routes/_authenticated/outstanding'
 import { Route as AuthenticatedPartyLedgerRouteImport } from './routes/_authenticated/party-ledger'
 import { Route as AuthenticatedPaymentsRouteImport } from './routes/_authenticated/payments'
@@ -82,6 +83,11 @@ const AuthenticatedDriverLedgerRoute =
 const AuthenticatedDriversRoute = AuthenticatedDriversRouteImport.update({
   id: '/drivers',
   path: '/drivers',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedOutstandingRoute =
@@ -201,6 +207,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/driver-ledger': typeof AuthenticatedDriverLedgerRoute
   '/drivers': typeof AuthenticatedDriversRoute
+  '/history': typeof AuthenticatedHistoryRoute
   '/outstanding': typeof AuthenticatedOutstandingRoute
   '/party-ledger': typeof AuthenticatedPartyLedgerRoute
   '/payments': typeof AuthenticatedPaymentsRoute
@@ -231,6 +238,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/driver-ledger': typeof AuthenticatedDriverLedgerRoute
   '/drivers': typeof AuthenticatedDriversRoute
+  '/history': typeof AuthenticatedHistoryRoute
   '/outstanding': typeof AuthenticatedOutstandingRoute
   '/party-ledger': typeof AuthenticatedPartyLedgerRoute
   '/payments': typeof AuthenticatedPaymentsRoute
@@ -263,6 +271,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/driver-ledger': typeof AuthenticatedDriverLedgerRoute
   '/_authenticated/drivers': typeof AuthenticatedDriversRoute
+  '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/outstanding': typeof AuthenticatedOutstandingRoute
   '/_authenticated/party-ledger': typeof AuthenticatedPartyLedgerRoute
   '/_authenticated/payments': typeof AuthenticatedPaymentsRoute
@@ -295,6 +304,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/driver-ledger'
     | '/drivers'
+    | '/history'
     | '/outstanding'
     | '/party-ledger'
     | '/payments'
@@ -325,6 +335,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/driver-ledger'
     | '/drivers'
+    | '/history'
     | '/outstanding'
     | '/party-ledger'
     | '/payments'
@@ -356,6 +367,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/driver-ledger'
     | '/_authenticated/drivers'
+    | '/_authenticated/history'
     | '/_authenticated/outstanding'
     | '/_authenticated/party-ledger'
     | '/_authenticated/payments'
@@ -449,6 +461,13 @@ declare module '@tanstack/react-router' {
       path: '/drivers'
       fullPath: '/drivers'
       preLoaderRoute: typeof AuthenticatedDriversRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/history': {
+      id: '/_authenticated/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof AuthenticatedHistoryRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/outstanding': {
@@ -599,6 +618,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDriverLedgerRoute: typeof AuthenticatedDriverLedgerRoute
   AuthenticatedDriversRoute: typeof AuthenticatedDriversRoute
+  AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
   AuthenticatedOutstandingRoute: typeof AuthenticatedOutstandingRoute
   AuthenticatedPartyLedgerRoute: typeof AuthenticatedPartyLedgerRoute
   AuthenticatedPaymentsRoute: typeof AuthenticatedPaymentsRoute
@@ -626,6 +646,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDriverLedgerRoute: AuthenticatedDriverLedgerRoute,
   AuthenticatedDriversRoute: AuthenticatedDriversRoute,
+  AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
   AuthenticatedOutstandingRoute: AuthenticatedOutstandingRoute,
   AuthenticatedPartyLedgerRoute: AuthenticatedPartyLedgerRoute,
   AuthenticatedPaymentsRoute: AuthenticatedPaymentsRoute,

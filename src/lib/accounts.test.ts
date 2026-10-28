@@ -28,7 +28,7 @@ describe("buildStatement", () => {
 describe("accountLabel", () => {
   it("keeps the two cash accounts distinct and masks bank numbers", () => {
     expect(accountLabel({ kind: "cash", display_name: "Cash", account_number: null })).toBe("Cash");
-    expect(accountLabel({ kind: "cash", display_name: "Cash (Narinder)", account_number: null })).toBe("Cash (Narinder)");
+    expect(accountLabel({ kind: "cash", display_name: "Cash Received by Narinder", account_number: null })).toBe("Cash Received by Narinder");
     expect(accountLabel({ kind: "bank", display_name: "HDFC", account_number: "123456789012" })).toBe("HDFC XXXX9012");
   });
 });

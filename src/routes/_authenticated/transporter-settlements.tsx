@@ -10,20 +10,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader, Money, StatusBadge, Field } from "@/components/app/ui";
 import { LoadingState, ErrorState, EmptyState } from "@/components/app/states";
 import { LedgerTable } from "@/components/app/LedgerTable";
+import { PeriodPicker, usePeriod } from "@/components/app/PeriodPicker";
 import { PaymentDialog } from "@/components/app/PaymentDialog";
 import { SearchSelect } from "@/components/app/SearchSelect";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useTransporters } from "@/lib/lookups";
 import { formatDate } from "@/lib/format";
-import { Input } from "@/components/ui/input";
 import { useBusiness } from "@/lib/business";
 import { OpeningBalanceDialog, ManualEntryDialog, ManualEntriesList } from "@/components/app/TransporterLedgerTools";
 import { summarizeTransporterLines, remainingLabel, type LedgerLine, type TransporterSummary } from "@/lib/transporter-ledger";
 
 export const Route = createFileRoute("/_authenticated/transporter-settlements")({
   head: () => pageHead("Transporter Settlements — Gokul Cargo Movers", "Transporter Settlements records for Gokul Cargo Movers transport management."),
-  component: Settlements,
+  component: () => <SettlementsPanel />,
 });
 
 function statusOf(payable: number, settled: number) {
@@ -34,7 +34,11 @@ function statusOf(payable: number, settled: number) {
   return { label: "Unpaid", tone: "danger" };
 }
 
-function Settlements() {
+/**
+ * Transporter ledger, opening balance, manual entries, payments and freight settlement.
+ * It has no sidebar entry of its own any more: it lives in Party Ledger -> "Transporter" tab (embedded) and still opens at /transporter-settlements.
+ */
+export function SettlementsPanel({ embedded = false }: { embedded?: boolean }) {
   const transporters = useTransporters();
   const [tid, setTid] = useState("");
   const [pay, setPay] = useState(false);
@@ -42,8 +46,9 @@ function Settlements() {
   const canEdit = role === "owner" || role === "admin";
   const [openingDlg, setOpeningDlg] = useState(false);
   const [manualDlg, setManualDlg] = useState(false);
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
+  const { sel, setSel, period } = usePeriod();
+  const from = period.from ?? "";
+  const to = period.to ?? "";
   const bal = useQuery({
     queryKey: ["settlements", "balances"],
     queryFn: async () => {
@@ -80,8 +85,10 @@ function Settlements() {
   const tb = bal.data?.get(tid) ?? EMPTY;
   return (
     <div className="space-y-4">
-      <PageHeader title="Transporter Settlements" description="Freight payable vs. advances and payments, per transporter (including names typed on trips/LRs)."
-        actions={tid ? <><Button variant="outline" onClick={() => window.print()}>Print statement</Button><Button onClick={() => setPay(true)}><Plus className="mr-1 h-4 w-4" />Record payment</Button></> : undefined} />
+      {embedded
+        ? (tid ? <div className="no-print flex flex-wrap justify-end gap-2"><Button variant="outline" onClick={() => window.print()}>Print statement</Button><Button onClick={() => setPay(true)}><Plus className="mr-1 h-4 w-4" />Record payment</Button></div> : <p className="text-sm text-muted-foreground">Freight payable vs. advances and payments, per transporter (including names typed on trips/LRs). Choose a transporter to open its ledger.</p>)
+        : <PageHeader title="Transporter Settlements" description="Freight payable vs. advances and payments, per transporter (including names typed on trips/LRs)."
+            actions={tid ? <><Button variant="outline" onClick={() => window.print()}>Print statement</Button><Button onClick={() => setPay(true)}><Plus className="mr-1 h-4 w-4" />Record payment</Button></> : undefined} />}
       <div className="no-print max-w-md"><Field label="Transporter"><SearchSelect value={tid} onChange={setTid} options={(transporters.data ?? []).map((x) => ({ value: x.id, label: x.name }))} placeholder="Choose transporter" /></Field></div>
       {!tid ? (
         bal.isPending || transporters.isPending ? <LoadingState /> : bal.isError ? <ErrorState error={bal.error} onRetry={() => bal.refetch()} /> :
@@ -133,8 +140,8 @@ function Settlements() {
           <PaymentsList transporterId={tid} />
           <h3 className="font-semibold">Transporter ledger</h3>
           <p className="text-xs text-muted-foreground">Balance = debit - credit. "Payable" = Gokul still owes this transporter; "Receivable" = the transporter owes Gokul (advance paid beyond freight, or commission). The opening balance is one row and is never income or expense. Each advance and payment appears once. Commission shows as a debit - the amount Gokul has to receive from this transporter.</p>
-          <div className="no-print grid max-w-md gap-3 sm:grid-cols-2"><Field label="From date"><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></Field><Field label="To date"><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></Field></div>
-          <LedgerTable accountType="transporter" accountId={tid} from={from || undefined} to={to || undefined} title={`transporter-${t?.name}`} />
+          <PeriodPicker sel={sel} onChange={setSel} period={period} idPrefix="transporter-period" />
+          <LedgerTable accountType="transporter" accountId={tid} from={from || undefined} to={to || undefined} title={`transporter-${t?.name}`} accountName={t?.name} />
           <h3 className="font-semibold">Manual ledger entries</h3>
           <ManualEntriesList transporterId={tid} canEdit={canEdit} />
           {t && <OpeningBalanceDialog open={openingDlg} onOpenChange={setOpeningDlg} transporter={t} />}

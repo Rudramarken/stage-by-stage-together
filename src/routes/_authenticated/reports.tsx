@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAccounts, useDrivers, useParties, useTransporters, useVehicles, nameOf, PAYMENT_TYPE, TRIP_STATUS, FREIGHT_TYPE } from "@/lib/lookups";
 import { downloadCSV, formatDate, formatINR } from "@/lib/format";
-import { accountLabel } from "@/lib/accounts";
+import { accountLabel, fetchAllRows } from "@/lib/accounts";
 
 export const Route = createFileRoute("/_authenticated/reports")({
   head: () => pageHead("Reports — Gokul Cargo Movers", "Reports records for Gokul Cargo Movers transport management."),
@@ -37,20 +37,26 @@ function Reports() {
   const q = useQuery({
     queryKey: ["reports-data"],
     queryFn: async () => {
+      // Every table is read in pages of 1000 (a plain select silently stops at 1000 rows, which would drop older records from reports and exports).
+      const all = (table: string, cols: string, orderBy: string[] = ["id"], f?: (q: any) => any) => fetchAllRows<any>((from, to) => {
+        let q = (supabase as any).from(table).select(cols);
+        if (f) q = f(q);
+        for (const o of orderBy) q = q.order(o);
+        return q.range(from, to);
+      });
       const [trips, lrs, exps, advs, pays, bal, sal, salp, commissions, receipts] = await Promise.all([
-        supabase.from("trips").select("*, trip_stops(location, seq), lrs(final_freight, freight_payable, status)"),
-        supabase.from("lrs").select("*, trips(trip_number, trip_stops(location, seq)), lr_parties(role, parties(name))"),
-        supabase.from("expenses").select("*").eq("is_cancelled", false),
-        supabase.from("advances").select("*").eq("is_cancelled", false),
-        supabase.from("payments").select("*").eq("is_reversed", false),
-        supabase.from("account_balances").select("*"),
-        supabase.from("salary_entries").select("*").eq("is_cancelled", false),
-        supabase.from("salary_payments").select("*").eq("is_reversed", false),
-        supabase.from("commission_balances").select("*"),
-        supabase.from("commission_receipts").select("*").eq("is_reversed", false),
+        all("trips", "*, trip_stops(location, seq), lrs(final_freight, freight_payable, status)"),
+        all("lrs", "*, trips(trip_number, trip_stops(location, seq)), lr_parties(role, parties(name))"),
+        all("expenses", "*", ["id"], (q) => q.eq("is_cancelled", false)),
+        all("advances", "*", ["id"], (q) => q.eq("is_cancelled", false)),
+        all("payments", "*", ["id"], (q) => q.eq("is_reversed", false)),
+        all("account_balances", "*", ["account_type", "account_id"]),
+        all("salary_entries", "*", ["id"], (q) => q.eq("is_cancelled", false)),
+        all("salary_payments", "*", ["id"], (q) => q.eq("is_reversed", false)),
+        all("commission_balances", "*"),
+        all("commission_receipts", "*", ["id"], (q) => q.eq("is_reversed", false)),
       ]);
-      for (const r of [trips, lrs, exps, advs, pays, bal, sal, salp, commissions, receipts]) if (r.error) throw r.error;
-      return { trips: trips.data as any[], lrs: lrs.data as any[], exps: exps.data ?? [], advs: advs.data ?? [], pays: pays.data ?? [], bal: bal.data ?? [], sal: sal.data ?? [], salp: salp.data ?? [], commissions: commissions.data ?? [], receipts: receipts.data ?? [] };
+      return { trips: trips as any[], lrs: lrs as any[], exps: exps, advs: advs, pays: pays, bal: bal, sal: sal, salp: salp, commissions: commissions, receipts: receipts };
     },
   });
 
