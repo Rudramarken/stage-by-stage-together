@@ -1208,6 +1208,69 @@ export type Database = {
           },
         ]
       }
+      party_manual_entries: {
+        Row: {
+          amount: number
+          business_id: string
+          created_at: string
+          created_by: string | null
+          entry_date: string
+          entry_side: string
+          id: string
+          is_reversed: boolean
+          notes: string
+          party_id: string
+          reference: string | null
+          reversal_reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          business_id: string
+          created_at?: string
+          created_by?: string | null
+          entry_date: string
+          entry_side: string
+          id: string
+          is_reversed?: boolean
+          notes: string
+          party_id: string
+          reference?: string | null
+          reversal_reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          business_id?: string
+          created_at?: string
+          created_by?: string | null
+          entry_date?: string
+          entry_side?: string
+          id?: string
+          is_reversed?: boolean
+          notes?: string
+          party_id?: string
+          reference?: string | null
+          reversal_reason?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "party_manual_entries_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "party_manual_entries_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_accounts: {
         Row: {
           account_holder: string | null
@@ -2029,6 +2092,41 @@ export type Database = {
           },
         ]
       }
+      user_nav_favourites: {
+        Row: {
+          business_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          nav_key: string
+          user_id: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nav_key: string
+          user_id?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nav_key?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_nav_favourites_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vehicles: {
         Row: {
           business_id: string
@@ -2286,11 +2384,27 @@ export type Database = {
         Args: { p_id: string; p_reason: string }
         Returns: undefined
       }
+      reverse_party_manual_entry: {
+        Args: { p_id: string; p_reason: string }
+        Returns: undefined
+      }
       reverse_transporter_manual_entry: {
         Args: { p_id: string; p_reason: string }
         Returns: undefined
       }
       save_lr: { Args: { p: Json }; Returns: string }
+      save_party_manual_entry: {
+        Args: {
+          p_amount: number
+          p_date: string
+          p_id: string
+          p_notes: string
+          p_party_id: string
+          p_reference: string
+          p_side: string
+        }
+        Returns: string
+      }
       save_payment: { Args: { p: Json }; Returns: string }
       save_transporter_manual_entry: {
         Args: {
@@ -2305,6 +2419,15 @@ export type Database = {
         Returns: string
       }
       save_trip: { Args: { p: Json }; Returns: string }
+      set_party_opening: {
+        Args: {
+          p_amount: number
+          p_date: string
+          p_party_id: string
+          p_type: string
+        }
+        Returns: undefined
+      }
       set_transporter_opening: {
         Args: {
           p_amount: number
