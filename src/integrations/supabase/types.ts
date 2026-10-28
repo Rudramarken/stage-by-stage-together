@@ -829,51 +829,63 @@ export type Database = {
       }
       lr_parties: {
         Row: {
+          addition: number | null
           business_id: string
           created_at: string
           created_by: string | null
           delivery_point: string | null
           freight_amount: number | null
+          freight_date: string | null
           goods_description: string | null
           id: string
           loading_point: string | null
           lr_id: string
           party_id: string
           quantity: number | null
+          rate: number | null
           role: string
           seq: number
+          shortage: number | null
           weight: number | null
         }
         Insert: {
+          addition?: number | null
           business_id: string
           created_at?: string
           created_by?: string | null
           delivery_point?: string | null
           freight_amount?: number | null
+          freight_date?: string | null
           goods_description?: string | null
           id?: string
           loading_point?: string | null
           lr_id: string
           party_id: string
           quantity?: number | null
+          rate?: number | null
           role: string
           seq?: number
+          shortage?: number | null
           weight?: number | null
         }
         Update: {
+          addition?: number | null
           business_id?: string
           created_at?: string
           created_by?: string | null
           delivery_point?: string | null
           freight_amount?: number | null
+          freight_date?: string | null
           goods_description?: string | null
           id?: string
           loading_point?: string | null
           lr_id?: string
           party_id?: string
           quantity?: number | null
+          rate?: number | null
           role?: string
           seq?: number
+          shortage?: number | null
           weight?: number | null
         }
         Relationships: [
@@ -944,6 +956,7 @@ export type Database = {
           status: string
           transporter_additions: number | null
           transporter_additions_reason: string | null
+          transporter_freight_date: string | null
           transporter_id: string | null
           transporter_rate: number | null
           transporter_rate_unit: string | null
@@ -1002,6 +1015,7 @@ export type Database = {
           status?: string
           transporter_additions?: number | null
           transporter_additions_reason?: string | null
+          transporter_freight_date?: string | null
           transporter_id?: string | null
           transporter_rate?: number | null
           transporter_rate_unit?: string | null
@@ -1060,6 +1074,7 @@ export type Database = {
           status?: string
           transporter_additions?: number | null
           transporter_additions_reason?: string | null
+          transporter_freight_date?: string | null
           transporter_id?: string | null
           transporter_rate?: number | null
           transporter_rate_unit?: string | null
