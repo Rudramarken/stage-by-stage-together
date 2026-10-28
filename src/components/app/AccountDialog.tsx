@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ export function AccountDialog({
   onClose: () => void;
 }) {
   const qc = useQueryClient();
+  const saveAccountFn = useServerFn(saveAccount);
   const busy = useRef(false);
   const cash = account?.kind === "cash";
   const [form, setForm] = useState<AccountFormInput>(() => ({
@@ -38,7 +40,7 @@ export function AccountDialog({
   }));
   const [error, setError] = useState("");
   const save = useMutation({
-    mutationFn: () => saveAccount({ data: { account: form, creating: !account } }),
+    mutationFn: () => saveAccountFn({ data: { account: form, creating: !account } }),
     onSuccess: async () => {
       await Promise.all(
         ["payment_accounts", "account-balances", "account-movements"].map((key) =>
