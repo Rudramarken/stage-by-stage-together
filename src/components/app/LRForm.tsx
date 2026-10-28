@@ -34,12 +34,11 @@ export function blankLR(tripId?: string): LRValues {
 export function LRForm({ initial }: { initial: LRValues }) {
   const nav = useNavigate();
   const qc = useQueryClient();
-  const parties = useParties(); const drivers = useDrivers(); const transporters = useTransporters();
-  const vehicles = useVehicles();
+  const parties = useParties(); const drivers = useDrivers(); const transporters = useTransporters(); const ownVehicles = useVehicles();
   const trips = useQuery({
     queryKey: ["trips-pick"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("trips").select("id, trip_number, trip_date, status, transporter_id, vehicle_id, market_vehicle_number, driver_id, driver_name, trip_stops(id, location, seq)").neq("status", "cancelled").order("trip_date", { ascending: false }).limit(300);
+      const { data, error } = await supabase.from("trips").select("id, trip_number, trip_date, status, transporter_id, market_vehicle_number, driver_id, driver_name, trip_stops(id, location, seq)").neq("status", "cancelled").order("trip_date", { ascending: false }).limit(300);
       if (error) throw error;
       return data;
     },
@@ -75,7 +74,6 @@ export function LRForm({ initial }: { initial: LRValues }) {
   const [commissionAuto, setCommissionAuto] = useState(!initial.commission_enabled);
 
   const trip = trips.data?.find((t) => t.id === v.trip_id);
-  const stops = trip ? [...trip.trip_stops].sort((a: any, b: any) => a.seq - b.seq) : [];
   const adj = v.adjustments.map((a) => ({ ...a, amount: Number(a.amount) }));
   const weight = v.weight === "" || v.weight == null ? null : Number(v.weight);
   const rate = v.rate === "" || v.rate == null ? null : Number(v.rate);
@@ -195,13 +193,6 @@ export function LRForm({ initial }: { initial: LRValues }) {
       <Section n={1} title="LR details">
         <div className="grid gap-4 sm:grid-cols-4">
           <Field label="LR date" required><Input type="date" value={v.lr_date ?? ""} onChange={(e) => set("lr_date", e.target.value)} /></Field>
-          <Field label="Vehicle number" hint={trip ? (trip.market_vehicle_number || (vehicles.data ?? []).find((x) => x.id === trip.vehicle_id)?.registration_number ? "This LR is on a trip, which already has its vehicle" : "Leave blank if not assigned yet") : "Pick an own vehicle or type an external truck number. Leave blank if not assigned yet"}>
-            <Input list="lr-vehicle-options" value={v.vehicle_number ?? ""} onChange={(e) => set("vehicle_number", e.target.value.toUpperCase())} autoComplete="off" placeholder="Not assigned" />
-            <datalist id="lr-vehicle-options">{(vehicles.data ?? []).filter((x) => x.is_active).map((x) => <option key={x.id} value={x.registration_number} />)}</datalist></Field>
-          {trip && !isNew && <>
-            <Field label="Loading stop"><select className={selectCls} value={v.loading_stop_id ?? ""} onChange={(e) => set("loading_stop_id", e.target.value)}><option value="">—</option>{stops.map((s: any) => <option key={s.id} value={s.id}>{s.location}</option>)}</select></Field>
-            <Field label="Unloading stop"><select className={selectCls} value={v.unloading_stop_id ?? ""} onChange={(e) => set("unloading_stop_id", e.target.value)}><option value="">—</option>{stops.map((s: any) => <option key={s.id} value={s.id}>{s.location}</option>)}</select></Field>
-          </>}
           <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2"><Field label="Total weight"><Input type="number" min="0" value={v.weight ?? ""} onChange={(e) => set("weight", e.target.value)} /></Field>
             <Field label="Unit"><select className={selectCls} value={v.weight_unit} onChange={(e) => set("weight_unit", e.target.value)}><option value="kg">kg</option><option value="quintal">quintal</option><option value="tonne">tonne</option><option value="unit">Unit</option></select></Field></div>
           <div className="sm:col-span-4"><Field label="Notes"><Textarea value={v.notes ?? ""} onChange={(e) => set("notes", e.target.value)} /></Field></div>
@@ -256,6 +247,9 @@ export function LRForm({ initial }: { initial: LRValues }) {
         <div className="grid gap-4 sm:grid-cols-4">
           <Field label="Transporter" hint="Pick a party or type a new name to add it once">
             <TransporterSelect value={v.transporter_id} onChange={(x) => set("transporter_id", x)} /></Field>
+          <Field label="Vehicle number" hint="Pick one of Gokul's trucks or type any market vehicle number">
+            <Input list="lr-own-vehicles" value={v.vehicle_number ?? ""} onChange={(e) => set("vehicle_number", e.target.value)} placeholder={trip ? "Taken from the linked trip if left empty" : "Not Assigned if left empty"} />
+            <datalist id="lr-own-vehicles">{(ownVehicles.data ?? []).filter((x) => x.is_active).map((x) => <option key={x.id} value={x.registration_number} />)}</datalist></Field>
           <Field label="Transporter rate unit" hint="Leave on Manual to type the amount yourself"><select className={selectCls} value={v.transporter_rate_unit ?? ""} onChange={(e) => setTP({ transporter_rate_unit: e.target.value })}><option value="">Manual (type amount)</option>{Object.entries(RATE_UNIT_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>
           {v.transporter_rate_unit && v.transporter_rate_unit !== "fixed" && <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2"><Field label="Weight for transporter" hint={weight ? `LR weight: ${weight} ${v.weight_unit}` : undefined}><Input type="number" min="0" value={v.transporter_weight ?? ""} onChange={(e) => setTP({ transporter_weight: e.target.value })} /></Field>
             <Field label="Unit"><select className={selectCls} value={v.transporter_weight_unit || "kg"} onChange={(e) => setTP({ transporter_weight_unit: e.target.value })}><option value="kg">kg</option><option value="quintal">quintal</option><option value="tonne">tonne</option><option value="unit">Unit</option></select></Field></div>}

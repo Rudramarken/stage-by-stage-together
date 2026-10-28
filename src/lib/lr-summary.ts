@@ -13,6 +13,31 @@ export function lrVehicleNumber(lr: VehicleSource): string | null {
   return clean(lr?.trips?.vehicles?.registration_number) ?? clean(lr?.trips?.market_vehicle_number) ?? clean(lr?.vehicle_number);
 }
 
+/** Text shown in the "Vehicle Number" column / field: the real registration, or "Not Assigned". */
+export const NOT_ASSIGNED = "Not Assigned";
+export function lrVehicleLabel(lr: VehicleSource): string {
+  return lrVehicleNumber(lr) ?? NOT_ASSIGNED;
+}
+
+type ExpenseRow = { amount?: number | string | null; responsible?: string | null; scope?: string | null; is_cancelled?: boolean | null };
+/** Gokul's own (not charged to the party) consignor/consignee-level expenses of one LR. Trip-level expenses are shared and never allocated. */
+export function lrGokulExpenses(expenses: ExpenseRow[] | null | undefined): number {
+  return r2((expenses ?? []).filter((e) => !e.is_cancelled && e.responsible === "gokul" && (e.scope === "consignor" || e.scope === "consignee")).reduce((a, e) => a + Number(e.amount || 0), 0));
+}
+
+type LrProfitRow = {
+  status: string; final_freight: number | string; freight_payable: number | string; transporter_id?: string | null; trip_id?: string | null;
+  commission_enabled?: boolean | null; commission_amount?: number | string | null; direct_payment_enabled?: boolean | null;
+  expenses?: ExpenseRow[] | null;
+};
+/** Profit for one LR row exactly as the LR detail page computes it, so the list and the detail always agree. */
+export function lrProfitFromRow(l: LrProfitRow): LrProfit {
+  return calcLrProfit({
+    status: l.status, finalFreight: Number(l.final_freight), freightPayable: Number(l.freight_payable), hasTransporter: !!l.transporter_id, tripLinked: !!l.trip_id,
+    gokulExpenses: lrGokulExpenses(l.expenses), commissionEnabled: !!l.commission_enabled, commissionAmount: Number(l.commission_amount || 0), directPaymentEnabled: !!l.direct_payment_enabled,
+  });
+}
+
 export type LrProfitInput = {
   status: string;
   finalFreight: number;

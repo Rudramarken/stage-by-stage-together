@@ -17,7 +17,7 @@ import { loadLR } from "@/lib/lr-load";
 import { useBusiness } from "@/lib/business";
 import { useTransporters, nameOf } from "@/lib/lookups";
 import { LRDocuments } from "@/components/app/LRDocuments";
-import { calcLrProfit, lrVehicleNumber } from "@/lib/lr-summary";
+import { calcLrProfit, lrVehicleLabel } from "@/lib/lr-summary";
 import { RATE_UNIT_LABEL } from "@/lib/freight";
 import { formatDate, formatDateTime, formatINR } from "@/lib/format";
 
@@ -50,7 +50,7 @@ function LRDetail() {
   const partyWise = lr.lr_parties.some((p: any) => p.freight_amount != null);
   const stops = trip ? [...trip.trip_stops].sort((a: any, b: any) => a.seq - b.seq) : [];
   const stopName = (sid: string) => stops.find((s: any) => s.id === sid)?.location;
-  const vehicle = lrVehicleNumber({ vehicle_number: lr.vehicle_number, trips: trip ? { market_vehicle_number: trip.market_vehicle_number, vehicles: trip.vehicles } : null });
+  const vehicle = lrVehicleLabel({ vehicle_number: lr.vehicle_number, trips: trip ? { market_vehicle_number: trip.market_vehicle_number, vehicles: trip.vehicles } : null });
   const gokulExpenses = expenses.filter((e) => e.responsible === "gokul").reduce((a: number, e) => a + Number(e.amount || 0), 0);
   const profit = calcLrProfit({ status: lr.status, finalFreight: Number(lr.final_freight), freightPayable: Number(lr.freight_payable), hasTransporter: !!lr.transporter_id, tripLinked: !!lr.trip_id, gokulExpenses, commissionEnabled: !!lr.commission_enabled, commissionAmount: Number(lr.commission_amount || 0), directPaymentEnabled: !!lr.direct_payment_enabled });
 
@@ -92,7 +92,7 @@ function LRDetail() {
         </div>
         <div className="mt-4 grid gap-2 sm:grid-cols-3">
           <p><span className="text-muted-foreground">Weight:</span> {lr.weight ? `${lr.weight} ${lr.weight_unit === "unit" ? "Unit" : lr.weight_unit}` : "—"}</p>
-          <p><span className="text-muted-foreground">Vehicle:</span> {vehicle ?? "Not assigned"}</p>
+          <p><span className="text-muted-foreground">Vehicle Number:</span> {vehicle}</p>
           <p><span className="text-muted-foreground">Driver:</span> {lr.driver_name || "—"}</p>
         </div>
         {lr.notes && <p className="mt-3 whitespace-pre-wrap"><span className="text-muted-foreground">Remarks:</span> {lr.notes}</p>}
@@ -116,7 +116,7 @@ function LRDetail() {
       </div>
 
       <div className="no-print rounded-lg border bg-card p-4 text-sm">
-        <p className="font-medium">Profit on this LR {profit.state === "provisional" && <StatusBadge tone="warning">Provisional</StatusBadge>}{profit.state === "insufficient" && <StatusBadge tone="muted">Not enough data</StatusBadge>}</p>
+        <p className="font-medium">Profit Per LR {profit.state === "provisional" && <StatusBadge tone="warning">Provisional</StatusBadge>}{profit.state === "insufficient" && <StatusBadge tone="muted">Not enough data</StatusBadge>}</p>
         {profit.profit == null ? <p className="mt-1 text-muted-foreground">{profit.notes.join(" ")}</p> : <>
           <p className="mt-1 text-lg font-semibold"><Money value={profit.profit} /></p>
           <p className="text-xs text-muted-foreground">Customer freight <Money value={lr.final_freight} /> − transporter freight payable <Money value={lr.freight_payable} /> − Gokul expenses on this LR <Money value={gokulExpenses} />{profit.commissionAdded > 0 && <> + commission <Money value={profit.commissionAdded} /></>}</p>

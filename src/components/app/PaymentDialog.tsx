@@ -33,25 +33,16 @@ export function PaymentDialog({ open, onOpenChange, initial, thirdParty }: { ope
     setErr(null);
     const cash = accounts.data?.find((a) => a.kind === "cash")?.id ?? "";
     const init: Record<string, any> = initial ? { ...initial } : { ...blank, account_id: cash };
-    if (!init.account_id && (init.mode ?? "cash") === "cash") init.account_id = cash;
     setV(init);
     setBank(!!(init.bank_name || init.bank_account_number || init.upi_id || init.txn_reference));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initial, accounts.data]);
   const set = (k: string, val: unknown) => setV((p) => ({ ...p, [k]: val }));
   const isTransporterPay = v.payment_type === "transporter_payment" || v.payment_type === "advance_paid";
-  // Cash and Bank are separate channels: Cash uses the permanent Cash account and Cash mode; Bank needs a saved bank account and a non-cash mode (UPI / NEFT / cheque / other).
-  const cashAcct = accounts.data?.find((a) => a.kind === "cash");
-  const chosenAcct = accounts.data?.find((a) => a.id === v.account_id);
-  const channel: "cash" | "bank" = chosenAcct?.kind === "bank" || (!v.account_id && v.mode && v.mode !== "cash") ? "bank" : "cash";
-  const pickChannel = (c: "cash" | "bank") => setV((p) => c === "cash" ? { ...p, account_id: cashAcct?.id ?? "", mode: "cash" } : { ...p, account_id: "", mode: !p.mode || p.mode === "cash" ? "neft" : p.mode });
-  const modeOptions = PAY_MODES.filter((m) => (channel === "cash" ? m.value === "cash" : m.value !== "cash") || m.value === v.mode);
   const save = useMutation({
     mutationFn: async () => {
       if (!(Number(v.amount) > 0)) throw new Error("Amount must be greater than 0");
-      if (!v.account_id) throw new Error(channel === "bank" ? "Choose the bank account" : "Choose Received Into / Paid From (Cash or a bank account)");
-      if (chosenAcct?.kind === "cash" && v.mode !== "cash") throw new Error("A Cash payment must use Cash mode. Choose Bank to record UPI / NEFT / cheque payments.");
-      if (chosenAcct?.kind === "bank" && v.mode === "cash") throw new Error("A Bank payment cannot use Cash mode. Choose UPI, NEFT/RTGS/IMPS, Cheque or Other, or switch to Cash.");
+      if (!v.account_id) throw new Error("Choose Received Into / Paid From (Cash or a bank account)");
       if (!v.party_id && !v.transporter_id) throw new Error(isTransporterPay ? "Choose the transporter or party" : "Choose the party");
       if (v.payment_type === "third_party_receipt" && !v.payer_name?.trim()) throw new Error("Enter who actually paid");
       const row: Record<string, any> = {
@@ -93,15 +84,15 @@ export function PaymentDialog({ open, onOpenChange, initial, thirdParty }: { ope
           {thirdParty && <Field label="Actual payer name" required hint="No party record needed; their balance is not changed"><Input value={v.payer_name ?? ""} onChange={(e) => set("payer_name", e.target.value)} /></Field>}
           <Field label="Amount (₹)" required><Input type="number" min="0" step="0.01" value={v.amount ?? ""} onChange={(e) => set("amount", e.target.value)} /></Field>
           <Field label="Date" required><Input type="date" value={v.payment_date ?? ""} onChange={(e) => set("payment_date", e.target.value)} /></Field>
-          <Field label="Cash or bank" required><select className={selectCls} value={channel} onChange={(e) => pickChannel(e.target.value as "cash" | "bank")}><option value="cash">Cash</option><option value="bank">Bank</option></select></Field>
-          <Field label="Mode"><select className={selectCls} value={v.mode ?? ""} onChange={(e) => set("mode", e.target.value)}>{modeOptions.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}</select></Field>
-          {channel === "bank" && <Field label={v.payment_type?.includes("receipt") || v.payment_type === "advance_received" ? "Received into (bank account)" : "Paid from (bank account)"} required>
+          <Field label="Mode"><select className={selectCls} value={v.mode} onChange={(e) => set("mode", e.target.value)}>{PAY_MODES.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}</select></Field>
+          <Field label={v.payment_type?.includes("receipt") || v.payment_type === "advance_received" ? "Received into" : "Paid from"} required>
             <select className={selectCls} value={v.account_id ?? ""} onChange={(e) => set("account_id", e.target.value)}>
-              <option value="">— Choose bank account —</option>
+              <option value="">— Choose —</option>
+              {accounts.data?.filter((a) => a.kind === "cash").map((a) => <option key={a.id} value={a.id}>Cash</option>)}
               {banks.map((a) => <option key={a.id} value={a.id}>{a.display_name}</option>)}
             </select>
             {banks.length === 0 && <Link to="/settings" className="text-xs text-info underline">+ Add bank account</Link>}
-          </Field>}
+          </Field>
           <Field label="Reference"><Input value={v.reference ?? ""} onChange={(e) => set("reference", e.target.value)} /></Field>
           <Field label="Link to LR (optional)">
             <SearchSelect value={v.lr_id} onChange={(x) => set("lr_id", x)} options={(lrs.data ?? []).map((l) => ({ value: l.id, label: l.lr_number }))} /></Field>

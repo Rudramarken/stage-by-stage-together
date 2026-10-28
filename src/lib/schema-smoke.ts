@@ -37,4 +37,3 @@ SCHEMA_COLUMNS.lrs.push("transporter_additions", "transporter_additions_reason",
 SCHEMA_COLUMNS.trips.push("cancelled_by", "cancelled_at");
 SCHEMA_COLUMNS.lr_parties.push("freight_amount");
 SCHEMA_COLUMNS.lr_documents = ["id", "lr_id", "file_name", "storage_path", "mime_type", "size_bytes", "created_at"];
-SCHEMA_COLUMNS.vehicles.push("driver_id");
