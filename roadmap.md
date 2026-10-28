@@ -1,4 +1,5 @@
 # Gokul Cargo Movers — roadmap
+- [ ] Accounts: visible bank creation, validated opening-balance edits, database persistence and balance regression checks
 - [x] Party-wise trip freight: transporter in Section 3; six independent fields; migrations 0024–0025 applied; signed-in save/edit/reload verified; 99 tests passed; test records removed
 - [x] Stage 1 Foundation
 - [x] Stage 2 Masters
