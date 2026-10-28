@@ -70,6 +70,7 @@ export function TripForm({ initial, initialExpenses, initialAdvances }: { initia
       const { data, error } = await supabase.rpc("save_trip", { p: payload as never });
       if (error) throw error;
       tripId = data as string;
+      setV((previous) => ({ ...previous, id: tripId }));
     } catch (e) { setErr(errorMessage(e)); setBusy(false); return; }
 
     // Step 2: LR / Bilty rows and links. The trip is already saved (and a second Save updates the same trip, because the trip id is reused).
@@ -81,8 +82,9 @@ export function TripForm({ initial, initialExpenses, initialAdvances }: { initia
         if (isBlankTripLr(work[i])) continue;
         const { data, error } = await supabase.rpc("save_lr", { p: tripLrPayload(work[i], tripRef) as never });
         if (error) throw new Error(`LR / Bilty ${i + 1} was not saved: ${errorMessage(error)}`);
-        work[i].savedId = data as string;
-        const savedParties = await supabase.from("lr_parties").select("id,role,seq").eq("lr_id", work[i].savedId).order("seq");
+        const savedLrId = data as string;
+        work[i].savedId = savedLrId;
+        const savedParties = await supabase.from("lr_parties").select("id,role,seq").eq("lr_id", savedLrId).order("seq");
         if (savedParties.error) throw savedParties.error;
         for (const side of ["consignors", "consignees"] as const) {
           const ids = savedParties.data.filter((p) => p.role === (side === "consignors" ? "consignor" : "consignee"));
