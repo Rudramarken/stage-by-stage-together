@@ -146,7 +146,7 @@ export function LRForm({ initial }: { initial: LRValues }) {
                 onCreate={(t) => createParty(t, role)} createLabel="Create party" /></Field></div>
             {role === "consignor" && <div className="sm:col-span-2"><Field label="Goods"><Input value={p.goods_description ?? ""} onChange={(e) => setP(i, { goods_description: e.target.value })} /></Field></div>}
             {legacy && role === "consignor" && <Field label={`Weight (${v.weight_unit})`}><Input type="number" min="0" value={p.weight ?? ""} onChange={(e) => setP(i, { weight: e.target.value })} /></Field>}
-            {!legacy && <div className="sm:col-span-6"><PartyFreightFields label={`${role === "consignor" ? "Consignor" : "Consignee"} ${i + 1}`} values={p} onChange={(patch) => setP(i, patch)} /></div>}
+            {!legacy && <div className="sm:col-span-6"><PartyFreightFields label={`${role === "consignor" ? "Consignor" : "Consignee"} ${i + 1}`} weightUnit={v.weight_unit} values={p} onChange={(patch) => setP(i, patch)} /></div>}
             {role === "consignor" && <div className="sm:col-span-3"><Field label="Loading point"><Input value={p.loading_point ?? ""} onChange={(e) => setP(i, { loading_point: e.target.value })} /></Field></div>}
             <div className={role === "consignor" ? "sm:col-span-3" : legacy ? "sm:col-span-3" : "sm:col-span-2"}><Field label="Delivery point"><Input value={p.delivery_point ?? ""} onChange={(e) => setP(i, { delivery_point: e.target.value })} /></Field></div>
           </div>
