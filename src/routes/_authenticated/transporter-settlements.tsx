@@ -20,6 +20,7 @@ import { formatDate } from "@/lib/format";
 import { useBusiness } from "@/lib/business";
 import { OpeningBalanceDialog, ManualEntryDialog, ManualEntriesList } from "@/components/app/TransporterLedgerTools";
 import { summarizeTransporterLines, remainingLabel, type LedgerLine, type TransporterSummary } from "@/lib/transporter-ledger";
+import { fetchAllRows } from "@/lib/accounts";
 
 export const Route = createFileRoute("/_authenticated/transporter-settlements")({
   head: () => pageHead("Transporter Settlements — Gokul Cargo Movers", "Transporter Settlements records for Gokul Cargo Movers transport management."),
@@ -52,8 +53,7 @@ export function SettlementsPanel({ embedded = false }: { embedded?: boolean }) {
   const bal = useQuery({
     queryKey: ["settlements", "balances"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("ledger_entries").select("account_id, debit, credit, line_kind").eq("account_type", "transporter");
-      if (error) throw error;
+      const data = await fetchAllRows((from, to) => supabase.from("ledger_entries").select("account_id, debit, credit, line_kind").eq("account_type", "transporter").order("id").range(from, to));
       const lines = new Map<string, LedgerLine[]>();
       for (const r of data) { const a = lines.get(r.account_id) ?? []; a.push(r); lines.set(r.account_id, a); }
       const m = new Map<string, TransporterSummary>();
@@ -104,6 +104,7 @@ export function SettlementsPanel({ embedded = false }: { embedded?: boolean }) {
       ) : (
         <>
           <h2 className="text-xl font-semibold">{t?.name}</h2>
+          {bal.isError && <ErrorState error={bal.error} onRetry={() => bal.refetch()} />}
           <div className="no-print flex flex-wrap gap-2">
             {canEdit && <Button variant="outline" onClick={() => setOpeningDlg(true)}>Opening balance</Button>}
             {canEdit && <Button variant="outline" onClick={() => setManualDlg(true)}>Add ledger entry</Button>}
@@ -143,9 +144,9 @@ export function SettlementsPanel({ embedded = false }: { embedded?: boolean }) {
           <PeriodPicker sel={sel} onChange={setSel} period={period} idPrefix="transporter-period" />
           <LedgerTable accountType="transporter" accountId={tid} from={from || undefined} to={to || undefined} title={`transporter-${t?.name}`} accountName={t?.name} />
           <h3 className="font-semibold">Manual ledger entries</h3>
-          <ManualEntriesList transporterId={tid} canEdit={canEdit} />
+          <ManualEntriesList transporterId={tid} canEdit={canEdit} onSaved={() => setSel({ ...sel, mode: "all" })} />
           {t && <OpeningBalanceDialog open={openingDlg} onOpenChange={setOpeningDlg} transporter={t} />}
-          <ManualEntryDialog open={manualDlg} onOpenChange={setManualDlg} transporterId={tid} />
+          <ManualEntryDialog open={manualDlg} onOpenChange={setManualDlg} transporterId={tid} onSaved={() => setSel({ ...sel, mode: "all" })} />
           <PaymentDialog open={pay} onOpenChange={setPay} initial={pay ? { payment_type: "transporter_payment", transporter_id: tid, payment_date: new Date().toISOString().slice(0, 10), mode: "cash", account_id: "" } : null} />
         </>
       )}

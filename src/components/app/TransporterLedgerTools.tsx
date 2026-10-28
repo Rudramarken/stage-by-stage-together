@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,7 @@ import { Field, Money, StatusBadge } from "./ui";
 import { selectCls } from "./Section";
 import { ErrorState, LoadingState, errorMessage } from "./states";
 import { formatDate, todayIST } from "@/lib/format";
+import { fetchAllRows } from "@/lib/accounts";
 
 const refreshAll = (qc: ReturnType<typeof useQueryClient>) => qc.invalidateQueries();
 
@@ -68,8 +69,9 @@ export function OpeningBalanceDialog({ open, onOpenChange, transporter }: { open
 }
 
 /** Manual adjustment. The id is created once per form so a retry or an edit updates the same row. */
-export function ManualEntryDialog({ open, onOpenChange, transporterId, entry }: { open: boolean; onOpenChange: (o: boolean) => void; transporterId: string; entry?: any | null }) {
+export function ManualEntryDialog({ open, onOpenChange, transporterId, entry, onSaved }: { open: boolean; onOpenChange: (o: boolean) => void; transporterId: string; entry?: any | null; onSaved?: () => void }) {
   const qc = useQueryClient();
+  const busy = useRef(false);
   const [id, setId] = useState("");
   const [date, setDate] = useState(todayIST());
   const [direction, setDirection] = useState("increase_payable");
@@ -78,25 +80,27 @@ export function ManualEntryDialog({ open, onOpenChange, transporterId, entry }: 
   const [notes, setNotes] = useState("");
   const [err, setErr] = useState<string | null>(null);
   useEffect(() => {
-    if (!open) return;
+    if (!open || busy.current) return;
     setErr(null);
     setId(entry?.id ?? crypto.randomUUID());
     setDate(entry?.entry_date ?? todayIST()); setDirection(entry?.direction ?? "increase_payable");
     setAmount(entry ? String(entry.amount) : ""); setReference(entry?.reference ?? ""); setNotes(entry?.notes ?? "");
-  }, [open, entry]);
+  }, [open, entry, transporterId]);
   const save = useMutation({
     mutationFn: async () => {
+      if (!id) throw new Error("Reopen the entry form before saving");
       if (!date) throw new Error("Date is required");
       if (!(Number(amount) > 0)) throw new Error("Amount must be greater than 0");
       if (notes.trim().length < 3) throw new Error("Notes are required");
       const { error } = await supabase.rpc("save_transporter_manual_entry" as any, { p_id: id, p_transporter_id: transporterId, p_date: date, p_direction: direction, p_amount: Number(amount), p_reference: reference || null, p_notes: notes } as any);
       if (error) throw error;
     },
-    onSuccess: () => { toast.success(entry ? "Entry updated" : "Entry added"); refreshAll(qc); onOpenChange(false); },
+    onSuccess: async () => { await refreshAll(qc); onSaved?.(); toast.success(entry ? "Entry updated" : "Entry added"); onOpenChange(false); },
     onError: (e) => setErr(errorMessage(e)),
+    onSettled: () => { busy.current = false; },
   });
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!save.isPending) onOpenChange(o); }}>
+    <Dialog open={open} onOpenChange={(o) => { if (!busy.current) onOpenChange(o); }}>
       <DialogContent>
         <DialogHeader><DialogTitle>{entry ? "Edit manual entry" : "Add ledger entry"}</DialogTitle></DialogHeader>
         <div className="space-y-3">
@@ -115,7 +119,7 @@ export function ManualEntryDialog({ open, onOpenChange, transporterId, entry }: 
         </div>
         <DialogFooter>
           <Button variant="outline" disabled={save.isPending} onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button disabled={save.isPending} onClick={() => { setErr(null); save.mutate(); }}>{save.isPending ? "Saving…" : "Save"}</Button>
+          <Button disabled={save.isPending || !id} onClick={() => { if (busy.current) return; busy.current = true; setErr(null); save.mutate(); }}>{save.isPending ? "Saving…" : "Save"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -123,7 +127,7 @@ export function ManualEntryDialog({ open, onOpenChange, transporterId, entry }: 
 }
 
 /** Manual entries of one transporter, with Edit and Reverse (a reversal posts an offsetting ledger row; nothing is deleted). */
-export function ManualEntriesList({ transporterId, canEdit }: { transporterId: string; canEdit: boolean }) {
+export function ManualEntriesList({ transporterId, canEdit, onSaved }: { transporterId: string; canEdit: boolean; onSaved?: () => void }) {
   const qc = useQueryClient();
   const [edit, setEdit] = useState<any | null>(null);
   const [rev, setRev] = useState<any | null>(null);
@@ -132,9 +136,7 @@ export function ManualEntriesList({ transporterId, canEdit }: { transporterId: s
   const q = useQuery({
     queryKey: ["manual-entries", transporterId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("transporter_manual_entries" as any).select("*").eq("transporter_id", transporterId).order("entry_date");
-      if (error) throw error;
-      return data as any[];
+      return fetchAllRows<any>((from, to) => supabase.from("transporter_manual_entries").select("*").eq("transporter_id", transporterId).order("entry_date").order("id").range(from, to));
     },
   });
   const reverse = useMutation({
@@ -163,7 +165,7 @@ export function ManualEntriesList({ transporterId, canEdit }: { transporterId: s
             {canEdit && <TableCell>{!e.is_reversed && <div className="flex gap-2"><Button size="sm" variant="outline" onClick={() => setEdit(e)}>Edit</Button><Button size="sm" variant="outline" onClick={() => { setErr(null); setReason(""); setRev(e); }}>Reverse</Button></div>}</TableCell>}
           </TableRow>))}</TableBody>
       </Table></div>
-      <ManualEntryDialog open={!!edit} onOpenChange={(o) => { if (!o) setEdit(null); }} transporterId={transporterId} entry={edit} />
+      <ManualEntryDialog open={!!edit} onOpenChange={(o) => { if (!o) setEdit(null); }} transporterId={transporterId} entry={edit} onSaved={onSaved} />
       <Dialog open={!!rev} onOpenChange={(o) => { if (!o && !reverse.isPending) setRev(null); }}>
         <DialogContent>
           <DialogHeader><DialogTitle>Reverse manual entry</DialogTitle></DialogHeader>
