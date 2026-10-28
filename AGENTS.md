@@ -24,3 +24,5 @@
 - List row actions share RowActions and RemovalDialog; destructive document/master operations use remove_record, and money is reversed, never deleted. Why: consistent pending confirmation and server-side dependency/owner checks.
 - LR edits preserve party, expense and adjustment IDs; save RPCs lock the business-scoped document and reject foreign child IDs. Why: editing must update the same records without double amounts.
 - Shared controls, navigation and MobileCards own touch sizing and focus treatment; list filters have explicit accessible names. Why: accessibility and phone layouts remain consistent across transport screens.
+- Database changes are applied only through the migration tool (journaled in drizzle/migrations); hand-written SQL meant for manual runs lives in drizzle/manual-archive and is never run again. Why: unjournaled files were silently never applied, causing missing tables/columns.
+- New public functions get EXECUTE for authenticated/service_role only (default privileges revoke PUBLIC/anon); only setup_available is callable signed out. Why: signed-out visitors must not reach internal functions.
