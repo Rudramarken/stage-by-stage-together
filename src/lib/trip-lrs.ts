@@ -2,7 +2,7 @@
 // Each filled row becomes ONE LR saved through the existing save_lr() function with trip_id set, exactly like the LR form does.
 // Nothing here posts money itself: freight is posted by the existing LR triggers, so it is counted once, on the LR.
 
-export type TripLrParty = { party_id: string; freight_amount: string };
+export type TripLrParty = { id?: string; party_id: string; freight_amount: string; weight?: string; rate?: string; shortage?: string; addition?: string; freight_date?: string };
 export type TripLrDraft = {
   key: string;
   /** Set after the LR has been saved once, so pressing Save again updates that LR instead of creating a second one. */
@@ -10,6 +10,7 @@ export type TripLrDraft = {
   lr_number: string; goods_description: string; loading_point: string; delivery_point: string;
   /** Freight payable to the trip's transporter for this LR. */
   freight_payable: string;
+  transporter_weight?: string; transporter_rate?: string; transporter_shortage?: string; transporter_additions?: string; transporter_freight_date?: string;
   consignors: TripLrParty[]; consignees: TripLrParty[];
 };
 
@@ -22,10 +23,11 @@ export const blankTripLr = (): TripLrDraft => ({
   consignors: [{ party_id: "", freight_amount: "" }], consignees: [{ party_id: "", freight_amount: "" }],
 });
 
-const partyBlank = (p: TripLrParty) => !p.party_id && !String(p.freight_amount).trim();
+const partyBlank = (p: TripLrParty) => !p.party_id && ![p.freight_amount, p.weight, p.rate, p.shortage, p.addition, p.freight_date].some((x) => String(x ?? "").trim());
 /** True when the row has nothing entered (an untouched row is ignored on save, not an error). */
 export const isBlankTripLr = (d: TripLrDraft) =>
   !d.savedId && !d.lr_number.trim() && !d.goods_description.trim() && !d.loading_point.trim() && !d.delivery_point.trim() && !String(d.freight_payable).trim()
+  && ![d.transporter_weight, d.transporter_rate, d.transporter_shortage, d.transporter_additions, d.transporter_freight_date].some((x) => String(x ?? "").trim())
   && d.consignors.every(partyBlank) && d.consignees.every(partyBlank);
 
 /** Sum of the freight entered against every consignor/consignee = the LR's freight (same rule as the LR form). */
@@ -40,6 +42,11 @@ export function validateTripLrs(drafts: TripLrDraft[]): string | null {
     if (isBlankTripLr(d)) continue;
     n++;
     const w = `LR / Bilty ${n}: `;
+    for (const p of [...d.consignors, ...d.consignees, { weight: d.transporter_weight, rate: d.transporter_rate, shortage: d.transporter_shortage, addition: d.transporter_additions, freight_date: d.transporter_freight_date }]) {
+      for (const f of [p.weight, p.rate, p.shortage, p.addition]) {
+        if (String(f ?? "").trim() && (!Number.isFinite(Number(f)) || Number(f) < 0)) return `${w}weight, rate, shortage and addition must be numbers of 0 or more`;
+      }
+    }
     if (!d.consignors.some((p) => p.party_id) || !d.consignees.some((p) => p.party_id)) return `${w}add at least one consignor and one consignee`;
     if ([...d.consignors, ...d.consignees].some((p) => !p.party_id)) return `${w}choose a party for every consignor/consignee row (or remove the empty row)`;
     for (const p of [...d.consignors, ...d.consignees]) {
@@ -64,6 +71,7 @@ export function validateTripLrs(drafts: TripLrDraft[]): string | null {
 export function tripLrPayload(d: TripLrDraft, trip: { id: string; trip_date: string; transporter_id?: string | null }): Record<string, unknown> {
   const total = tripLrFreightTotal(d);
   const row = (role: "consignor" | "consignee", p: TripLrParty, i: number) => ({
+    id: p.id, weight: p.weight ?? "", rate: p.rate ?? "", shortage: p.shortage ?? "", addition: p.addition ?? "", freight_date: p.freight_date ?? "",
     role, party_id: p.party_id, freight_amount: p.freight_amount === "" ? "" : String(p.freight_amount), expenses: [],
     goods_description: role === "consignor" && i === 0 ? d.goods_description : "",
     loading_point: role === "consignor" && i === 0 ? d.loading_point : "",
@@ -74,6 +82,8 @@ export function tripLrPayload(d: TripLrDraft, trip: { id: string; trip_date: str
     lr_number: d.lr_number.trim(), lr_date: trip.trip_date, trip_id: trip.id, transporter_id: trip.transporter_id || "",
     weight_unit: "kg", rate_unit: "fixed", rate: String(total), freight_type: "to_pay", delivery_status: "pending",
     freight_payable: d.freight_payable === "" ? "0" : String(d.freight_payable),
+    transporter_weight: d.transporter_weight ?? "", transporter_weight_unit: "kg", transporter_rate: d.transporter_rate ?? "", transporter_rate_unit: "",
+    transporter_shortage: d.transporter_shortage ?? "", transporter_additions: d.transporter_additions ?? "", transporter_freight_date: d.transporter_freight_date ?? "",
     direct_payment_enabled: false, commission_enabled: false, commission_mode: "percent", commission_status: "pending",
     goods_description: d.goods_description, loading_point: d.loading_point, delivery_point: d.delivery_point,
     parties: [...d.consignors.map((p, i) => row("consignor", p, i)), ...d.consignees.map((p, i) => row("consignee", p, i))],

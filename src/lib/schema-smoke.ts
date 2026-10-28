@@ -41,6 +41,8 @@ SCHEMA_COLUMNS.lrs.push("transporter_rate", "transporter_rate_unit", "transporte
 SCHEMA_COLUMNS.lrs.push("transporter_additions", "transporter_additions_reason", "transporter_shortage", "transporter_shortage_reason");
 SCHEMA_COLUMNS.trips.push("cancelled_by", "cancelled_at");
 SCHEMA_COLUMNS.lr_parties.push("freight_amount");
+SCHEMA_COLUMNS.lr_parties.push("rate", "shortage", "addition", "freight_date");
+SCHEMA_COLUMNS.lrs.push("transporter_freight_date");
 SCHEMA_COLUMNS.lr_documents = ["id", "lr_id", "file_name", "storage_path", "mime_type", "size_bytes", "created_at"];
 SCHEMA_COLUMNS.trip_documents = ["id", "trip_id", "file_name", "storage_path", "mime_type", "size_bytes", "created_at"];
 SCHEMA_COLUMNS.vehicles.push("driver_id");
