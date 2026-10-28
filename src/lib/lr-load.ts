@@ -27,6 +27,7 @@ export function lrToForm({ lr, expenses }: Awaited<ReturnType<typeof loadLR>>): 
     parties: [...lr_parties].sort((a: any, b: any) => a.seq - b.seq).map((p: any) => ({
       id: p.id, role: p.role, party_id: p.party_id, goods_description: s(p.goods_description), quantity: s(p.quantity), weight: s(p.weight),
       loading_point: s(p.loading_point), delivery_point: s(p.delivery_point), freight_amount: s(p.freight_amount),
+      rate: s(p.rate), shortage: s(p.shortage), addition: s(p.addition), freight_date: s(p.freight_date),
       expenses: expenses.filter((e) => e.lr_party_id === p.id).map((e) => ({ ...e, amount: s(e.amount) })),
     })),
     adjustments: lr_adjustments.map((a: any) => ({ id: a.id, kind: a.kind, amount: s(a.amount), reason: a.reason })),

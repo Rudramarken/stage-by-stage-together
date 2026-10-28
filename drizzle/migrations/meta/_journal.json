@@ -169,6 +169,20 @@
       "when": 1793184265277,
       "tag": "0023_restrict_function_execute_to_signed_in",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793188781680,
+      "tag": "0024_party_wise_freight_details",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1793188866951,
+      "tag": "0025_preserve_manual_transporter_details",
+      "breakpoints": true
     }
   ]
 }

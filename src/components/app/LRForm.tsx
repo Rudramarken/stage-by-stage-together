@@ -17,10 +17,11 @@ import { TransporterSelect } from "./TransporterSelect";
 import { LRDocuments } from "./LRDocuments";
 import { calcFreight, validateFreight, RATE_UNIT_LABEL, type RateUnit, type WeightUnit } from "@/lib/freight";
 import { formatINR, todayIST } from "@/lib/format";
+import { PartyFreightFields, type PartyFreightValues } from "./PartyFreightFields";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 type Exp = Record<string, any>;
-type LP = { id?: string; role: "consignor" | "consignee"; party_id: string; goods_description?: string; quantity?: string; weight?: string; loading_point?: string; delivery_point?: string; freight_amount?: string; expenses: Exp[] };
+type LP = PartyFreightValues & { id?: string; role: "consignor" | "consignee"; party_id: string; goods_description?: string; quantity?: string; loading_point?: string; delivery_point?: string; expenses: Exp[] };
 export type LRValues = Record<string, any> & { parties: LP[]; adjustments: { id?: string; kind: "add" | "deduct"; amount: string; reason: string }[] };
 
 export function blankLR(tripId?: string): LRValues {
@@ -144,8 +145,8 @@ export function LRForm({ initial }: { initial: LRValues }) {
               <SearchSelect value={p.party_id} onChange={(x) => setP(i, { party_id: x })} options={partyOpts("customer", p.party_id)} placeholder="Choose or type new" allowClear={false}
                 onCreate={(t) => createParty(t, role)} createLabel="Create party" /></Field></div>
             {role === "consignor" && <div className="sm:col-span-2"><Field label="Goods"><Input value={p.goods_description ?? ""} onChange={(e) => setP(i, { goods_description: e.target.value })} /></Field></div>}
-            {role === "consignor" && <div className={legacy ? "sm:col-span-2" : "sm:col-span-1"}><Field label={`Weight (${v.weight_unit})`}><Input type="number" min="0" value={p.weight ?? ""} onChange={(e) => setP(i, { weight: e.target.value })} /></Field></div>}
-            {!legacy && <div className={role === "consignor" ? "sm:col-span-1" : "sm:col-span-2"}><Field label="Freight (₹)" hint={role === "consignee" ? "Amount this party owes" : undefined}><Input type="number" min="0" step="0.01" inputMode="decimal" value={p.freight_amount ?? ""} onChange={(e) => setP(i, { freight_amount: e.target.value })} /></Field></div>}
+            {legacy && role === "consignor" && <Field label={`Weight (${v.weight_unit})`}><Input type="number" min="0" value={p.weight ?? ""} onChange={(e) => setP(i, { weight: e.target.value })} /></Field>}
+            {!legacy && <div className="sm:col-span-6"><PartyFreightFields label={`${role === "consignor" ? "Consignor" : "Consignee"} ${i + 1}`} weightUnit={v.weight_unit} values={p} onChange={(patch) => setP(i, patch)} /></div>}
             {role === "consignor" && <div className="sm:col-span-3"><Field label="Loading point"><Input value={p.loading_point ?? ""} onChange={(e) => setP(i, { loading_point: e.target.value })} /></Field></div>}
             <div className={role === "consignor" ? "sm:col-span-3" : legacy ? "sm:col-span-3" : "sm:col-span-2"}><Field label="Delivery point"><Input value={p.delivery_point ?? ""} onChange={(e) => setP(i, { delivery_point: e.target.value })} /></Field></div>
           </div>
@@ -247,6 +248,11 @@ export function LRForm({ initial }: { initial: LRValues }) {
         <div className="grid gap-4 sm:grid-cols-4">
           <Field label="Transporter" hint="Pick a party or type a new name to add it once">
             <TransporterSelect value={v.transporter_id} onChange={(x) => set("transporter_id", x)} /></Field>
+          <Field label="Transporter freight date"><Input type="date" value={v.transporter_freight_date ?? ""} onChange={(e) => set("transporter_freight_date", e.target.value)} /></Field>
+          {!v.transporter_rate_unit && <>
+            <Field label="Transporter weight (kg)"><Input type="number" min="0" step="0.01" value={v.transporter_weight ?? ""} onChange={(e) => set("transporter_weight", e.target.value)} /></Field>
+            <Field label="Transporter rate (₹)"><Input type="number" min="0" step="0.01" value={v.transporter_rate ?? ""} onChange={(e) => set("transporter_rate", e.target.value)} /></Field>
+          </>}
           <Field label="Vehicle number" hint="Pick one of Gokul's trucks or type any market vehicle number">
             <Input list="lr-own-vehicles" value={v.vehicle_number ?? ""} onChange={(e) => set("vehicle_number", e.target.value)} placeholder={trip ? "Taken from the linked trip if left empty" : "Not Assigned if left empty"} />
             <datalist id="lr-own-vehicles">{(ownVehicles.data ?? []).filter((x) => x.is_active).map((x) => <option key={x.id} value={x.registration_number} />)}</datalist></Field>

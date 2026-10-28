@@ -1,4 +1,5 @@
 # Gokul Cargo Movers — roadmap
+- [x] Party-wise trip freight: transporter in Section 3; six independent fields; migrations 0024–0025 applied; signed-in save/edit/reload verified; 99 tests passed; test records removed
 - [x] Stage 1 Foundation
 - [x] Stage 2 Masters
 - [x] Stage 3 Trips (stops, legs/round trip, stop-by-stop delivery)
