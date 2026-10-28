@@ -155,6 +155,13 @@
       "when": 1793183574932,
       "tag": "0021_nav_favourites_party_manual_entries",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1793184142892,
+      "tag": "0022_fix_trip_save_commission_source",
+      "breakpoints": true
     }
   ]
 }
