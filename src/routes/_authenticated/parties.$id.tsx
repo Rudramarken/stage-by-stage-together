@@ -9,6 +9,9 @@ import { LedgerTable, LedgerHelp } from "@/components/app/LedgerTable";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/format";
 import { PARTY_ROLES } from "./parties.index";
+import { PartyHistory } from "@/components/app/PartyHistory";
+import { useTransporters } from "@/lib/lookups";
+import { normName } from "@/lib/transporter-options";
 
 export const Route = createFileRoute("/_authenticated/parties/$id")({
   head: () => pageHead("Party details — Gokul Cargo Movers", "Party details records for Gokul Cargo Movers transport management."),
@@ -17,6 +20,7 @@ export const Route = createFileRoute("/_authenticated/parties/$id")({
 
 function PartyDetail() {
   const { id } = Route.useParams();
+  const transporters = useTransporters();
   const q = useQuery({
     queryKey: ["party", id],
     queryFn: async () => {
@@ -29,6 +33,8 @@ function PartyDetail() {
   if (q.isPending) return <LoadingState />;
   if (q.isError) return <ErrorState error={q.error} onRetry={() => q.refetch()} />;
   const p = q.data;
+  // Same linking rule as the Party Ledger page: explicit party_id, or an unlinked transporter with the same normalised name.
+  const linkedTransporters = ((transporters.data ?? []) as any[]).filter((x) => x.party_id === p.id || (!x.party_id && normName(x.name) === normName(p.name)));
   return (
     <div className="space-y-6">
       <Button asChild variant="ghost" size="sm" className="no-print"><Link to="/parties"><ArrowLeft className="mr-1 h-4 w-4" />All parties</Link></Button>
@@ -49,7 +55,18 @@ function PartyDetail() {
         <LedgerHelp />
         <LedgerTable accountType="party" accountId={p.id} title={`ledger-${p.name}`} />
       </div>
-      <p className="text-sm text-muted-foreground">Trips, LRs and payments for this party will be listed here once those stages are built.</p>
+      {linkedTransporters.map((tr) => (
+        <div key={tr.id} className="space-y-3">
+          <h2 className="text-lg font-semibold">{tr.name} — transporter account</h2>
+          <LedgerTable accountType="transporter" accountId={tr.id} title={`transporter-${tr.name}`} />
+        </div>
+      ))}
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold">Transaction history</h2>
+        {transporters.isError
+          ? <ErrorState error={transporters.error} onRetry={() => transporters.refetch()} />
+          : <PartyHistory partyId={p.id} transporterIds={linkedTransporters.map((x) => x.id)} title={p.name} />}
+      </div>
     </div>
   );
 }

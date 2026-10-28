@@ -39,18 +39,27 @@ export function balanceLabel(balance: number): { text: string; tone: "success" |
   return { text: "Settled (₹0)", tone: "muted" };
 }
 
-export function toCSV(rows: (string | number | null | undefined)[][]): string {
-  return rows.map((r) => r.map((c) => {
-    const s = c == null ? "" : String(c);
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  }).join(",")).join("\n");
+/** Text that a spreadsheet could run as a formula is prefixed with an apostrophe. Plain numbers (incl. negatives) are left alone. */
+function safeCell(s: string): string {
+  if (/^-?\d+(\.\d+)?$/.test(s)) return s;
+  return /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
 }
 
+export function toCSV(rows: (string | number | null | undefined)[][]): string {
+  return rows.map((r) => r.map((c) => {
+    const s = c == null ? "" : safeCell(String(c));
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  }).join(",")).join("\r\n");
+}
+
+/** UTF-8 BOM so Excel shows ₹ and Hindi text correctly. */
 export function downloadCSV(filename: string, rows: (string | number | null | undefined)[][]) {
-  const blob = new Blob([toCSV(rows)], { type: "text/csv;charset=utf-8" });
+  const blob = new Blob(["\uFEFF", toCSV(rows)], { type: "text/csv;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = filename;
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(a.href);
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }

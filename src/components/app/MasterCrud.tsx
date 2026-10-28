@@ -16,7 +16,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader, StatusBadge, Field } from "./ui";
 import { LoadingState, ErrorState, EmptyState, errorMessage } from "./states";
-import { maskAccount } from "@/lib/format";
+import { maskAccount, formatDate } from "@/lib/format";
+import { exportRows } from "@/lib/export";
 
 export type FieldDef = {
   name: string;
@@ -156,6 +157,16 @@ export function MasterCrud(p: Props) {
           <Input className="pl-8" placeholder="Search…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} />
         </div>
         {p.filters}
+        <Button type="button" variant="outline" disabled={q.isPending || q.isError} onClick={() => exportRows(p.title, [
+          [...p.fields.map((f) => f.label), "Status"],
+          ...rows.map((r) => [...p.fields.map((f) => {
+            const v = r[f.name];
+            if (f.sensitive) return maskAccount(v);
+            if (Array.isArray(v)) return v.join("; ");
+            if (f.type === "date") return v ? formatDate(v) : "";
+            return v == null ? "" : String(v);
+          }), r.is_active ? "Active" : "Archived"]),
+        ])}>Export CSV</Button>
         <select className="h-9 rounded-md border border-input bg-card px-2 text-sm" value={status} onChange={(e) => { setStatus(e.target.value as never); setPage(0); }}>
           <option value="active">Active</option><option value="archived">Archived</option><option value="all">All</option>
         </select>

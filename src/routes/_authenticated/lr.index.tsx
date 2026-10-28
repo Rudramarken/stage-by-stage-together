@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { selectCls } from "@/components/app/Section";
 import { lrVehicleNumber, lrVehicleLabel, lrProfitFromRow } from "@/lib/lr-summary";
 import { formatDate } from "@/lib/format";
+import { exportRows, money2 } from "@/lib/export";
 
 export const Route = createFileRoute("/_authenticated/lr/")({
   head: () => pageHead("LR / Bilty Register — Gokul Cargo Movers", "LR / Bilty Register records for Gokul Cargo Movers transport management."),
@@ -51,7 +52,12 @@ function LRList() {
   };
   return (
     <div>
-      <PageHeader title="LR / Bilty Register" actions={<Button asChild><Link to="/lr/new" search={{}}><Plus className="mr-1 h-4 w-4" />New LR</Link></Button>} />
+      <PageHeader title="LR / Bilty Register" actions={<div className="flex gap-2"><Button variant="outline" disabled={q.isPending || q.isError} onClick={() => exportRows("lr-bilty-register", [
+        ["LR No", "Date", "Status", "Delivery status", "Trip", "Vehicle number", "Driver", "Consignor(s)", "Consignee(s)", "Loading point", "Delivery point", "Freight type", "LR freight (INR)", "Freight payable (INR)", "Commission (INR)", "Profit (INR)"],
+        ...rows.map((l) => [l.lr_number, formatDate(l.lr_date), l.status, l.delivery_status, l.trips?.trip_number ?? "", lrVehicleNumber(l) ?? "", l.driver_name ?? "",
+          l.lr_parties.filter((p: any) => p.role === "consignor").map((p: any) => p.parties?.name).join("; "), l.lr_parties.filter((p: any) => p.role === "consignee").map((p: any) => p.parties?.name).join("; "),
+          l.loading_point ?? "", l.delivery_point ?? "", l.freight_type, money2(l.final_freight), money2(l.freight_payable), l.commission_enabled ? money2(l.commission_amount) : "", profitOf(l).profit == null ? "" : money2(profitOf(l).profit)]),
+      ])}>Export CSV</Button><Button asChild><Link to="/lr/new" search={{}}><Plus className="mr-1 h-4 w-4" />New LR</Link></Button></div>} />
       <div role="search" aria-label="Filter LR records" className="list-filters mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Input aria-label="Search LR records" className="sm:col-span-2" placeholder="Search LR no., party, vehicle number…" value={f.search} onChange={(e) => { setF({ ...f, search: e.target.value }); setPage(0); }} />
         <select aria-label="LR status" className={selectCls} value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })}><option value="active">Active</option><option value="cancelled">Cancelled</option><option value="">All</option></select>

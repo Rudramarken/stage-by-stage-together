@@ -2,8 +2,9 @@ import { useState, type ReactNode } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard, Users, Truck, UserRound, Route as RouteIcon, MapPinned, FileText, Wallet, HandCoins,
-  Handshake, BookOpen, BookUser, Scale, BarChart3, Settings, History, Menu, LogOut, ShieldCheck,
+  Handshake, BookOpen, BookUser, Scale, BarChart3, Settings, History, Menu, LogOut, ShieldCheck, Star,
 } from "lucide-react";
+import { useNavFavourites, allowedFavourites } from "@/lib/nav-favourites";
 import { supabase } from "@/integrations/supabase/client";
 import { useBusiness } from "@/lib/business";
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -32,20 +33,46 @@ export const NAV = [
 function NavList({ onNavigate }: { onNavigate?: () => void }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { role } = useBusiness();
+  const fav = useNavFavourites();
   const items = [...NAV, ...(role === "owner" ? [{ to: "/system-check", label: "System Check", icon: ShieldCheck }] as const : [])];
+  // Favourites are only a bookmark: a starred key that is not in this user's allowed menu is ignored.
+  const favKeys = allowedFavourites(fav.favourites, items.map((n) => n.to));
+  const favItems = items.filter((n) => favKeys.includes(n.to));
+  const restItems = items.filter((n) => !favKeys.includes(n.to));
+
+  const row = (n: (typeof items)[number]) => {
+    const active = path === n.to || path.startsWith(n.to + "/");
+    const Icon = n.icon;
+    const isFav = favKeys.includes(n.to);
+    return (
+      <div key={n.to} className={cn("group flex items-center rounded-md transition-colors", active ? "bg-sidebar-accent" : "hover:bg-sidebar-accent/60")}>
+        <Link to={n.to} onClick={onNavigate} aria-current={active ? "page" : undefined}
+          className={cn("flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-md px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+            active ? "text-sidebar-accent-foreground font-medium" : "text-sidebar-foreground")}>
+          <Icon aria-hidden="true" className={cn("h-4 w-4 shrink-0", active && "text-sidebar-primary")} /><span className="min-w-0">{n.label}</span>
+        </Link>
+        {fav.available && (
+          <button type="button" aria-pressed={isFav} aria-label={isFav ? `Remove ${n.label} from favourites` : `Add ${n.label} to favourites`}
+            title={isFav ? "Remove from favourites" : "Add to favourites"}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); fav.toggle(n.to, !isFav); }}
+            className="mr-1 flex h-11 w-9 shrink-0 items-center justify-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring">
+            <Star aria-hidden="true" className={cn("h-4 w-4", isFav ? "fill-yellow-400 text-yellow-400" : "text-sidebar-foreground/50 hover:text-sidebar-foreground")} />
+          </button>
+        )}
+      </div>
+    );
+  };
+
   return (
     <nav aria-label="Main navigation" className="flex flex-col gap-1 p-3">
-      {items.map((n) => {
-        const active = path === n.to || path.startsWith(n.to + "/");
-        const Icon = n.icon;
-        return (
-          <Link key={n.to} to={n.to} onClick={onNavigate} aria-current={active ? "page" : undefined}
-            className={cn("flex min-h-11 items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
-              active ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : "text-sidebar-foreground hover:bg-sidebar-accent/60")}>
-            <Icon aria-hidden="true" className={cn("h-4 w-4 shrink-0", active && "text-sidebar-primary")} /><span className="min-w-0">{n.label}</span>
-          </Link>
-        );
-      })}
+      {favItems.length > 0 && (
+        <>
+          <p className="px-3 pb-1 pt-1 text-xs font-semibold uppercase tracking-wide text-sidebar-foreground/70">Favourites</p>
+          {favItems.map(row)}
+          <div className="my-2 border-t border-sidebar-border" role="separator" />
+        </>
+      )}
+      {restItems.map(row)}
     </nav>
   );
 }

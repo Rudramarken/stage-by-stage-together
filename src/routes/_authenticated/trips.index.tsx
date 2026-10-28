@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { selectCls } from "@/components/app/Section";
 import { useDrivers, useTransporters, useVehicles, nameOf, TRIP_STATUS } from "@/lib/lookups";
 import { formatDate } from "@/lib/format";
+import { exportRows } from "@/lib/export";
 
 export const Route = createFileRoute("/_authenticated/trips/")({
   head: () => pageHead("Trips — Gokul Cargo Movers", "Trips records for Gokul Cargo Movers transport management."),
@@ -51,7 +52,12 @@ function TripsList() {
   return (
     <div>
       <PageHeader title="Trips" description="Every journey leg. Search by trip no., place, vehicle, driver, LR or party."
-        actions={<Button asChild><Link to="/trips/new"><Plus className="mr-1 h-4 w-4" />New trip</Link></Button>} />
+        actions={<div className="flex gap-2"><Button variant="outline" disabled={q.isPending || q.isError} onClick={() => exportRows("trips", [
+          ["Trip No", "Date", "Status", "Journey type", "Leg", "Route", "Vehicle", "Vehicle mode", "Transporter", "Driver", "LR count", "LR numbers"],
+          ...rows.map((t: any) => [t.trip_number, formatDate(t.trip_date), t.status, t.journey_type, t.leg_label ?? "", [...t.trip_stops].sort((a: any, b: any) => a.seq - b.seq).map((x: any) => x.location).join(" → "),
+            t.vehicle_mode === "own" ? nameOf(vehicles.data, t.vehicle_id, "registration_number") : t.market_vehicle_number ?? "", t.vehicle_mode, nameOf(transporters.data, t.transporter_id),
+            nameOf(drivers.data, t.driver_id) || t.driver_name || "", t.lrs.length, t.lrs.map((l: any) => l.lr_number).join("; ")]),
+        ])}>Export CSV</Button><Button asChild><Link to="/trips/new"><Plus className="mr-1 h-4 w-4" />New trip</Link></Button></div>} />
       <div role="search" aria-label="Filter trips" className="list-filters mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
         <Input aria-label="Search trips" className="sm:col-span-2" placeholder="Search trip, vehicle, driver, LR or party…" value={f.search} onChange={(e) => { setF({ ...f, search: e.target.value }); setPage(0); }} />
         <select aria-label="Trip status" className={selectCls} value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })}><option value="">All statuses</option>{Object.entries(TRIP_STATUS).map(([k, s]) => <option key={k} value={k}>{s.label}</option>)}</select>
