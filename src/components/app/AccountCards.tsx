@@ -1,4 +1,8 @@
-import { Landmark, Wallet } from "lucide-react";
+import { Landmark, Wallet, Plus, Pencil } from "lucide-react";
+import { useState } from "react";
+import { useBusiness } from "@/lib/business";
+import type { Tables } from "@/integrations/supabase/types";
+import { AccountDialog } from "./AccountDialog";
 import { Button } from "@/components/ui/button";
 import { Money, StatusBadge } from "./ui";
 import { ErrorState, LoadingState, errorMessage } from "./states";
@@ -20,6 +24,9 @@ export function sortAccounts<T extends Pick<AccountRow, "kind" | "display_name" 
 export function AccountCards({ selectedId, onView }: { selectedId?: string; onView: (accountId: string) => void }) {
   const accounts = useAccounts();
   const balances = useAccountBalances();
+  const { role } = useBusiness();
+  const canEdit = role === "owner" || role === "admin";
+  const [editing, setEditing] = useState<Tables<"payment_accounts"> | null | undefined>(undefined);
   if (accounts.isPending) return <LoadingState label="Loading accounts…" />;
   if (accounts.isError) return <ErrorState error={accounts.error} onRetry={() => accounts.refetch()} />;
   const bal = (id: string) => balances.data?.find((b) => b.account_id === id);
@@ -27,6 +34,7 @@ export function AccountCards({ selectedId, onView }: { selectedId?: string; onVi
   const total = (balances.data ?? []).reduce((s, b) => s + Number(b.balance), 0);
   return (
     <section aria-label="Cash and bank accounts" className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold">Accounts</h2>{canEdit && <Button onClick={() => setEditing(null)}><Plus aria-hidden="true" className="mr-2 h-4 w-4" />Add Bank Account</Button>}</div>
       {balances.isError && (
         <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm">
           <p className="font-medium text-destructive">Current balances could not be loaded</p>
@@ -59,6 +67,7 @@ export function AccountCards({ selectedId, onView }: { selectedId?: string; onVi
               </dl>
               {b && !used && <p className="text-xs text-muted-foreground">No transactions recorded on or after the opening date yet.</p>}
               <Button variant={a.id === selectedId ? "default" : "outline"} size="sm" className="mt-auto" onClick={() => onView(a.id)}>View transactions &amp; statement</Button>
+              {canEdit && <Button variant="outline" size="sm" onClick={() => setEditing(accounts.data.find((row) => row.id === a.id))}><Pencil aria-hidden="true" className="mr-2 h-4 w-4" />{a.kind === "cash" ? "Edit opening balance" : "Edit account & opening balance"}</Button>}
             </article>
           );
         })}
@@ -69,7 +78,8 @@ export function AccountCards({ selectedId, onView }: { selectedId?: string; onVi
           </div>
         )}
       </div>
-      {list.length === 0 && <p className="text-sm text-muted-foreground">No accounts found. Add bank accounts in Business Settings.</p>}
+      {list.length === 0 && <p className="text-sm text-muted-foreground">No accounts found.</p>}
+      {editing !== undefined && <AccountDialog key={editing?.id ?? "new"} account={editing} onClose={() => setEditing(undefined)} />}
     </section>
   );
 }
