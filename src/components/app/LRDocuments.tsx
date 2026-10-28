@@ -76,9 +76,9 @@ export function LRDocuments({ lrId, readOnly }: { lrId: string; readOnly?: boole
           <Button type="button" variant="outline" size="sm" disabled={upload.isPending} onClick={() => input.current?.click()}>{upload.isPending ? "Uploading…" : "Add Document"}</Button>
         </>}
       </div>
-      {err && <p role="alert" className="mb-2 rounded bg-destructive/10 p-2 text-destructive">{err}{/bucket|not found|relation|lr_documents|policy/i.test(err) ? " — document storage may not be set up yet (run migration 0017)." : ""}</p>}
+      {err && <p role="alert" className="mb-2 rounded bg-destructive/10 p-2 text-destructive">{err}{/bucket|not found|relation|lr_documents|policy/i.test(err) ? " — please try again." : ""}</p>}
       {q.isPending ? <p className="text-muted-foreground">Loading documents…</p>
-        : q.isError ? <p className="text-muted-foreground">Documents are not available yet ({errorMessage(q.error)}). The rest of the LR works normally; run migration 0017 to enable documents.</p>
+        : q.isError ? <p className="text-muted-foreground">Documents are not available yet ({errorMessage(q.error)}). The rest of the LR works normally.</p>
         : q.data.length === 0 ? <p className="text-muted-foreground">No documents added.</p>
         : <ul className="divide-y">{q.data.map((d) => (
           <li key={d.id} className="flex flex-wrap items-center gap-2 py-2">

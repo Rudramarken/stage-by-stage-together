@@ -76,9 +76,9 @@ export function TripDocuments({ tripId, readOnly }: { tripId: string; readOnly?:
           <Button type="button" variant="outline" size="sm" disabled={upload.isPending} onClick={() => input.current?.click()}>{upload.isPending ? "Uploading…" : "Add Document"}</Button>
         </>}
       </div>
-      {err && <p role="alert" className="mb-2 rounded bg-destructive/10 p-2 text-destructive">{err}{/bucket|not found|relation|trip_documents|policy/i.test(err) ? " — trip document storage may not be set up yet (run migration 0020)." : ""}</p>}
+      {err && <p role="alert" className="mb-2 rounded bg-destructive/10 p-2 text-destructive">{err}{/bucket|not found|relation|trip_documents|policy/i.test(err) ? " — please try again." : ""}</p>}
       {q.isPending ? <p className="text-muted-foreground">Loading documents…</p>
-        : q.isError ? <p className="text-muted-foreground">Trip documents are not available yet ({errorMessage(q.error)}). The rest of the trip works normally; run migration 0020 to enable documents.</p>
+        : q.isError ? <p className="text-muted-foreground">Trip documents are not available yet ({errorMessage(q.error)}). The rest of the trip works normally.</p>
         : q.data.length === 0 ? <p className="text-muted-foreground">No documents added.</p>
         : <ul className="divide-y">{q.data.map((d) => (
           <li key={d.id} className="flex flex-wrap items-center gap-2 py-2">

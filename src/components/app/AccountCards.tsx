@@ -69,7 +69,7 @@ export function AccountCards({ selectedId, onView }: { selectedId?: string; onVi
           </div>
         )}
       </div>
-      {list.length === 0 && <p className="text-sm text-muted-foreground">No accounts found. Run migration 0022 to create Cash and Cash Received by Narinder, and add bank accounts in Business Settings.</p>}
+      {list.length === 0 && <p className="text-sm text-muted-foreground">No accounts found. Add bank accounts in Business Settings.</p>}
     </section>
   );
 }

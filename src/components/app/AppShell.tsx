@@ -67,7 +67,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
     <nav aria-label="Main navigation" className="flex flex-col gap-1 p-3">
       {fav.loadError && (
         <p role="status" title={fav.loadError} className="mb-1 rounded-md border border-yellow-400/40 bg-yellow-400/10 px-3 py-2 text-xs text-sidebar-foreground">
-          Favourites cannot be saved yet: the database setup (migration 0023) is not applied. Stars will work after it is.
+          Favourites could not be loaded right now. Please refresh the page; if this keeps happening, tell your administrator.
         </p>
       )}
       {favItems.length > 0 && (
