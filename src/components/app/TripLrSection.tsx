@@ -55,7 +55,7 @@ export function TripLrSection({ tripId, drafts, setDrafts, linkIds, setLinkIds, 
         <div key={k} className="grid items-end gap-2 sm:grid-cols-12">
           <div className="sm:col-span-6"><Field label={side === "consignors" ? (k === 0 ? "Consignor" : `Consignor ${k + 1}`) : (k === 0 ? "Consignee" : `Consignee ${k + 1}`)} required>
             <SearchSelect value={p.party_id} onChange={(x) => updParty(i, side, k, { party_id: x })} options={partyOpts} placeholder="Choose or type new" allowClear={false} onCreate={createParty} createLabel="Create party" /></Field></div>
-          <div className="sm:col-span-4"><Field label="Freight (₹)" hint={side === "consignee" ? "Amount this party owes" : "Amount billed against this consignor"}>
+          <div className="sm:col-span-4"><Field label="Freight (₹)" hint={side === "consignees" ? "Amount this party owes" : "Amount billed against this consignor"}>
             <Input type="number" min="0" step="0.01" inputMode="decimal" value={p.freight_amount} onChange={(e) => updParty(i, side, k, { freight_amount: e.target.value })} /></Field></div>
           <div className="flex justify-end sm:col-span-2">
             <Button type="button" variant="ghost" size="icon" disabled={drafts[i][side].length <= 1} aria-label={`Remove ${side === "consignors" ? "consignor" : "consignee"} row`}

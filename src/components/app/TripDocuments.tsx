@@ -62,7 +62,7 @@ export function TripDocuments({ tripId, readOnly }: { tripId: string; readOnly?:
   });
   async function open(d: Doc, download: boolean) {
     const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(d.storage_path, 60, download ? { download: d.file_name } : undefined);
-    if (error || !data?.signedUrl) return toast.error(error ? errorMessage(error) : "Could not open the document");
+    if (error || !data?.signedUrl) { toast.error(error ? errorMessage(error) : "Could not open the document"); return; }
     if (download) { const a = document.createElement("a"); a.href = data.signedUrl; a.rel = "noopener"; document.body.appendChild(a); a.click(); a.remove(); }
     else window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   }
