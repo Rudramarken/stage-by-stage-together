@@ -1,5 +1,5 @@
 # Gokul Cargo Movers — roadmap
-- [ ] Uploaded accounting repair: trace transporter manual entries, verify bank creation/opening edits, preserve history and document results
+- [x] Uploaded accounting repair: manual credit/debit/edit/reload/reversal and bank creation/opening/receipt verified; 109 tests passed; test effects reversed and masters archived; current controls missing from published bundles (publication pending explicit request)
 - [x] Accounts: visible bank creation, validated opening-balance edits, signed-in create/edit/reload and receipt/reversal verified; 106 tests passed; test receipt reversed and test account/party archived
 - [x] Party-wise trip freight: transporter in Section 3; six independent fields; migrations 0024–0025 applied; signed-in save/edit/reload verified; 99 tests passed; test records removed
 - [x] Stage 1 Foundation
