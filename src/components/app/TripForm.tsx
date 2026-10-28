@@ -108,7 +108,7 @@ export function TripForm({ initial }: { initial?: TripValues }) {
         <div className="grid gap-4 sm:grid-cols-3">
           {v.vehicle_mode === "own" ? (
             <Field label="Gokul vehicle">
-              <SearchSelect value={v.vehicle_id} onChange={(x) => set("vehicle_id", x)} placeholder="Choose vehicle"
+              <SearchSelect value={v.vehicle_id} onChange={(x) => setV((p) => { const dr = vehicles.data?.find((y) => y.id === x)?.driver_id; return { ...p, vehicle_id: x, ...(dr && !p.driver_id && !String(p.driver_name ?? "").trim() ? { driver_id: dr } : {}) }; })} placeholder="Choose vehicle"
                 options={(vehicles.data ?? []).filter((x) => x.is_active || x.id === v.vehicle_id).map((x) => ({ value: x.id, label: x.registration_number, hint: x.vehicle_type ?? "" }))} />
             </Field>
           ) : (
