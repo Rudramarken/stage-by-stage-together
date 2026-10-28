@@ -11,6 +11,7 @@ export type TripLrDraft = {
   /** Freight payable to the trip's transporter for this LR. */
   freight_payable: string;
   transporter_weight?: string; transporter_rate?: string; transporter_shortage?: string; transporter_additions?: string; transporter_freight_date?: string;
+  transporter_shortage_reason?: string; transporter_additions_reason?: string;
   consignors: TripLrParty[]; consignees: TripLrParty[];
 };
 
@@ -42,6 +43,8 @@ export function validateTripLrs(drafts: TripLrDraft[]): string | null {
     if (isBlankTripLr(d)) continue;
     n++;
     const w = `LR / Bilty ${n}: `;
+    if (Number(d.transporter_shortage) > 0 && !d.transporter_shortage_reason?.trim()) return `${w}enter a reason for transporter shortage`;
+    if (Number(d.transporter_additions) > 0 && !d.transporter_additions_reason?.trim()) return `${w}enter a reason for transporter addition`;
     for (const p of [...d.consignors, ...d.consignees, { weight: d.transporter_weight, rate: d.transporter_rate, shortage: d.transporter_shortage, addition: d.transporter_additions, freight_date: d.transporter_freight_date }]) {
       for (const f of [p.weight, p.rate, p.shortage, p.addition]) {
         if (String(f ?? "").trim() && (!Number.isFinite(Number(f)) || Number(f) < 0)) return `${w}weight, rate, shortage and addition must be numbers of 0 or more`;
@@ -84,6 +87,7 @@ export function tripLrPayload(d: TripLrDraft, trip: { id: string; trip_date: str
     freight_payable: d.freight_payable === "" ? "0" : String(d.freight_payable),
     transporter_weight: d.transporter_weight ?? "", transporter_weight_unit: "kg", transporter_rate: d.transporter_rate ?? "", transporter_rate_unit: "",
     transporter_shortage: d.transporter_shortage ?? "", transporter_additions: d.transporter_additions ?? "", transporter_freight_date: d.transporter_freight_date ?? "",
+    transporter_shortage_reason: d.transporter_shortage_reason ?? "", transporter_additions_reason: d.transporter_additions_reason ?? "",
     direct_payment_enabled: false, commission_enabled: false, commission_mode: "percent", commission_status: "pending",
     goods_description: d.goods_description, loading_point: d.loading_point, delivery_point: d.delivery_point,
     parties: [...d.consignors.map((p, i) => row("consignor", p, i)), ...d.consignees.map((p, i) => row("consignee", p, i))],

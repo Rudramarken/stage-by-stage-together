@@ -82,6 +82,12 @@ export function TripForm({ initial, initialExpenses, initialAdvances }: { initia
         const { data, error } = await supabase.rpc("save_lr", { p: tripLrPayload(work[i], tripRef) as never });
         if (error) throw new Error(`LR / Bilty ${i + 1} was not saved: ${errorMessage(error)}`);
         work[i].savedId = data as string;
+        const savedParties = await supabase.from("lr_parties").select("id,role,seq").eq("lr_id", work[i].savedId).order("seq");
+        if (savedParties.error) throw savedParties.error;
+        for (const side of ["consignors", "consignees"] as const) {
+          const ids = savedParties.data.filter((p) => p.role === (side === "consignors" ? "consignor" : "consignee"));
+          work[i][side] = work[i][side].map((p, j) => ({ ...p, id: ids[j]?.id }));
+        }
       }
       const remaining = [...linkIds];
       for (const id of linkIds) {

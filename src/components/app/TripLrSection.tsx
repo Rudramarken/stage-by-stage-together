@@ -128,6 +128,8 @@ export function TripLrSection({ tripId, drafts, setDrafts, linkIds, setLinkIds, 
             {PartyRows({ i, side: "consignees" })}
             <div className="space-y-2">
               <h3 className="text-sm font-semibold">Transporter · {transporterName || "Not chosen"}</h3>
+              {Number(d.transporter_shortage) > 0 && <Field label="Reason for transporter shortage" required><Input value={d.transporter_shortage_reason ?? ""} onChange={(e) => upd(i, { transporter_shortage_reason: e.target.value })} /></Field>}
+              {Number(d.transporter_additions) > 0 && <Field label="Reason for transporter addition" required><Input value={d.transporter_additions_reason ?? ""} onChange={(e) => upd(i, { transporter_additions_reason: e.target.value })} /></Field>}
               <PartyFreightFields label="Transporter" values={{ weight: d.transporter_weight, rate: d.transporter_rate, freight_amount: d.freight_payable, shortage: d.transporter_shortage, addition: d.transporter_additions, freight_date: d.transporter_freight_date }} onChange={(p) => upd(i, { ...(p.weight !== undefined ? { transporter_weight: p.weight } : {}), ...(p.rate !== undefined ? { transporter_rate: p.rate } : {}), ...(p.freight_amount !== undefined ? { freight_payable: p.freight_amount } : {}), ...(p.shortage !== undefined ? { transporter_shortage: p.shortage } : {}), ...(p.addition !== undefined ? { transporter_additions: p.addition } : {}), ...(p.freight_date !== undefined ? { transporter_freight_date: p.freight_date } : {}) })} />
             </div>
             <p className="text-sm">LR freight (sum of the party freights): <b><Money value={tripLrFreightTotal(d)} /></b></p>
