@@ -13,6 +13,8 @@ import { LoadingState, ErrorState, errorMessage } from "@/components/app/states"
 import { Section, selectCls } from "@/components/app/Section";
 import { TripExpenses, TripAdvances } from "@/components/app/MoneyEditors";
 import { CommissionPanel } from "@/components/app/CommissionPanel";
+import { TripProfit } from "@/components/app/TripProfit";
+import { TripDocuments } from "@/components/app/TripDocuments";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useDrivers, useTransporters, useVehicles, nameOf, TRIP_STATUS, LR_DELIVERY, FREIGHT_TYPE } from "@/lib/lookups";
@@ -23,7 +25,7 @@ export const Route = createFileRoute("/_authenticated/trips/$id/")({
   component: TripDetail,
 });
 
-type LegData = { trip: any; lrs: any[]; expenses: any[]; advances: any[]; commissions: any[] };
+type LegData = { trip: any; lrs: any[]; expenses: any[]; advances: any[]; commissions: any[]; payments: any[] };
 
 async function loadFamily(id: string) {
   const { data: t, error } = await supabase.from("trips").select("id, parent_trip_id").eq("id", id).single();
@@ -32,12 +34,13 @@ async function loadFamily(id: string) {
   const { data: trips, error: e2 } = await supabase.from("trips").select("*, trip_stops(*)").or(`id.eq.${root},parent_trip_id.eq.${root}`).order("created_at");
   if (e2) throw e2;
   const ids = trips.map((x) => x.id);
-  const [lrs, exps, advs] = await Promise.all([
+  const [lrs, exps, advs, pays] = await Promise.all([
     supabase.from("lrs").select("*, lr_parties(*, parties(name))").in("trip_id", ids).order("lr_number"),
     supabase.from("expenses").select("*").in("trip_id", ids).eq("is_cancelled", false),
     supabase.from("advances").select("*").in("trip_id", ids).eq("is_cancelled", false),
+    supabase.from("payments").select("id, trip_id, payment_type, amount, is_reversed").in("trip_id", ids).eq("is_reversed", false),
   ]);
-  for (const r of [lrs, exps, advs]) if (r.error) throw r.error;
+  for (const r of [lrs, exps, advs, pays]) if (r.error) throw r.error;
   // expenses attached to LRs of these trips (consignor/consignee), fetched by lr_id too
   const lrIds = (lrs.data ?? []).map((l) => l.id);
   const lrExp = lrIds.length ? await supabase.from("expenses").select("*").in("lr_id", lrIds).eq("is_cancelled", false) : { data: [], error: null };
@@ -54,6 +57,7 @@ async function loadFamily(id: string) {
       lrs: legLrs,
       expenses: [...allExp.values()].filter((e) => (e.scope === "trip" && e.trip_id === tr.id) || (e.lr_id && legLrIds.has(e.lr_id))),
       advances: (advs.data ?? []).filter((a) => a.trip_id === tr.id),
+      payments: (pays.data ?? []).filter((p) => p.trip_id === tr.id),
       commissions: (commissions ?? []).filter((c) => c.trip_id === tr.id || (c.lr_id && legLrIds.has(c.lr_id))),
     };
   });
@@ -111,7 +115,7 @@ function SummaryGrid({ s, label }: { s: ReturnType<typeof summarize>; label: str
           </div>
         ))}
       </div>
-      <p className="mt-2 text-xs text-muted-foreground">These figures are kept separate on purpose. No "profit" is calculated.</p>
+      <p className="mt-2 text-xs text-muted-foreground">These figures are kept separate on purpose; the provisional profit above combines them using the rules listed there.</p>
     </div>
   );
 }
@@ -227,8 +231,12 @@ function TripDetail() {
       <Section title="Advances (driver / transporter / truck owner)"><TripAdvances tripId={id} defaultDriverId={t.driver_id} defaultTransporterId={t.transporter_id} /></Section>
       <Section title="Trip commission"><CommissionPanel tripId={id} />{leg.lrs.filter((l) => l.commission_enabled).map((l) => <CommissionPanel key={l.id} lrId={l.id} />)}</Section>
 
+      <TripDocuments tripId={id} />
+
       <Section title="Trip summary">
         <div className="space-y-6">
+          <TripProfit legs={[leg]} label={`Profit — this leg (${t.trip_number})`} />
+          {others.length > 0 && <TripProfit legs={q.data.legs} label={`Profit — round-trip total, all ${q.data.legs.length} legs`} />}
           <SummaryGrid s={summarize([leg])} label={`This leg (${t.trip_number})`} />
           {others.length > 0 && <SummaryGrid s={summarize(q.data.legs)} label={`Round-trip totals — all ${q.data.legs.length} legs added once each`} />}
         </div>

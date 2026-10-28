@@ -34,7 +34,8 @@ export const PAYMENT_TYPE: Record<string, string> = {
   customer_receipt: "Customer Receipt", transporter_payment: "Transporter/Supplier Payment", advance_paid: "Advance Paid",
   advance_received: "Advance Received", third_party_receipt: "Third-Party Receipt",
 };
-export const EXPENSE_CATEGORIES = ["Diesel/Fuel", "Toll", "Driver Food", "Loading/Unloading", "Parking", "Repairs", "Other"];
+// The first four are the fixed trip-form categories. The older names stay so records saved earlier still show correctly.
+export const EXPENSE_CATEGORIES = ["TOLL TAX", "CNG", "FOOD", "POLICE", "Diesel/Fuel", "Toll", "Driver Food", "Loading/Unloading", "Loading", "Unloading", "Parking", "Repairs", "Other"];
 export const PAY_MODES = [{ value: "cash", label: "Cash" }, { value: "upi", label: "UPI" }, { value: "neft", label: "NEFT/RTGS/IMPS" }, { value: "cheque", label: "Cheque" }, { value: "other", label: "Other" }];
 
 export async function createPartyInline(name: string, role: string): Promise<string> {
