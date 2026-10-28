@@ -776,12 +776,64 @@ export type Database = {
           },
         ]
       }
+      lr_documents: {
+        Row: {
+          business_id: string
+          created_at: string
+          created_by: string | null
+          file_name: string
+          id: string
+          lr_id: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          created_by?: string | null
+          file_name: string
+          id?: string
+          lr_id: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          created_by?: string | null
+          file_name?: string
+          id?: string
+          lr_id?: string
+          mime_type?: string
+          size_bytes?: number
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_documents_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_documents_lr_id_fkey"
+            columns: ["lr_id"]
+            isOneToOne: false
+            referencedRelation: "lrs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lr_parties: {
         Row: {
           business_id: string
           created_at: string
           created_by: string | null
           delivery_point: string | null
+          freight_amount: number | null
           goods_description: string | null
           id: string
           loading_point: string | null
@@ -797,6 +849,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           delivery_point?: string | null
+          freight_amount?: number | null
           goods_description?: string | null
           id?: string
           loading_point?: string | null
@@ -812,6 +865,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           delivery_point?: string | null
+          freight_amount?: number | null
           goods_description?: string | null
           id?: string
           loading_point?: string | null
@@ -888,9 +942,13 @@ export type Database = {
           rate: number | null
           rate_unit: string
           status: string
+          transporter_additions: number | null
+          transporter_additions_reason: string | null
           transporter_id: string | null
           transporter_rate: number | null
           transporter_rate_unit: string | null
+          transporter_shortage: number | null
+          transporter_shortage_reason: string | null
           transporter_weight: number | null
           transporter_weight_unit: string | null
           trip_id: string | null
@@ -942,9 +1000,13 @@ export type Database = {
           rate?: number | null
           rate_unit?: string
           status?: string
+          transporter_additions?: number | null
+          transporter_additions_reason?: string | null
           transporter_id?: string | null
           transporter_rate?: number | null
           transporter_rate_unit?: string | null
+          transporter_shortage?: number | null
+          transporter_shortage_reason?: string | null
           transporter_weight?: number | null
           transporter_weight_unit?: string | null
           trip_id?: string | null
@@ -996,9 +1058,13 @@ export type Database = {
           rate?: number | null
           rate_unit?: string
           status?: string
+          transporter_additions?: number | null
+          transporter_additions_reason?: string | null
           transporter_id?: string | null
           transporter_rate?: number | null
           transporter_rate_unit?: string | null
+          transporter_shortage?: number | null
+          transporter_shortage_reason?: string | null
           transporter_weight?: number | null
           transporter_weight_unit?: string | null
           trip_id?: string | null

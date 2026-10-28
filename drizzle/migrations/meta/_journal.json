@@ -120,6 +120,13 @@
       "when": 1793040000003,
       "tag": "0016_transporter_add_shortage_and_direct_payment_label",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793183329124,
+      "tag": "0017_lr_party_freight_unit_documents",
+      "breakpoints": true
     }
   ]
 }
