@@ -1,4 +1,5 @@
 # Gokul Cargo Movers — roadmap
+- [ ] Party-wise trip freight: move transporter to Section 3; independent six fields; additive persistence; save/edit/reload regression checks
 - [x] Stage 1 Foundation
 - [x] Stage 2 Masters
 - [x] Stage 3 Trips (stops, legs/round trip, stop-by-stop delivery)
