@@ -776,12 +776,64 @@ export type Database = {
           },
         ]
       }
+      lr_documents: {
+        Row: {
+          business_id: string
+          created_at: string
+          created_by: string | null
+          file_name: string
+          id: string
+          lr_id: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          created_by?: string | null
+          file_name: string
+          id?: string
+          lr_id: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          created_by?: string | null
+          file_name?: string
+          id?: string
+          lr_id?: string
+          mime_type?: string
+          size_bytes?: number
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lr_documents_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lr_documents_lr_id_fkey"
+            columns: ["lr_id"]
+            isOneToOne: false
+            referencedRelation: "lrs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lr_parties: {
         Row: {
           business_id: string
           created_at: string
           created_by: string | null
           delivery_point: string | null
+          freight_amount: number | null
           goods_description: string | null
           id: string
           loading_point: string | null
@@ -797,6 +849,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           delivery_point?: string | null
+          freight_amount?: number | null
           goods_description?: string | null
           id?: string
           loading_point?: string | null
@@ -812,6 +865,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           delivery_point?: string | null
+          freight_amount?: number | null
           goods_description?: string | null
           id?: string
           loading_point?: string | null
@@ -888,9 +942,13 @@ export type Database = {
           rate: number | null
           rate_unit: string
           status: string
+          transporter_additions: number | null
+          transporter_additions_reason: string | null
           transporter_id: string | null
           transporter_rate: number | null
           transporter_rate_unit: string | null
+          transporter_shortage: number | null
+          transporter_shortage_reason: string | null
           transporter_weight: number | null
           transporter_weight_unit: string | null
           trip_id: string | null
@@ -942,9 +1000,13 @@ export type Database = {
           rate?: number | null
           rate_unit?: string
           status?: string
+          transporter_additions?: number | null
+          transporter_additions_reason?: string | null
           transporter_id?: string | null
           transporter_rate?: number | null
           transporter_rate_unit?: string | null
+          transporter_shortage?: number | null
+          transporter_shortage_reason?: string | null
           transporter_weight?: number | null
           transporter_weight_unit?: string | null
           trip_id?: string | null
@@ -996,9 +1058,13 @@ export type Database = {
           rate?: number | null
           rate_unit?: string
           status?: string
+          transporter_additions?: number | null
+          transporter_additions_reason?: string | null
           transporter_id?: string | null
           transporter_rate?: number | null
           transporter_rate_unit?: string | null
+          transporter_shortage?: number | null
+          transporter_shortage_reason?: string | null
           transporter_weight?: number | null
           transporter_weight_unit?: string | null
           trip_id?: string | null
@@ -1142,6 +1208,69 @@ export type Database = {
           },
         ]
       }
+      party_manual_entries: {
+        Row: {
+          amount: number
+          business_id: string
+          created_at: string
+          created_by: string | null
+          entry_date: string
+          entry_side: string
+          id: string
+          is_reversed: boolean
+          notes: string
+          party_id: string
+          reference: string | null
+          reversal_reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          business_id: string
+          created_at?: string
+          created_by?: string | null
+          entry_date: string
+          entry_side: string
+          id: string
+          is_reversed?: boolean
+          notes: string
+          party_id: string
+          reference?: string | null
+          reversal_reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          business_id?: string
+          created_at?: string
+          created_by?: string | null
+          entry_date?: string
+          entry_side?: string
+          id?: string
+          is_reversed?: boolean
+          notes?: string
+          party_id?: string
+          reference?: string | null
+          reversal_reason?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "party_manual_entries_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "party_manual_entries_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_accounts: {
         Row: {
           account_holder: string | null
@@ -1157,6 +1286,7 @@ export type Database = {
           kind: string
           opening_balance: number
           opening_date: string | null
+          system_key: string | null
           updated_at: string
         }
         Insert: {
@@ -1173,6 +1303,7 @@ export type Database = {
           kind?: string
           opening_balance?: number
           opening_date?: string | null
+          system_key?: string | null
           updated_at?: string
         }
         Update: {
@@ -1189,6 +1320,7 @@ export type Database = {
           kind?: string
           opening_balance?: number
           opening_date?: string | null
+          system_key?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1576,6 +1708,69 @@ export type Database = {
           },
         ]
       }
+      transporter_manual_entries: {
+        Row: {
+          amount: number
+          business_id: string
+          created_at: string
+          created_by: string | null
+          direction: string
+          entry_date: string
+          id: string
+          is_reversed: boolean
+          notes: string
+          reference: string | null
+          reversal_reason: string | null
+          transporter_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          business_id: string
+          created_at?: string
+          created_by?: string | null
+          direction: string
+          entry_date: string
+          id: string
+          is_reversed?: boolean
+          notes: string
+          reference?: string | null
+          reversal_reason?: string | null
+          transporter_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          business_id?: string
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          entry_date?: string
+          id?: string
+          is_reversed?: boolean
+          notes?: string
+          reference?: string | null
+          reversal_reason?: string | null
+          transporter_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transporter_manual_entries_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transporter_manual_entries_transporter_id_fkey"
+            columns: ["transporter_id"]
+            isOneToOne: false
+            referencedRelation: "transporters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transporters: {
         Row: {
           business_id: string
@@ -1586,6 +1781,9 @@ export type Database = {
           name: string
           name_normalized: string | null
           notes: string | null
+          opening_balance: number
+          opening_date: string | null
+          opening_type: string
           party_id: string | null
           phone: string | null
           updated_at: string
@@ -1599,6 +1797,9 @@ export type Database = {
           name: string
           name_normalized?: string | null
           notes?: string | null
+          opening_balance?: number
+          opening_date?: string | null
+          opening_type?: string
           party_id?: string | null
           phone?: string | null
           updated_at?: string
@@ -1612,6 +1813,9 @@ export type Database = {
           name?: string
           name_normalized?: string | null
           notes?: string | null
+          opening_balance?: number
+          opening_date?: string | null
+          opening_type?: string
           party_id?: string | null
           phone?: string | null
           updated_at?: string
@@ -1629,6 +1833,57 @@ export type Database = {
             columns: ["party_id"]
             isOneToOne: false
             referencedRelation: "parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trip_documents: {
+        Row: {
+          business_id: string
+          created_at: string
+          created_by: string | null
+          file_name: string
+          id: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+          trip_id: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          created_by?: string | null
+          file_name: string
+          id?: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+          trip_id: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          created_by?: string | null
+          file_name?: string
+          id?: string
+          mime_type?: string
+          size_bytes?: number
+          storage_path?: string
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_documents_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_documents_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
             referencedColumns: ["id"]
           },
         ]
@@ -1837,12 +2092,48 @@ export type Database = {
           },
         ]
       }
+      user_nav_favourites: {
+        Row: {
+          business_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          nav_key: string
+          user_id: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nav_key: string
+          user_id?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nav_key?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_nav_favourites_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vehicles: {
         Row: {
           business_id: string
           capacity: string | null
           created_at: string
           created_by: string | null
+          driver_id: string | null
           id: string
           is_active: boolean
           notes: string | null
@@ -1856,6 +2147,7 @@ export type Database = {
           capacity?: string | null
           created_at?: string
           created_by?: string | null
+          driver_id?: string | null
           id?: string
           is_active?: boolean
           notes?: string | null
@@ -1869,6 +2161,7 @@ export type Database = {
           capacity?: string | null
           created_at?: string
           created_by?: string | null
+          driver_id?: string | null
           id?: string
           is_active?: boolean
           notes?: string | null
@@ -1883,6 +2176,13 @@ export type Database = {
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicles_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
             referencedColumns: ["id"]
           },
         ]
@@ -1907,6 +2207,26 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      account_movements: {
+        Row: {
+          account_id: string | null
+          amount: number | null
+          business_id: string | null
+          created_at: string | null
+          description: string | null
+          direction: string | null
+          driver_id: string | null
+          movement_date: string | null
+          other_name: string | null
+          party_id: string | null
+          reference: string | null
+          source_id: string | null
+          source_table: string | null
+          source_type: string | null
+          transporter_id: string | null
+        }
+        Relationships: []
       }
       commission_balances: {
         Row: {
@@ -1969,6 +2289,26 @@ export type Database = {
       }
     }
     Functions: {
+      account_balances_as_of: {
+        Args: { p_as_of?: string }
+        Returns: {
+          account_id: string
+          balance: number
+          entries_before_opening: number
+          opening_balance: number
+          opening_date: string
+          payments: number
+          receipts: number
+        }[]
+      }
+      account_unassigned_outflows: {
+        Args: never
+        Returns: {
+          amount: number
+          entries: number
+          source: string
+        }[]
+      }
       current_business_id: { Args: never; Returns: string }
       get_or_create_transporter: { Args: { p_name: string }; Returns: string }
       get_or_create_transporter_for_party: {
@@ -2044,8 +2384,59 @@ export type Database = {
         Args: { p_id: string; p_reason: string }
         Returns: undefined
       }
+      reverse_party_manual_entry: {
+        Args: { p_id: string; p_reason: string }
+        Returns: undefined
+      }
+      reverse_transporter_manual_entry: {
+        Args: { p_id: string; p_reason: string }
+        Returns: undefined
+      }
       save_lr: { Args: { p: Json }; Returns: string }
+      save_party_manual_entry: {
+        Args: {
+          p_amount: number
+          p_date: string
+          p_id: string
+          p_notes: string
+          p_party_id: string
+          p_reference: string
+          p_side: string
+        }
+        Returns: string
+      }
+      save_payment: { Args: { p: Json }; Returns: string }
+      save_transporter_manual_entry: {
+        Args: {
+          p_amount: number
+          p_date: string
+          p_direction: string
+          p_id: string
+          p_notes: string
+          p_reference: string
+          p_transporter_id: string
+        }
+        Returns: string
+      }
       save_trip: { Args: { p: Json }; Returns: string }
+      set_party_opening: {
+        Args: {
+          p_amount: number
+          p_date: string
+          p_party_id: string
+          p_type: string
+        }
+        Returns: undefined
+      }
+      set_transporter_opening: {
+        Args: {
+          p_amount: number
+          p_date: string
+          p_transporter_id: string
+          p_type: string
+        }
+        Returns: undefined
+      }
       setup_available: { Args: never; Returns: boolean }
       system_rls_status: {
         Args: never

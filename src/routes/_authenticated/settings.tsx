@@ -61,7 +61,7 @@ function AccountsTab() {
         the opening balance is the balance at the start of that date and is counted once. Balance = opening balance + receipts − payments recorded on or after that date (reversed and cancelled entries ignored).
         {!canEdit && " Only an Owner or Admin can add or change accounts."}
       </p>
-      {balances.isError && <p role="alert" className="mb-3 rounded bg-destructive/10 p-2 text-sm text-destructive">Could not load balances: {errorMessage(balances.error)}. If this is a new setup, run migration 0022 first.</p>}
+      {balances.isError && <p role="alert" className="mb-3 rounded bg-destructive/10 p-2 text-sm text-destructive">Could not load balances: {errorMessage(balances.error)}.</p>}
       {balances.data && <p className="mb-3 text-sm">Total cash + bank (sum of all accounts below): <b>{formatINR(total)}</b></p>}
       {unassigned.data && unassigned.data.length > 0 && (
         <p role="status" className="mb-3 rounded border border-warning/40 bg-warning/10 p-2 text-sm">

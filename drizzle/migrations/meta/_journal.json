@@ -120,6 +120,55 @@
       "when": 1793040000003,
       "tag": "0016_transporter_add_shortage_and_direct_payment_label",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793183329124,
+      "tag": "0017_lr_party_freight_unit_documents",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793183406286,
+      "tag": "0018_vehicle_driver_trip_expenses_trip_documents",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793183458340,
+      "tag": "0019_transporter_opening_and_manual_entries",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793183525165,
+      "tag": "0020_cash_accounts_balances_save_payment",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793183574932,
+      "tag": "0021_nav_favourites_party_manual_entries",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1793184142892,
+      "tag": "0022_fix_trip_save_commission_source",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793184265277,
+      "tag": "0023_restrict_function_execute_to_signed_in",
+      "breakpoints": true
     }
   ]
 }
