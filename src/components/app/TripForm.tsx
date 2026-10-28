@@ -119,7 +119,7 @@ export function TripForm({ initial, initialExpenses, initialAdvances }: { initia
         </div>
       </Section>
 
-      <Section n={2} title="Vehicle, transporter & driver">
+      <Section n={2} title="Vehicle & Driver">
         <div className="mb-4 flex gap-4 text-sm">
           <label className="flex items-center gap-2"><input type="radio" checked={v.vehicle_mode === "own"} onChange={() => set("vehicle_mode", "own")} />Gokul vehicle</label>
           <label className="flex items-center gap-2"><input type="radio" checked={v.vehicle_mode === "market"} onChange={() => set("vehicle_mode", "market")} />Market truck (type manually)</label>
@@ -136,9 +136,6 @@ export function TripForm({ initial, initialExpenses, initialAdvances }: { initia
               <Field label="Vehicle name/type"><Input value={v.market_vehicle_type ?? ""} onChange={(e) => set("market_vehicle_type", e.target.value)} /></Field>
             </>
           )}
-          <Field label="Transporter" hint="Type a new name to add it once">
-            <TransporterSelect value={v.transporter_id} onChange={(x) => set("transporter_id", x)} />
-          </Field>
           <Field label="Registered driver">
             <SearchSelect value={v.driver_id} onChange={(x) => setV({ ...v, driver_id: x, driver_name: "" })} placeholder="Choose driver"
               options={(drivers.data ?? []).filter((x) => x.is_active || x.id === v.driver_id).map((x) => ({ value: x.id, label: x.name, hint: x.phone ?? "" }))} />
@@ -147,7 +144,8 @@ export function TripForm({ initial, initialExpenses, initialAdvances }: { initia
         </div>
       </Section>
 
-      <Section n={3} title={`Consignor, consignee & LR / Bilty${lrCount > 0 ? ` · ${lrCount} to save` : ""}`}>
+      <Section n={3} title={`Consignor, Consignee & Transporter${lrCount > 0 ? ` · ${lrCount} LR / Bilties to save` : ""}`}>
+        <div className="mb-4"><Field label="Transporter" hint="Type a new name to add it once"><TransporterSelect value={v.transporter_id} onChange={(x) => set("transporter_id", x)} /></Field></div>
         <TripLrSection tripId={initial?.id} drafts={lrDrafts} setDrafts={setLrDrafts} linkIds={linkIds} setLinkIds={setLinkIds} transporterName={transporterName} vehicleLabel={vehicleLabel} />
       </Section>
       <Section n={4} title={`Trip expenses${expTotal > 0 ? ` · ${formatINR(expTotal)}` : ""}`}>
@@ -202,7 +200,7 @@ export function TripForm({ initial, initialExpenses, initialAdvances }: { initia
       </Section>
       <Section n={5} title={`Driver advance${advTotal > 0 ? ` · ${formatINR(advTotal)}` : ""}`}>
         <p className="mb-3 text-sm text-muted-foreground">Money given to the driver for this trip. It goes to the driver ledger and is kept separate from trip expenses. Saving again updates the same advance; it never creates a second one. Advances to a transporter or truck owner are recorded on the trip page.</p>
-        {!v.driver_id && adv.some((r) => !r.saved) && <p className="mb-3 rounded bg-warning/20 p-2 text-sm">Choose a registered driver in "Vehicle, transporter & driver" - an advance to a typed driver name cannot reach a driver ledger.</p>}
+        {!v.driver_id && adv.some((r) => !r.saved) && <p className="mb-3 rounded bg-warning/20 p-2 text-sm">Choose a registered driver in "Vehicle & Driver" - an advance to a typed driver name cannot reach a driver ledger.</p>}
         {adv.length === 0 && <p className="text-sm text-muted-foreground">No driver advance entered.</p>}
         <div className="space-y-3">
           {adv.map((r, i) => {
