@@ -162,6 +162,13 @@
       "when": 1793184142892,
       "tag": "0022_fix_trip_save_commission_source",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793184265277,
+      "tag": "0023_restrict_function_execute_to_signed_in",
+      "breakpoints": true
     }
   ]
 }
