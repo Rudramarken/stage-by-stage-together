@@ -11,7 +11,7 @@ export const SCHEMA_COLUMNS: Record<string, string[]> = {
   drivers: ["id", "name", "phone", "licence_number", "joining_date", "address", "notes", "salary_amount", "salary_frequency", "is_active"],
   vehicles: ["id", "registration_number", "registration_normalized", "vehicle_type", "capacity", "notes", "is_active"],
   routes: ["id", "origin", "destination", "distance_km", "notes", "is_active"],
-  transporters: ["id", "name", "name_normalized", "phone", "notes", "party_id", "is_active"],
+  transporters: ["id", "name", "name_normalized", "phone", "notes", "party_id", "is_active", "opening_balance", "opening_type", "opening_date"],
   payment_accounts: ["id", "kind", "display_name", "bank_name", "account_holder", "account_number", "ifsc", "is_active", "opening_balance", "opening_date"],
   trips: ["id", "trip_number", "trip_date", "journey_type", "direction", "status", "parent_trip_id", "leg_label", "vehicle_mode", "vehicle_id", "market_vehicle_number", "market_vehicle_type", "transporter_id", "driver_id", "driver_name", "notes", "cancel_reason"],
   trip_stops: ["id", "trip_id", "seq", "location", "stop_type", "planned_arrival", "actual_arrival", "status", "notes"],
@@ -26,6 +26,7 @@ export const SCHEMA_COLUMNS: Record<string, string[]> = {
   salary_payments: ["id", "driver_id", "salary_entry_id", "payment_date", "amount", "recovered_advance", "recovered_commission", "payment_method", "account_id", "reference", "is_reversed"],
   driver_commissions: ["id", "business_id", "driver_id", "transporter_id", "lr_id", "trip_id", "amount", "commission_date", "reference", "notes", "is_cancelled", "cancel_reason"],
   commission_receipts: ["id", "business_id", "commission_id", "driver_id", "transporter_id", "amount", "receipt_date", "account_id", "salary_payment_id", "request_id", "reference", "notes", "is_reversed", "reversal_reason"],
+  transporter_manual_entries: ["id", "business_id", "transporter_id", "entry_date", "direction", "amount", "reference", "notes", "is_reversed", "reversal_reason"],
   commission_balances: ["id", "driver_id", "transporter_id", "lr_id", "trip_id", "amount", "received_amount", "pending_amount", "cash_received_amount", "document_number", "is_cancelled", "cancel_reason", "commission_date"],
 };
 SCHEMA_COLUMNS.lrs.push("driver_id", "commission_cancel_reason", "commission_reference", "commission_notes");

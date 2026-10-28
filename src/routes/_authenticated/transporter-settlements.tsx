@@ -16,6 +16,10 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useTransporters } from "@/lib/lookups";
 import { formatDate } from "@/lib/format";
+import { Input } from "@/components/ui/input";
+import { useBusiness } from "@/lib/business";
+import { OpeningBalanceDialog, ManualEntryDialog, ManualEntriesList } from "@/components/app/TransporterLedgerTools";
+import { summarizeTransporterLines, remainingLabel, type LedgerLine, type TransporterSummary } from "@/lib/transporter-ledger";
 
 export const Route = createFileRoute("/_authenticated/transporter-settlements")({
   head: () => pageHead("Transporter Settlements — Gokul Cargo Movers", "Transporter Settlements records for Gokul Cargo Movers transport management."),
@@ -34,20 +38,33 @@ function Settlements() {
   const transporters = useTransporters();
   const [tid, setTid] = useState("");
   const [pay, setPay] = useState(false);
+  const { role } = useBusiness();
+  const canEdit = role === "owner" || role === "admin";
+  const [openingDlg, setOpeningDlg] = useState(false);
+  const [manualDlg, setManualDlg] = useState(false);
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const bal = useQuery({
     queryKey: ["settlements", "balances"],
     queryFn: async () => {
       const { data, error } = await supabase.from("ledger_entries").select("account_id, debit, credit, line_kind").eq("account_type", "transporter");
       if (error) throw error;
-      const m = new Map<string, { payable: number; settled: number; commission: number }>();
-      for (const r of data) {
-        const x = m.get(r.account_id) ?? { payable: 0, settled: 0, commission: 0 };
-        // Commission is money Gokul has to RECEIVE from the transporter - shown separately, never mixed into freight payable/settled.
-        if (String(r.line_kind ?? "").startsWith("commission")) x.commission += Number(r.debit) - Number(r.credit);
-        else { x.payable += Number(r.credit); x.settled += Number(r.debit); }
-        m.set(r.account_id, x);
-      }
+      const lines = new Map<string, LedgerLine[]>();
+      for (const r of data) { const a = lines.get(r.account_id) ?? []; a.push(r); lines.set(r.account_id, a); }
+      const m = new Map<string, TransporterSummary>();
+      for (const [id, l] of lines) m.set(id, summarizeTransporterLines(l));
       return m;
+    },
+  });
+  const com = useQuery({
+    queryKey: ["settlements", "commission", tid],
+    enabled: !!tid,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("commission_balances").select("amount, received_amount, pending_amount, is_cancelled").eq("transporter_id", tid);
+      if (error) throw error;
+      const live = (data as any[]).filter((c) => !c.is_cancelled);
+      const sum = (k: string) => live.reduce((s, c) => s + Number(c[k] ?? 0), 0);
+      return { earned: sum("amount"), received: sum("received_amount"), pending: sum("pending_amount") };
     },
   });
   const detail = useQuery({
@@ -60,7 +77,7 @@ function Settlements() {
     },
   });
   const t = transporters.data?.find((x) => x.id === tid);
-  const tb = bal.data?.get(tid) ?? { payable: 0, settled: 0, commission: 0 };
+  const tb = bal.data?.get(tid) ?? EMPTY;
   return (
     <div className="space-y-4">
       <PageHeader title="Transporter Settlements" description="Freight payable vs. advances and payments, per transporter (including names typed on trips/LRs)."
@@ -70,23 +87,35 @@ function Settlements() {
         bal.isPending || transporters.isPending ? <LoadingState /> : bal.isError ? <ErrorState error={bal.error} onRetry={() => bal.refetch()} /> :
           (transporters.data ?? []).length === 0 ? <EmptyState title="No transporters yet" hint="They are added when you type one on a trip or LR." /> : (
             <div className="overflow-x-auto rounded-lg border bg-card"><Table>
-              <TableHeader><TableRow><TableHead>Transporter</TableHead><TableHead className="text-right">Freight payable</TableHead><TableHead className="text-right">Advances + payments + direct</TableHead><TableHead className="text-right">Remaining</TableHead><TableHead className="text-right">Commission to receive</TableHead><TableHead>Status</TableHead><TableHead className={actionCell}>Actions</TableHead></TableRow></TableHeader>
-              <TableBody>{(transporters.data ?? []).map((x) => { const b = bal.data?.get(x.id) ?? { payable: 0, settled: 0, commission: 0 }; const s = statusOf(b.payable, b.settled); return (
+              <TableHeader><TableRow><TableHead>Transporter</TableHead><TableHead className="text-right">Payable (opening + freight + adjustments)</TableHead><TableHead className="text-right">Advances + payments + direct</TableHead><TableHead className="text-right">Remaining</TableHead><TableHead className="text-right">Commission to receive</TableHead><TableHead>Status</TableHead><TableHead className={actionCell}>Actions</TableHead></TableRow></TableHeader>
+              <TableBody>{(transporters.data ?? []).map((x) => { const b = bal.data?.get(x.id) ?? EMPTY; const s = statusOf(b.opening + b.freight + b.adjustments, b.paid); return (
                 <TableRow key={x.id} className="cursor-pointer" onClick={() => setTid(x.id)}>
-                  <TableCell className="font-medium text-info">{x.name}</TableCell><TableCell className="text-right"><Money value={b.payable} /></TableCell>
-                  <TableCell className="text-right"><Money value={b.settled} /></TableCell><TableCell className="text-right font-semibold"><Money value={b.payable - b.settled} /></TableCell><TableCell className="text-right font-semibold text-success"><Money value={b.commission} /></TableCell>
+                  <TableCell className="font-medium text-info">{x.name}</TableCell><TableCell className="text-right"><Money value={b.opening + b.freight + b.adjustments} /></TableCell>
+                  <TableCell className="text-right"><Money value={b.paid} /></TableCell><TableCell className="text-right font-semibold"><Money value={b.remaining} /></TableCell><TableCell className="text-right font-semibold text-success"><Money value={b.commissionDue} /></TableCell>
                   <TableCell><StatusBadge tone={s.tone}>{s.label}</StatusBadge></TableCell><TableCell className={actionCell}><RowActions label={x.name} actions={[{ label: "View", icon: Eye, onClick: () => setTid(x.id) }]} /></TableCell></TableRow>); })}</TableBody>
             </Table></div>)
       ) : (
         <>
           <h2 className="text-xl font-semibold">{t?.name}</h2>
-          <div className="grid gap-3 sm:grid-cols-5">
-            <Box k="Freight payable (total)" v={tb.payable} />
-            <Box k="Advances, payments & direct" v={tb.settled} />
-            <Box k="Remaining" v={tb.payable - tb.settled} tone="warning" />
-            <Box k="Commission to receive from transporter" v={tb.commission} />
-            <div className="rounded-lg border bg-card p-3"><p className="text-xs text-muted-foreground">Status</p><StatusBadge tone={statusOf(tb.payable, tb.settled).tone}>{statusOf(tb.payable, tb.settled).label}</StatusBadge></div>
+          <div className="no-print flex flex-wrap gap-2">
+            {canEdit && <Button variant="outline" onClick={() => setOpeningDlg(true)}>Opening balance</Button>}
+            {canEdit && <Button variant="outline" onClick={() => setManualDlg(true)}>Add ledger entry</Button>}
           </div>
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <Box k={`Opening balance${t?.opening_date ? " (" + formatDate(t.opening_date) + ")" : ""}`} v={tb.opening} note={tb.opening > 0 ? "Payable" : tb.opening < 0 ? "Receivable" : undefined} />
+            <Box k="Freight payable (LRs)" v={tb.freight} />
+            <Box k="Manual adjustments (+ payable / - payable)" v={tb.adjustments} />
+            <Box k="Advances, payments & direct" v={tb.paid} />
+            <Box k="Remaining" v={tb.remaining} tone="warning" note={remainingLabel(tb.remaining).text.replace(/^₹[\d,.]+ /, "")} />
+            <div className="rounded-lg border bg-card p-3"><p className="text-xs text-muted-foreground">Status</p><StatusBadge tone={statusOf(tb.opening + tb.freight + tb.adjustments, tb.paid).tone}>{statusOf(tb.opening + tb.freight + tb.adjustments, tb.paid).label}</StatusBadge></div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Box k="Commission earned" v={com.data?.earned ?? 0} />
+            <Box k="Commission received" v={com.data?.received ?? 0} />
+            <Box k="Commission pending (from transporter)" v={com.data?.pending ?? 0} />
+          </div>
+          {com.isError && <ErrorState error={com.error} onRetry={() => com.refetch()} />}
+          <p className="text-xs text-muted-foreground">Commission is tracked separately and is never added to the freight payable. Record commission receipts on the Commission screen.</p>
           {detail.isPending ? <LoadingState /> : detail.isError ? <ErrorState error={detail.error} onRetry={() => detail.refetch()} /> : (
             <div className="overflow-x-auto rounded-lg border bg-card"><Table>
               <TableHeader><TableRow><TableHead>LR</TableHead><TableHead>Date</TableHead><TableHead>Trip</TableHead><TableHead>Vehicle</TableHead><TableHead className="text-right">Freight payable</TableHead><TableHead className="text-right">Paid directly by consignee</TableHead><TableHead className="text-right">Payments allocated</TableHead></TableRow></TableHeader>
@@ -103,8 +132,13 @@ function Settlements() {
           )}
           <PaymentsList transporterId={tid} />
           <h3 className="font-semibold">Transporter ledger</h3>
-          <p className="text-xs text-muted-foreground">Here "Payable" = Gokul still owes this transporter. Each advance and payment appears once. Commission shows as a debit - the amount Gokul has to receive from this transporter.</p>
-          <LedgerTable accountType="transporter" accountId={tid} title={`transporter-${t?.name}`} />
+          <p className="text-xs text-muted-foreground">Balance = debit - credit. "Payable" = Gokul still owes this transporter; "Receivable" = the transporter owes Gokul (advance paid beyond freight, or commission). The opening balance is one row and is never income or expense. Each advance and payment appears once. Commission shows as a debit - the amount Gokul has to receive from this transporter.</p>
+          <div className="no-print grid max-w-md gap-3 sm:grid-cols-2"><Field label="From date"><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></Field><Field label="To date"><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></Field></div>
+          <LedgerTable accountType="transporter" accountId={tid} from={from || undefined} to={to || undefined} title={`transporter-${t?.name}`} />
+          <h3 className="font-semibold">Manual ledger entries</h3>
+          <ManualEntriesList transporterId={tid} canEdit={canEdit} />
+          {t && <OpeningBalanceDialog open={openingDlg} onOpenChange={setOpeningDlg} transporter={t} />}
+          <ManualEntryDialog open={manualDlg} onOpenChange={setManualDlg} transporterId={tid} />
           <PaymentDialog open={pay} onOpenChange={setPay} initial={pay ? { payment_type: "transporter_payment", transporter_id: tid, payment_date: new Date().toISOString().slice(0, 10), mode: "cash", account_id: "" } : null} />
         </>
       )}
@@ -112,6 +146,8 @@ function Settlements() {
   );
 }
 
-function Box({ k, v, tone }: { k: string; v: number; tone?: string }) {
-  return <div className="rounded-lg border bg-card p-3"><p className="text-xs text-muted-foreground">{k}</p><p className={`text-lg font-semibold ${tone === "warning" ? "text-warning-foreground" : ""}`}><Money value={v} /></p></div>;
+const EMPTY: TransporterSummary = { opening: 0, freight: 0, adjustments: 0, paid: 0, commissionDue: 0, remaining: 0 };
+
+function Box({ k, v, tone, note }: { k: string; v: number; tone?: string; note?: string }) {
+  return <div className="rounded-lg border bg-card p-3"><p className="text-xs text-muted-foreground">{k}</p><p className={`text-lg font-semibold ${tone === "warning" ? "text-warning-foreground" : ""}`}><Money value={v} /></p>{note && <p className="text-xs text-muted-foreground">{note}</p>}</div>;
 }
