@@ -19,7 +19,8 @@ export const saveAccount = createServerFn({ method: "POST" })
         if (prior.created_by !== context.userId) throw new Error("This account could not be saved. Please reopen the form.");
         return prior.id;
       }
-      const { data: saved, error } = await supabase.from("payment_accounts").insert({ ...values, id, kind: "bank" }).select("id").single();
+      // Generated Insert requires business_id; a_stamp_business sets it from authenticated membership.
+      const { data: saved, error } = await supabase.from("payment_accounts").insert({ ...values, id, kind: "bank" } as never).select("id").single();
       if (error) {
         if (error.code === "23505") {
           const { data: retry } = await supabase.from("payment_accounts").select("id,created_by").eq("id", id).maybeSingle();
