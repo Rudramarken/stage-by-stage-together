@@ -1699,6 +1699,57 @@ export type Database = {
           },
         ]
       }
+      trip_documents: {
+        Row: {
+          business_id: string
+          created_at: string
+          created_by: string | null
+          file_name: string
+          id: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+          trip_id: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          created_by?: string | null
+          file_name: string
+          id?: string
+          mime_type: string
+          size_bytes: number
+          storage_path: string
+          trip_id: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          created_by?: string | null
+          file_name?: string
+          id?: string
+          mime_type?: string
+          size_bytes?: number
+          storage_path?: string
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_documents_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_documents_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trip_stops: {
         Row: {
           actual_arrival: string | null
@@ -1909,6 +1960,7 @@ export type Database = {
           capacity: string | null
           created_at: string
           created_by: string | null
+          driver_id: string | null
           id: string
           is_active: boolean
           notes: string | null
@@ -1922,6 +1974,7 @@ export type Database = {
           capacity?: string | null
           created_at?: string
           created_by?: string | null
+          driver_id?: string | null
           id?: string
           is_active?: boolean
           notes?: string | null
@@ -1935,6 +1988,7 @@ export type Database = {
           capacity?: string | null
           created_at?: string
           created_by?: string | null
+          driver_id?: string | null
           id?: string
           is_active?: boolean
           notes?: string | null
@@ -1949,6 +2003,13 @@ export type Database = {
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicles_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
             referencedColumns: ["id"]
           },
         ]
