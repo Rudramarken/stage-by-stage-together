@@ -1642,6 +1642,69 @@ export type Database = {
           },
         ]
       }
+      transporter_manual_entries: {
+        Row: {
+          amount: number
+          business_id: string
+          created_at: string
+          created_by: string | null
+          direction: string
+          entry_date: string
+          id: string
+          is_reversed: boolean
+          notes: string
+          reference: string | null
+          reversal_reason: string | null
+          transporter_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          business_id: string
+          created_at?: string
+          created_by?: string | null
+          direction: string
+          entry_date: string
+          id: string
+          is_reversed?: boolean
+          notes: string
+          reference?: string | null
+          reversal_reason?: string | null
+          transporter_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          business_id?: string
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          entry_date?: string
+          id?: string
+          is_reversed?: boolean
+          notes?: string
+          reference?: string | null
+          reversal_reason?: string | null
+          transporter_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transporter_manual_entries_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transporter_manual_entries_transporter_id_fkey"
+            columns: ["transporter_id"]
+            isOneToOne: false
+            referencedRelation: "transporters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transporters: {
         Row: {
           business_id: string
@@ -1652,6 +1715,9 @@ export type Database = {
           name: string
           name_normalized: string | null
           notes: string | null
+          opening_balance: number
+          opening_date: string | null
+          opening_type: string
           party_id: string | null
           phone: string | null
           updated_at: string
@@ -1665,6 +1731,9 @@ export type Database = {
           name: string
           name_normalized?: string | null
           notes?: string | null
+          opening_balance?: number
+          opening_date?: string | null
+          opening_type?: string
           party_id?: string | null
           phone?: string | null
           updated_at?: string
@@ -1678,6 +1747,9 @@ export type Database = {
           name?: string
           name_normalized?: string | null
           notes?: string | null
+          opening_balance?: number
+          opening_date?: string | null
+          opening_type?: string
           party_id?: string | null
           phone?: string | null
           updated_at?: string
@@ -2171,8 +2243,33 @@ export type Database = {
         Args: { p_id: string; p_reason: string }
         Returns: undefined
       }
+      reverse_transporter_manual_entry: {
+        Args: { p_id: string; p_reason: string }
+        Returns: undefined
+      }
       save_lr: { Args: { p: Json }; Returns: string }
+      save_transporter_manual_entry: {
+        Args: {
+          p_amount: number
+          p_date: string
+          p_direction: string
+          p_id: string
+          p_notes: string
+          p_reference: string
+          p_transporter_id: string
+        }
+        Returns: string
+      }
       save_trip: { Args: { p: Json }; Returns: string }
+      set_transporter_opening: {
+        Args: {
+          p_amount: number
+          p_date: string
+          p_transporter_id: string
+          p_type: string
+        }
+        Returns: undefined
+      }
       setup_available: { Args: never; Returns: boolean }
       system_rls_status: {
         Args: never
