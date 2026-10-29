@@ -101,7 +101,7 @@ export function LRForm({ initial }: { initial: LRValues }) {
         if (!Number.isFinite(n) || n < 0) return setErr("Freight amounts must be numbers of 0 or more");
         if (Math.abs(n * 100 - Math.round(n * 100)) > 1e-6) return setErr("Freight amounts can have at most 2 decimal places");
       }
-      if (!pf.some((n) => n != null)) return setErr("Enter the freight against at least one consignor or consignee");
+      if (!pf.some((n) => n != null) && !(Number(v.freight_payable) > 0)) return setErr("Enter the freight against a consignor, consignee or the transporter");
     }
     const fe = legacy ? validateFreight(weight, rate, v.rate_unit as RateUnit, adj) : validateFreight(weight, partyTotal, "fixed", []);
     if (fe) return setErr(fe);
