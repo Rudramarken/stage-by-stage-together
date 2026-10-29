@@ -8,7 +8,9 @@ export type TripLrDraft = {
   /** Set after the LR has been saved once, so pressing Save again updates that LR instead of creating a second one. */
   savedId?: string;
   lr_number: string; goods_description: string; loading_point: string; delivery_point: string;
-  /** Freight payable to the trip's transporter for this LR. */
+  /** This LR's own transporter; blank = use the trip's transporter. */
+  transporter_id?: string;
+  /** Freight payable to this LR's transporter. */
   freight_payable: string;
   transporter_weight?: string; transporter_rate?: string; transporter_shortage?: string; transporter_additions?: string; transporter_freight_date?: string;
   transporter_shortage_reason?: string; transporter_additions_reason?: string;
@@ -58,7 +60,7 @@ export function validateTripLrs(drafts: TripLrDraft[]): string | null {
       if (!Number.isFinite(a) || a < 0) return `${w}freight amounts must be numbers of 0 or more`;
       if (!has2dp(a)) return `${w}freight amounts can have at most 2 decimal places`;
     }
-    if ([...d.consignors, ...d.consignees].every((p) => String(p.freight_amount).trim() === "")) return `${w}enter the freight against at least one consignor or consignee`;
+    if ([...d.consignors, ...d.consignees].every((p) => String(p.freight_amount).trim() === "") && String(d.freight_payable).trim() === "") return `${w}enter the freight against a consignor, consignee or the transporter`;
     if (String(d.freight_payable).trim() !== "") {
       const f = Number(d.freight_payable);
       if (!Number.isFinite(f) || f < 0) return `${w}freight payable to the transporter must be 0 or more`;
@@ -82,7 +84,7 @@ export function tripLrPayload(d: TripLrDraft, trip: { id: string; trip_date: str
   });
   return {
     ...(d.savedId ? { id: d.savedId } : {}),
-    lr_number: d.lr_number.trim(), lr_date: trip.trip_date, trip_id: trip.id, transporter_id: trip.transporter_id || "",
+    lr_number: d.lr_number.trim(), lr_date: trip.trip_date, trip_id: trip.id, transporter_id: d.transporter_id || trip.transporter_id || "",
     weight_unit: "kg", rate_unit: "fixed", rate: String(total), freight_type: "to_pay", delivery_status: "pending",
     freight_payable: d.freight_payable === "" ? "0" : String(d.freight_payable),
     transporter_weight: d.transporter_weight ?? "", transporter_weight_unit: "kg", transporter_rate: d.transporter_rate ?? "", transporter_rate_unit: "",
