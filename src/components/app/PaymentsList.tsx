@@ -32,9 +32,9 @@ export function PaymentsList({ thirdParty, transporterId }: { thirdParty?: boole
       return fetchAllRows<any>((from, to) => supabase.from("payments").select("*").order("payment_date", { ascending: false }).order("created_at", { ascending: false }).order("id").range(from, to));
     },
   });
-  const isIn = (t: string) => ["customer_receipt", "advance_received", "third_party_receipt"].includes(t);
+  const isIn = (t: string) => ["customer_receipt", "advance_received", "third_party_receipt", "transporter_receipt"].includes(t);
   const rows = useMemo(() => (q.data ?? []).filter((p) => {
-    if (transporterId && (p.transporter_id !== transporterId || p.payment_type !== "transporter_payment")) return false;
+    if (transporterId && (p.transporter_id !== transporterId || !["transporter_payment", "transporter_receipt"].includes(p.payment_type))) return false;
     if (thirdParty ? p.payment_type !== "third_party_receipt" : false) return false;
     if (f.account && p.account_id !== f.account) return false;
     if (f.kind === "in" && !isIn(p.payment_type)) return false;

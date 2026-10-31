@@ -1,0 +1,2 @@
+ALTER TABLE public.payments DROP CONSTRAINT payments_payment_type_check;
+ALTER TABLE public.payments ADD CONSTRAINT payments_payment_type_check CHECK (payment_type = ANY (ARRAY['customer_receipt','transporter_payment','transporter_receipt','advance_paid','advance_received','third_party_receipt']));

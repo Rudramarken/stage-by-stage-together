@@ -46,7 +46,7 @@ export function PaymentDialog({ open, onOpenChange, initial, thirdParty }: { ope
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initial?.id]);
   const set = (k: string, val: unknown) => setV((p) => ({ ...p, [k]: val }));
-  const isTransporterPay = v.payment_type === "transporter_payment" || v.payment_type === "advance_paid";
+  const isTransporterPay = v.payment_type === "transporter_payment" || v.payment_type === "transporter_receipt" || v.payment_type === "advance_paid";
   const isReceipt = v.payment_type?.includes("receipt") || v.payment_type === "advance_received";
   const selected = accounts.data?.find((a) => a.id === v.account_id);
   const pickAccount = (id: string) => {

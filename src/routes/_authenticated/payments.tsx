@@ -2,6 +2,7 @@ import { pageHead } from "@/lib/page-head";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { PaymentsList } from "@/components/app/PaymentsList";
+import { TransfersList } from "@/components/app/TransfersList";
 import { AccountStatement } from "@/components/app/AccountStatement";
 import { AccountCards } from "@/components/app/AccountCards";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,9 +22,11 @@ function PaymentsPage() {
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="mb-4">
           <TabsTrigger value="entries">All entries</TabsTrigger>
+          <TabsTrigger value="transfers">Account transfers</TabsTrigger>
           <TabsTrigger value="statement">Account transactions &amp; statement</TabsTrigger>
         </TabsList>
         <TabsContent value="entries"><PaymentsList /></TabsContent>
+        <TabsContent value="transfers"><TransfersList /></TabsContent>
         <TabsContent value="statement"><div id="account-statement"><AccountStatement accountId={accountId} /></div></TabsContent>
       </Tabs>
     </div>

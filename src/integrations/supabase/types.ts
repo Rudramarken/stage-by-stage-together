@@ -14,6 +14,76 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_transfers: {
+        Row: {
+          amount: number
+          business_id: string
+          created_at: string
+          created_by: string | null
+          from_account_id: string
+          id: string
+          is_reversed: boolean
+          notes: string | null
+          reference: string | null
+          reversal_reason: string | null
+          to_account_id: string
+          transfer_date: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          business_id: string
+          created_at?: string
+          created_by?: string | null
+          from_account_id: string
+          id?: string
+          is_reversed?: boolean
+          notes?: string | null
+          reference?: string | null
+          reversal_reason?: string | null
+          to_account_id: string
+          transfer_date: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          business_id?: string
+          created_at?: string
+          created_by?: string | null
+          from_account_id?: string
+          id?: string
+          is_reversed?: boolean
+          notes?: string | null
+          reference?: string | null
+          reversal_reason?: string | null
+          to_account_id?: string
+          transfer_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_transfers_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_transfers_from_account_id_fkey"
+            columns: ["from_account_id"]
+            isOneToOne: false
+            referencedRelation: "payment_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_transfers_to_account_id_fkey"
+            columns: ["to_account_id"]
+            isOneToOne: false
+            referencedRelation: "payment_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       advances: {
         Row: {
           account_id: string | null
@@ -2395,6 +2465,10 @@ export type Database = {
         Args: { p_business: string; p_name: string }
         Returns: string
       }
+      reverse_account_transfer: {
+        Args: { p_id: string; p_reason: string }
+        Returns: undefined
+      }
       reverse_commission_receipt: {
         Args: { p_id: string; p_reason: string }
         Returns: undefined
@@ -2407,6 +2481,7 @@ export type Database = {
         Args: { p_id: string; p_reason: string }
         Returns: undefined
       }
+      save_account_transfer: { Args: { p: Json }; Returns: string }
       save_lr: { Args: { p: Json }; Returns: string }
       save_party_manual_entry: {
         Args: {

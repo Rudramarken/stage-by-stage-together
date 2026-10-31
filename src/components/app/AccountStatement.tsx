@@ -11,7 +11,7 @@ import { formatDate, formatINR } from "@/lib/format";
 import { exportExcel, exportRows } from "@/lib/export";
 import { PeriodPicker, usePeriod } from "./PeriodPicker";
 
-const SOURCE_LABEL: Record<string, string> = { expense: "Expense", advance: "Advance", salary_payment: "Salary", commission_receipt: "Commission receipt" };
+const SOURCE_LABEL: Record<string, string> = { expense: "Expense", advance: "Advance", salary_payment: "Salary", commission_receipt: "Commission receipt", transfer_in: "Transfer in", transfer_out: "Transfer out" };
 const typeLabel = (m: Movement) => PAYMENT_TYPE[m.source_type] ?? SOURCE_LABEL[m.source_type] ?? m.source_type;
 
 /**
