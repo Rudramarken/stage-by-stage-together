@@ -26,7 +26,7 @@ export const Route = createFileRoute("/_authenticated/trips/$id/")({
   component: TripDetail,
 });
 
-type LegData = { trip: any; lrs: any[]; expenses: any[]; advances: any[]; commissions: any[]; payments: any[] };
+type LegData = { trip: any; lrs: any[]; expenses: any[]; advances: any[]; commissions: any[]; payments: any[]; driverTransactions: any[] };
 
 async function loadFamily(id: string) {
   const { data: t, error } = await supabase.from("trips").select("id, parent_trip_id").eq("id", id).single();
@@ -35,13 +35,14 @@ async function loadFamily(id: string) {
   const { data: trips, error: e2 } = await supabase.from("trips").select("*, trip_stops(*)").or(`id.eq.${root},parent_trip_id.eq.${root}`).order("created_at");
   if (e2) throw e2;
   const ids = trips.map((x) => x.id);
-  const [lrs, exps, advs, pays] = await Promise.all([
+  const [lrs, exps, advs, pays, dt] = await Promise.all([
     supabase.from("lrs").select("*, lr_parties(*, parties(name))").in("trip_id", ids).order("lr_number"),
     supabase.from("expenses").select("*").in("trip_id", ids).eq("is_cancelled", false),
     supabase.from("advances").select("*").in("trip_id", ids).eq("is_cancelled", false),
     supabase.from("payments").select("id, trip_id, payment_type, amount, is_reversed").in("trip_id", ids).eq("is_reversed", false),
+    supabase.from("driver_transactions").select("*").in("trip_id", ids).eq("is_cancelled", false),
   ]);
-  for (const r of [lrs, exps, advs, pays]) if (r.error) throw r.error;
+  for (const r of [lrs, exps, advs, pays, dt]) if (r.error) throw r.error;
   // expenses attached to LRs of these trips (consignor/consignee), fetched by lr_id too
   const lrIds = (lrs.data ?? []).map((l) => l.id);
   const lrExp = lrIds.length ? await supabase.from("expenses").select("*").in("lr_id", lrIds).eq("is_cancelled", false) : { data: [], error: null };
@@ -56,6 +57,7 @@ async function loadFamily(id: string) {
     return {
       trip: { ...tr, trip_stops: [...tr.trip_stops].sort((a: any, b: any) => a.seq - b.seq) },
       lrs: legLrs,
+      driverTransactions: (dt.data ?? []).filter(r => r.trip_id === tr.id),
       expenses: [...allExp.values()].filter((e) => (e.scope === "trip" && e.trip_id === tr.id) || (e.lr_id && legLrIds.has(e.lr_id))),
       advances: (advs.data ?? []).filter((a) => a.trip_id === tr.id),
       payments: (pays.data ?? []).filter((p) => p.trip_id === tr.id),
@@ -73,7 +75,9 @@ function summarize(legs: LegData[]) {
   return {
     freightReceivable: sum(active, (x) => Number(x.final_freight)),
     directPaid: sum(active, (x) => (x.direct_payment_enabled ? Math.min(Number(x.direct_payment_amount), Number(x.final_freight)) : 0)),
-    freightPayable: sum(active, (x) => Number(x.freight_payable)),
+    freightPayable: sum(active.filter(x => x.transporter_freight_direction !== "receivable"), (x) => Number(x.freight_payable)),
+    transporterReceivable: sum(active.filter(x => x.transporter_freight_direction === "receivable"), (x) => Number(x.freight_payable)),
+    driverExpenses: sum(legs.flatMap(l => l.driverTransactions).filter(x => x.kind === "expense"), x => Number(x.amount)),
     tripExpenses: sum(exp.filter((e) => e.scope === "trip"), (e) => Number(e.amount)),
     consignorExpenses: sum(exp.filter((e) => e.scope === "consignor"), (e) => Number(e.amount)),
     consignorCharged: sum(exp.filter((e) => e.scope === "consignor" && e.responsible === "party"), (e) => Number(e.amount)),
@@ -92,6 +96,8 @@ function SummaryGrid({ s, label }: { s: ReturnType<typeof summarize>; label: str
     ["Freight billed to parties (receivable)", s.freightReceivable, "success"],
     ["…of which paid to driver directly by consignee", s.directPaid],
     ["Freight payable to transporter", s.freightPayable, "warning"],
+    ["Freight receivable from transporter", s.transporterReceivable, "success"],
+    ["Driver Expenses", s.driverExpenses],
     ["Advances to transporter / truck owner", s.transporterAdvances],
     ["Transporter payable remaining (est.)", Math.max(0, s.freightPayable - s.transporterAdvances - Math.min(s.directPaid, s.freightPayable)), "warning"],
     ["Trip expenses (Gokul)", s.tripExpenses],
@@ -221,7 +227,7 @@ function TripDetail() {
                 <TableCell className="text-right"><Money value={l.base_freight} /></TableCell>
                 <TableCell className="text-right text-xs">+<Money value={l.additions_total} /> −<Money value={l.deductions_total} /></TableCell>
                 <TableCell className="text-right font-medium"><Money value={l.final_freight} /></TableCell>
-                <TableCell className="text-right"><Money value={l.freight_payable} /></TableCell>
+                <TableCell className="text-right"><Money value={l.freight_payable} /> {l.transporter_freight_direction === "receivable" ? "Receivable" : "Payable"}</TableCell>
                 <TableCell><StatusBadge tone={LR_DELIVERY[l.delivery_status]?.tone}>{LR_DELIVERY[l.delivery_status]?.label}</StatusBadge></TableCell>
               </TableRow>))}</TableBody>
           </Table></div>

@@ -9,7 +9,7 @@ export function TripProfit({ legs, label }: { legs: SummaryLeg[]; label: string 
   const money = (v: number | null, missingText = "Not available") => (v == null ? <span className="text-muted-foreground">{missingText}</span> : <Money value={v} />);
   const rows: [string, ReactNode][] = [
     ["Customer freight (billed on active LRs)", money(s.customerFreight)],
-    ["− Transporter freight payable", money(s.transporterPayable)],
+    [s.transporterPayable != null && s.transporterPayable < 0 ? "+ Net transporter freight receivable" : "− Net transporter freight payable", money(s.transporterPayable == null ? null : Math.abs(s.transporterPayable))],
     ["+ Commission earned (counted once; not the same as received)", <Money key="c" value={s.commissionEarned} />],
     ["− Trip expenses borne by Gokul", s.expenseRecords === 0 ? <span className="text-muted-foreground">Not recorded</span> : <Money key="e" value={s.operatingExpenses} />],
   ];
