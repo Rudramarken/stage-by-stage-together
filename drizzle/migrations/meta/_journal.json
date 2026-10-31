@@ -183,6 +183,13 @@
       "when": 1793188866951,
       "tag": "0025_preserve_manual_transporter_details",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1793435367600,
+      "tag": "0026_transporter_receipts_and_account_transfers",
+      "breakpoints": true
     }
   ]
 }
