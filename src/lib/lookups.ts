@@ -31,7 +31,7 @@ export const LR_DELIVERY: Record<string, { label: string; tone: string }> = {
 };
 export const FREIGHT_TYPE: Record<string, string> = { paid: "Paid (consignor pays)", to_pay: "To-Pay (consignee pays)", tbb: "TBB (bill later)" };
 export const PAYMENT_TYPE: Record<string, string> = {
-  customer_receipt: "Customer Receipt", transporter_payment: "Transporter/Supplier Payment", advance_paid: "Advance Paid",
+  customer_receipt: "Customer Receipt", transporter_payment: "Transporter/Supplier Payment", transporter_receipt: "Transporter/Supplier Receipt", advance_paid: "Advance Paid",
   advance_received: "Advance Received", third_party_receipt: "Third-Party Receipt",
 };
 // The first four are the fixed trip-form categories. The older names stay so records saved earlier still show correctly.
