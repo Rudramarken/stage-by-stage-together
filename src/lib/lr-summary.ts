@@ -26,14 +26,14 @@ export function lrGokulExpenses(expenses: ExpenseRow[] | null | undefined): numb
 }
 
 type LrProfitRow = {
-  status: string; final_freight: number | string; freight_payable: number | string; transporter_id?: string | null; trip_id?: string | null;
+  status: string; final_freight: number | string; freight_payable: number | string; transporter_id?: string | null; trip_id?: string | null; transporter_freight_direction?: string;
   commission_enabled?: boolean | null; commission_amount?: number | string | null; direct_payment_enabled?: boolean | null;
   expenses?: ExpenseRow[] | null;
 };
 /** Profit for one LR row exactly as the LR detail page computes it, so the list and the detail always agree. */
 export function lrProfitFromRow(l: LrProfitRow): LrProfit {
   return calcLrProfit({
-    status: l.status, finalFreight: Number(l.final_freight), freightPayable: Number(l.freight_payable), hasTransporter: !!l.transporter_id, tripLinked: !!l.trip_id,
+    status: l.status, finalFreight: Number(l.final_freight), freightPayable: Number(l.freight_payable), transporterDirection: l.transporter_freight_direction, hasTransporter: !!l.transporter_id, tripLinked: !!l.trip_id,
     gokulExpenses: lrGokulExpenses(l.expenses), commissionEnabled: !!l.commission_enabled, commissionAmount: Number(l.commission_amount || 0), directPaymentEnabled: !!l.direct_payment_enabled,
   });
 }
@@ -48,6 +48,7 @@ export type LrProfitInput = {
   commissionEnabled: boolean;
   commissionAmount: number;
   directPaymentEnabled: boolean;
+  transporterDirection?: string;
 };
 export type LrProfit = {
   state: "calculated" | "provisional" | "insufficient";
@@ -63,7 +64,7 @@ export type LrProfit = {
  */
 export function calcLrProfit(i: LrProfitInput): LrProfit {
   if (i.status === "cancelled") return { state: "insufficient", profit: null, commissionAdded: 0, notes: ["LR is cancelled."] };
-  if (!(i.finalFreight > 0)) return { state: "insufficient", profit: null, commissionAdded: 0, notes: ["No customer freight on this LR."] };
+  if (!(i.finalFreight > 0) && !(i.transporterDirection === "receivable" && i.freightPayable > 0)) return { state: "insufficient", profit: null, commissionAdded: 0, notes: ["No freight receivable on this LR."] };
   const notes: string[] = [];
   let commissionAdded = 0;
   if (i.commissionEnabled && i.commissionAmount > 0) {
@@ -74,6 +75,6 @@ export function calcLrProfit(i: LrProfitInput): LrProfit {
   if (i.tripLinked) provisional.push("Shared trip expenses and driver advances are kept in the Trip summary and are not allocated to this LR.");
   if (!i.hasTransporter && !(i.freightPayable > 0)) provisional.push("No transporter freight payable recorded.");
   if (i.commissionEnabled && i.directPaymentEnabled) provisional.push("Commission treatment depends on the direct payment.");
-  const profit = r2(i.finalFreight - i.freightPayable - i.gokulExpenses + commissionAdded);
+  const profit = r2(i.finalFreight + (i.transporterDirection === "receivable" ? i.freightPayable : -i.freightPayable) - i.gokulExpenses + commissionAdded);
   return { state: provisional.length ? "provisional" : "calculated", profit, commissionAdded, notes: [...notes, ...provisional] };
 }
