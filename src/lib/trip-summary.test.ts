@@ -6,6 +6,10 @@ const exp = (o: Record<string, unknown>) => ({ scope: "trip", responsible: "goku
 const leg = (o: Partial<SummaryLeg> = {}): SummaryLeg => ({ trip: { status: "completed", vehicle_mode: "market", transporter_id: "T" }, lrs: [lr()], expenses: [exp({ amount: 1000 })], advances: [], commissions: [], ...o });
 
 describe("trip financial summary", () => {
+  it("transporter-only receivable is income; driver expenses are costs, not advances", () => {
+    const s = summarizeTrip([leg({ lrs: [lr({ final_freight: 0, freight_payable: 2000, transporter_freight_direction: "receivable" })], expenses: [], driverTransactions: [{ kind: "expense", amount: 300 }, { kind: "party_receipt", amount: 15000 }], advances: [{ recipient_type: "driver", amount: 500 }] })]);
+    expect(s.transporterPayable).toBe(-2000); expect(s.operatingExpenses).toBe(300); expect(s.driverAdvances).toBe(500); expect(s.profit).toBe(1700); expect(s.state).toBe("calculated");
+  });
   it("profit = freight - transporter payable + commission - Gokul expenses", () => {
     const s = summarizeTrip([leg({ lrs: [lr({ commission_enabled: true, commission_amount: 1500 })], expenses: [exp({ amount: 600 }), exp({ amount: 400, scope: "consignor" })] })]);
     expect(s.customerFreight).toBe(50000); expect(s.transporterPayable).toBe(42000); expect(s.commissionEarned).toBe(1500);

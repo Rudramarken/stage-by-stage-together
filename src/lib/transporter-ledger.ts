@@ -20,6 +20,7 @@ export function summarizeTransporterLines(lines: LedgerLine[]): TransporterSumma
     if (k.startsWith("commission")) commissionDue += d - c;
     else if (k === "opening_balance") opening += c - d;
     else if (k === "manual" || k === "manual_reversal") adjustments += c - d;
+    else if (k === "freight_payable" || k === "freight_payable_reversal") freight += c - d;
     else { freight += c; paid += d; }
   }
   return { opening: r2(opening), freight: r2(freight), adjustments: r2(adjustments), paid: r2(paid), commissionDue: r2(commissionDue), remaining: r2(opening + freight + adjustments - paid) };

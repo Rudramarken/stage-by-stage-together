@@ -11,7 +11,7 @@ export type TripLrDraft = {
   /** This LR's own transporter; blank = use the trip's transporter. */
   transporter_id?: string;
   /** Freight payable to this LR's transporter. */
-  freight_payable: string;
+  freight_payable: string; transporter_freight_direction?: "payable" | "receivable";
   transporter_weight?: string; transporter_rate?: string; transporter_shortage?: string; transporter_additions?: string; transporter_freight_date?: string;
   transporter_shortage_reason?: string; transporter_additions_reason?: string;
   consignors: TripLrParty[]; consignees: TripLrParty[];
@@ -86,6 +86,7 @@ export function tripLrPayload(d: TripLrDraft, trip: { id: string; trip_date: str
     ...(d.savedId ? { id: d.savedId } : {}),
     lr_number: d.lr_number.trim(), lr_date: trip.trip_date, trip_id: trip.id, transporter_id: d.transporter_id || trip.transporter_id || "",
     weight_unit: "kg", rate_unit: "fixed", rate: String(total), freight_type: "to_pay", delivery_status: "pending",
+    transporter_freight_direction: d.transporter_freight_direction || "payable",
     freight_payable: d.freight_payable === "" ? "0" : String(d.freight_payable),
     transporter_weight: d.transporter_weight ?? "", transporter_weight_unit: "kg", transporter_rate: d.transporter_rate ?? "", transporter_rate_unit: "",
     transporter_shortage: d.transporter_shortage ?? "", transporter_additions: d.transporter_additions ?? "", transporter_freight_date: d.transporter_freight_date ?? "",

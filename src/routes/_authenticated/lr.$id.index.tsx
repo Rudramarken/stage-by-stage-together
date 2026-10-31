@@ -52,7 +52,7 @@ function LRDetail() {
   const stopName = (sid: string) => stops.find((s: any) => s.id === sid)?.location;
   const vehicle = lrVehicleLabel({ vehicle_number: lr.vehicle_number, trips: trip ? { market_vehicle_number: trip.market_vehicle_number, vehicles: trip.vehicles } : null });
   const gokulExpenses = expenses.filter((e) => e.responsible === "gokul").reduce((a: number, e) => a + Number(e.amount || 0), 0);
-  const profit = calcLrProfit({ status: lr.status, finalFreight: Number(lr.final_freight), freightPayable: Number(lr.freight_payable), hasTransporter: !!lr.transporter_id, tripLinked: !!lr.trip_id, gokulExpenses, commissionEnabled: !!lr.commission_enabled, commissionAmount: Number(lr.commission_amount || 0), directPaymentEnabled: !!lr.direct_payment_enabled });
+  const profit = calcLrProfit({ status: lr.status, finalFreight: Number(lr.final_freight), freightPayable: Number(lr.freight_payable), transporterDirection: lr.transporter_freight_direction, hasTransporter: !!lr.transporter_id, tripLinked: !!lr.trip_id, gokulExpenses, commissionEnabled: !!lr.commission_enabled, commissionAmount: Number(lr.commission_amount || 0), directPaymentEnabled: !!lr.direct_payment_enabled });
 
   return (
     <div className="space-y-4">
@@ -111,7 +111,7 @@ function LRDetail() {
 
       <div className="no-print grid gap-3 rounded-lg border bg-card p-4 text-sm sm:grid-cols-3">
         <div><p className="text-muted-foreground">Transporter</p><p>{nameOf(transporters.data, lr.transporter_id) || "—"}</p></div>
-        <div><p className="text-muted-foreground">Freight payable to transporter</p><p><Money value={lr.freight_payable} /> <span className="text-xs text-muted-foreground">(paid/remaining in Transporter Settlements)</span></p>{lr.transporter_rate_unit && lr.transporter_rate != null && <p className="text-xs text-muted-foreground">{lr.transporter_rate_unit === "fixed" ? `Fixed ${formatINR(lr.transporter_rate)}` : `${lr.transporter_weight ?? 0} ${lr.transporter_weight_unit ?? "kg"} @ ${formatINR(lr.transporter_rate)} ${(RATE_UNIT_LABEL[lr.transporter_rate_unit as keyof typeof RATE_UNIT_LABEL] ?? "").toLowerCase()}`}</p>}{Number(lr.transporter_additions) > 0 && <p className="text-xs text-muted-foreground">+ {formatINR(lr.transporter_additions)} added{lr.transporter_additions_reason ? ` (${lr.transporter_additions_reason})` : ""}</p>}{Number(lr.transporter_shortage) > 0 && <p className="text-xs text-muted-foreground">− {formatINR(lr.transporter_shortage)} shortage{lr.transporter_shortage_reason ? ` (${lr.transporter_shortage_reason})` : ""}</p>}</div>
+        <div><p className="text-muted-foreground">{lr.transporter_freight_direction === "receivable" ? "Freight receivable from transporter" : "Freight payable to transporter"}</p><p><Money value={lr.freight_payable} /> <span className="text-xs text-muted-foreground">(paid/remaining in Transporter Settlements)</span></p>{lr.transporter_rate_unit && lr.transporter_rate != null && <p className="text-xs text-muted-foreground">{lr.transporter_rate_unit === "fixed" ? `Fixed ${formatINR(lr.transporter_rate)}` : `${lr.transporter_weight ?? 0} ${lr.transporter_weight_unit ?? "kg"} @ ${formatINR(lr.transporter_rate)} ${(RATE_UNIT_LABEL[lr.transporter_rate_unit as keyof typeof RATE_UNIT_LABEL] ?? "").toLowerCase()}`}</p>}{Number(lr.transporter_additions) > 0 && <p className="text-xs text-muted-foreground">+ {formatINR(lr.transporter_additions)} added{lr.transporter_additions_reason ? ` (${lr.transporter_additions_reason})` : ""}</p>}{Number(lr.transporter_shortage) > 0 && <p className="text-xs text-muted-foreground">− {formatINR(lr.transporter_shortage)} shortage{lr.transporter_shortage_reason ? ` (${lr.transporter_shortage_reason})` : ""}</p>}</div>
         <div><p className="text-muted-foreground">Direct payment to driver</p><p>{lr.direct_payment_enabled ? <Money value={lr.direct_payment_amount} /> : "No"}</p></div>
       </div>
 
@@ -119,7 +119,7 @@ function LRDetail() {
         <p className="font-medium">Profit Per LR {profit.state === "provisional" && <StatusBadge tone="warning">Provisional</StatusBadge>}{profit.state === "insufficient" && <StatusBadge tone="muted">Not enough data</StatusBadge>}</p>
         {profit.profit == null ? <p className="mt-1 text-muted-foreground">{profit.notes.join(" ")}</p> : <>
           <p className="mt-1 text-lg font-semibold"><Money value={profit.profit} /></p>
-          <p className="text-xs text-muted-foreground">Customer freight <Money value={lr.final_freight} /> − transporter freight payable <Money value={lr.freight_payable} /> − Gokul expenses on this LR <Money value={gokulExpenses} />{profit.commissionAdded > 0 && <> + commission <Money value={profit.commissionAdded} /></>}</p>
+          <p className="text-xs text-muted-foreground">Customer freight <Money value={lr.final_freight} /> {lr.transporter_freight_direction === "receivable" ? "+ transporter freight receivable " : "− transporter freight payable "}<Money value={lr.freight_payable} /> − Gokul expenses on this LR <Money value={gokulExpenses} />{profit.commissionAdded > 0 && <> + commission <Money value={profit.commissionAdded} /></>}</p>
           {profit.notes.map((n) => <p key={n} className="text-xs text-muted-foreground">{n}</p>)}
         </>}
       </div>

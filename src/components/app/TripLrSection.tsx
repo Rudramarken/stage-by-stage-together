@@ -32,7 +32,7 @@ export function TripLrSection({ tripId, drafts, setDrafts, linkIds, setLinkIds, 
     enabled: !!tripId,
     queryFn: async () => {
       if (!tripId) return [];
-      const { data, error } = await supabase.from("lrs").select("id, lr_number, lr_date, status, final_freight, freight_payable, lr_parties(role, seq, parties(name))").eq("trip_id", tripId).order("lr_number");
+      const { data, error } = await supabase.from("lrs").select("id, lr_number, lr_date, transporter_id, transporters(name), status, final_freight, freight_payable, transporter_freight_direction, lr_parties(role, seq, parties(name))").eq("trip_id", tripId).order("lr_number");
       if (error) throw error;
       return data as any[];
     },
@@ -83,12 +83,12 @@ export function TripLrSection({ tripId, drafts, setDrafts, linkIds, setLinkIds, 
           <p className="text-sm font-medium">LR / Bilties already on this trip</p>
           {linked.isPending ? <LoadingState /> : linked.isError ? <ErrorState error={linked.error} onRetry={() => linked.refetch()} /> : linked.data.length === 0 ? <p className="text-sm text-muted-foreground">None yet.</p> : (
             <div className="overflow-x-auto rounded border"><table className="w-full text-sm">
-              <thead><tr className="border-b bg-muted/40 text-left"><th className="p-2">LR / Bilty</th><th className="p-2">Date</th><th className="p-2">Consignor(s)</th><th className="p-2">Consignee(s)</th><th className="p-2 text-right">Freight</th><th className="p-2 text-right">Payable to transporter</th><th className="p-2" /></tr></thead>
+              <thead><tr className="border-b bg-muted/40 text-left"><th className="p-2">LR / Bilty</th><th className="p-2">Date</th><th className="p-2">Transporter</th><th className="p-2">Consignor(s)</th><th className="p-2">Consignee(s)</th><th className="p-2 text-right">Freight</th><th className="p-2 text-right">Transporter freight</th><th className="p-2" /></tr></thead>
               <tbody>{linked.data.map((l) => (
                 <tr key={l.id} className={`border-b last:border-0 ${l.status === "cancelled" ? "opacity-50" : ""}`}>
-                  <td className="p-2 font-medium">{l.lr_number}</td><td className="p-2 whitespace-nowrap">{formatDate(l.lr_date)}</td>
+                  <td className="p-2 font-medium">{l.lr_number}</td><td className="p-2 whitespace-nowrap">{formatDate(l.lr_date)}</td><td className="p-2">{l.transporters?.name || "—"}</td>
                   <td className="p-2">{names(l, "consignor")}</td><td className="p-2">{names(l, "consignee")}</td>
-                  <td className="p-2 text-right"><Money value={l.final_freight} /></td><td className="p-2 text-right"><Money value={l.freight_payable} /></td>
+                  <td className="p-2 text-right"><Money value={l.final_freight} /></td><td className="p-2 text-right"><Money value={l.freight_payable} /> {l.transporter_freight_direction === "receivable" ? "Receivable" : "Payable"}</td>
                   <td className="p-2"><Link to="/lr/$id/edit" params={{ id: l.id }} className="text-info hover:underline">Edit LR</Link></td>
                 </tr>))}</tbody>
             </table></div>
@@ -132,6 +132,7 @@ export function TripLrSection({ tripId, drafts, setDrafts, linkIds, setLinkIds, 
               <Field label="Transporter" hint={d.transporter_id ? "Only this LR / Bilty uses this transporter" : `Blank = trip transporter (${transporterName || "not chosen"})`}>
                 <TransporterSelect value={d.transporter_id ?? ""} onChange={(x) => upd(i, { transporter_id: x })} />
               </Field>
+              <Field label="Transporter freight direction"><select className={selectCls} value={d.transporter_freight_direction || "payable"} onChange={e => upd(i, { transporter_freight_direction: e.target.value as "payable" | "receivable" })}><option value="payable">Payable — Gokul owes transporter</option><option value="receivable">Receivable — transporter owes Gokul</option></select></Field>
               {Number(d.transporter_shortage) > 0 && <Field label="Reason for transporter shortage" required><Input value={d.transporter_shortage_reason ?? ""} onChange={(e) => upd(i, { transporter_shortage_reason: e.target.value })} /></Field>}
               {Number(d.transporter_additions) > 0 && <Field label="Reason for transporter addition" required><Input value={d.transporter_additions_reason ?? ""} onChange={(e) => upd(i, { transporter_additions_reason: e.target.value })} /></Field>}
               <PartyFreightFields label="Transporter" values={{ weight: d.transporter_weight, rate: d.transporter_rate, freight_amount: d.freight_payable, shortage: d.transporter_shortage, addition: d.transporter_additions, freight_date: d.transporter_freight_date }} onChange={(p) => upd(i, { ...(p.weight !== undefined ? { transporter_weight: p.weight } : {}), ...(p.rate !== undefined ? { transporter_rate: p.rate } : {}), ...(p.freight_amount !== undefined ? { freight_payable: p.freight_amount } : {}), ...(p.shortage !== undefined ? { transporter_shortage: p.shortage } : {}), ...(p.addition !== undefined ? { transporter_additions: p.addition } : {}), ...(p.freight_date !== undefined ? { transporter_freight_date: p.freight_date } : {}) })} />

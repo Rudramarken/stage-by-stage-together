@@ -197,6 +197,34 @@
       "when": 1793435907807,
       "tag": "0027_allow_transporter_receipt_payment_type",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1793452288472,
+      "tag": "0028_driver_transactions_and_transporter_direction",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1793452316545,
+      "tag": "0029_trip_expense_pending_status",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1793452548381,
+      "tag": "0030_atomic_driver_entries_and_safe_retries",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1793452923529,
+      "tag": "0031_repair_trip_advance_save_after_pending_support",
+      "breakpoints": true
     }
   ]
 }

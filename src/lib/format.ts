@@ -5,21 +5,21 @@ export function formatINR(value: number | string | null | undefined): string {
   return inr.format(Number.isFinite(n) ? (n as number) : 0);
 }
 
-/** DD/MM/YYYY in Asia/Kolkata. Accepts YYYY-MM-DD (date-only) or ISO timestamps. */
+/** DD-MM-YYYY in Asia/Kolkata. Accepts YYYY-MM-DD (date-only) or ISO timestamps. */
 export function formatDate(value: string | null | undefined): string {
   if (!value) return "—";
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     const [y, m, d] = value.split("-");
-    return `${d}/${m}/${y}`;
+    return `${d}-${m}-${y}`;
   }
   const dt = new Date(value);
   if (Number.isNaN(dt.getTime())) return "—";
-  return new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", day: "2-digit", month: "2-digit", year: "numeric" }).format(dt);
+  return new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", day: "2-digit", month: "2-digit", year: "numeric" }).format(dt).replaceAll("/", "-");
 }
 
 export function formatDateTime(value: string | null | undefined): string {
   if (!value) return "—";
-  return new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+  return new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value)).replaceAll("/", "-");
 }
 
 export function todayIST(): string {

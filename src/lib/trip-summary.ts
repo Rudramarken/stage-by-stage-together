@@ -16,6 +16,7 @@ export type SummaryLeg = {
   commissions: any[];
   /** Non-reversed payments tagged to this trip (informational only). */
   payments?: any[];
+  driverTransactions?: any[];
 };
 
 export type TripFinancials = {
@@ -50,7 +51,7 @@ export function summarizeTrip(legs: SummaryLeg[]): TripFinancials {
   const commissions = activeLegs.flatMap((l) => l.commissions).filter((c) => !c.is_cancelled);
 
   const freight = sum(active, (x) => num(x.final_freight));
-  const payable = sum(active, (x) => num(x.freight_payable));
+  const payable = sum(active, (x) => x.transporter_freight_direction === "receivable" ? -num(x.freight_payable) : num(x.freight_payable));
   const directPaid = sum(active, (x) => (x.direct_payment_enabled ? Math.min(num(x.direct_payment_amount), num(x.final_freight)) : 0));
 
   // Commission counted once. LR-level commission is already inside (freight - payable) when the consignee paid the driver directly.
@@ -59,19 +60,20 @@ export function summarizeTrip(legs: SummaryLeg[]): TripFinancials {
   const commissionEarned = r2(lrCommission + tripCommission);
 
   const gokul = expenses.filter((e) => e.responsible === "gokul");
-  const tripExpenses = sum(gokul.filter((e) => e.scope === "trip"), (e) => num(e.amount));
+  const driverExpenses = sum(activeLegs.flatMap(l => l.driverTransactions ?? []).filter(r => !r.is_cancelled && r.kind === "expense"), r => num(r.amount));
+  const tripExpenses = r2(sum(gokul.filter((e) => e.scope === "trip"), (e) => num(e.amount)) + driverExpenses);
   const lrExpensesGokul = sum(gokul.filter((e) => e.scope !== "trip"), (e) => num(e.amount));
   const expensesChargedToParty = sum(expenses.filter((e) => e.responsible === "party"), (e) => num(e.amount));
 
   const missing: string[] = [];
   const notes: string[] = [];
-  const hasFreight = active.length > 0 && freight > 0;
+  const hasFreight = active.length > 0 && (freight > 0 || payable < 0);
   if (!hasFreight) missing.push("Customer freight (no active LR with freight is linked to this trip)");
 
   const needsPayable = activeLegs.some((l) => l.trip.vehicle_mode === "market" || !!l.trip.transporter_id) || active.some((x) => !!x.transporter_id);
-  if (hasFreight && needsPayable && !(payable > 0)) missing.push("Transporter freight payable (a market truck / transporter is used but no payable is recorded)");
+  if (hasFreight && needsPayable && !active.some(x => num(x.freight_payable) > 0)) missing.push("Transporter freight payable (a market truck / transporter is used but no payable is recorded)");
 
-  const expenseRecords = gokul.length;
+  const expenseRecords = gokul.length + activeLegs.flatMap(l => l.driverTransactions ?? []).filter(r => !r.is_cancelled && r.kind === "expense").length;
   if (hasFreight && expenseRecords === 0) missing.push("Trip expenses (none recorded - they are not assumed to be zero)");
 
   if (activeLegs.some((l) => l.trip.status === "draft" || l.trip.status === "booked" || l.trip.status === "in_transit")) notes.push("The trip is not delivered/completed yet, so more entries may still be added.");

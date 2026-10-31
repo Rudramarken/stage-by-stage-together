@@ -1,0 +1,1 @@
+export const paymentIsIncoming = (type: string) => ["customer_receipt", "advance_received", "third_party_receipt", "transporter_receipt"].includes(type);

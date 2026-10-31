@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import { summarizeTransporterLines } from "./transporter-ledger";
 
 describe("transporter manual accounting", () => {
+  it("transporter freight receivable is not labelled an advance paid", () => {
+    const s = summarizeTransporterLines([{ line_kind: "freight_payable", debit: 2000, credit: 0 }]);
+    expect(s.freight).toBe(-2000); expect(s.paid).toBe(0); expect(s.remaining).toBe(-2000);
+  });
   it("a credit increases payable without becoming freight or cash", () => {
     expect(summarizeTransporterLines([{ line_kind: "manual", debit: 0, credit: 100 }])).toEqual({ opening: 0, freight: 0, adjustments: 100, paid: 0, commissionDue: 0, remaining: 100 });
   });
