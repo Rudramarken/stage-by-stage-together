@@ -14,7 +14,7 @@ export const EXTRA_EXPENSE_CATEGORIES = ["Diesel/Fuel", "Loading", "Unloading", 
 
 export type ExpenseRow = {
   id: string; category: string; amount: string; expense_date: string; paid_to: string; notes: string;
-  saved: boolean; cancelReason?: string;
+  saved: boolean; cancelReason?: string; account_id?: string; payment_method?: string; payment_status?: string; reference?: string;
 };
 export type ExpenseForm = { fixed: Record<FixedKey, ExpenseRow>; extra: ExpenseRow[] };
 
@@ -28,11 +28,11 @@ const str = (v: unknown) => (v == null ? "" : String(v));
 export const newId = () => (globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : "00000000-0000-4000-8000-" + Math.random().toString(16).slice(2).padEnd(12, "0").slice(0, 12));
 
 export function blankExpense(category = "", date = ""): ExpenseRow {
-  return { id: newId(), category, amount: "", expense_date: date, paid_to: "", notes: "", saved: false };
+  return { id: newId(), category, amount: "", expense_date: date, paid_to: "", notes: "", saved: false, account_id: "", payment_method: "cash", payment_status: "paid", reference: "" };
 }
 
 function rowFromDb(e: any): ExpenseRow {
-  return { id: e.id, category: str(e.category), amount: str(e.amount), expense_date: str(e.expense_date), paid_to: str(e.paid_to), notes: str(e.notes), saved: true };
+  return { id: e.id, category: str(e.category), amount: str(e.amount), expense_date: str(e.expense_date), paid_to: str(e.paid_to), notes: str(e.notes), account_id: str(e.account_id), payment_method: str(e.payment_method), payment_status: str(e.payment_status || "paid"), reference: str(e.reference), saved: true };
 }
 
 /** Build the form state from the trip's saved, non-cancelled, trip-scope expenses. Nothing is hidden: a second record in the same fixed category is shown under "Additional expenses". */
@@ -102,7 +102,8 @@ export function expensesPayload(f: ExpenseForm, tripDate: string) {
     if (!r.saved && !(fixed ? r.amount.trim() !== "" : hasContent(r))) return;
     const row: Record<string, unknown> = { id: r.id, category: r.category.trim(), amount: parseAmount(r.amount), notes: r.notes.trim() };
     if (!fixed) { row.paid_to = r.paid_to.trim(); row.expense_date = r.expense_date || tripDate; }
-    if (!r.saved) { row.expense_date = r.expense_date || tripDate; row.payment_method = "cash"; }
+    row.account_id = r.account_id || ""; row.payment_method = r.payment_method || "cash"; row.payment_status = r.payment_status || "paid"; row.reference = r.reference || "";
+    if (!r.saved) { row.expense_date = r.expense_date || tripDate; row.payment_method = r.payment_method || "cash"; }
     out.push(row);
   };
   for (const x of FIXED_EXPENSES) push(f.fixed[x.key], true);

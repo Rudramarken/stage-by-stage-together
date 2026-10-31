@@ -47,3 +47,6 @@ SCHEMA_COLUMNS.lrs.push("transporter_freight_date");
 SCHEMA_COLUMNS.lr_documents = ["id", "lr_id", "file_name", "storage_path", "mime_type", "size_bytes", "created_at"];
 SCHEMA_COLUMNS.trip_documents = ["id", "trip_id", "file_name", "storage_path", "mime_type", "size_bytes", "created_at"];
 SCHEMA_COLUMNS.vehicles.push("driver_id");
+
+SCHEMA_COLUMNS.lrs.push("transporter_freight_direction");
+SCHEMA_COLUMNS.driver_transactions = ["id", "business_id", "trip_id", "driver_id", "party_id", "kind", "amount", "entry_date", "payment_method", "account_id", "reference", "notes", "is_cancelled", "cancel_reason"];

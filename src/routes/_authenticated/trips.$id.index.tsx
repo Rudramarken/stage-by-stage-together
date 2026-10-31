@@ -13,6 +13,7 @@ import { LoadingState, ErrorState, errorMessage } from "@/components/app/states"
 import { Section, selectCls } from "@/components/app/Section";
 import { TripExpenses, TripAdvances } from "@/components/app/MoneyEditors";
 import { CommissionPanel } from "@/components/app/CommissionPanel";
+import { DriverTransactions } from "@/components/app/DriverTransactions";
 import { TripProfit } from "@/components/app/TripProfit";
 import { TripDocuments } from "@/components/app/TripDocuments";
 import { Button } from "@/components/ui/button";
@@ -229,6 +230,7 @@ function TripDetail() {
 
       <Section title="Trip expenses"><TripExpenses tripId={id} /></Section>
       <Section title="Advances (driver / transporter / truck owner)"><TripAdvances tripId={id} defaultDriverId={t.driver_id} defaultTransporterId={t.transporter_id} /></Section>
+      <Section title="Driver Expenses & party payments"><DriverTransactions tripId={id} driverId={t.driver_id || undefined} /></Section>
       <Section title="Trip commission"><CommissionPanel tripId={id} />{leg.lrs.filter((l) => l.commission_enabled).map((l) => <CommissionPanel key={l.id} lrId={l.id} />)}</Section>
 
       <TripDocuments tripId={id} />

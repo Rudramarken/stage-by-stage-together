@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader, Money, StatusBadge, Field } from "@/components/app/ui";
 import { LoadingState, ErrorState, EmptyState, errorMessage } from "@/components/app/states";
 import { LedgerTable } from "@/components/app/LedgerTable";
+import { DriverTransactions } from "@/components/app/DriverTransactions";
 import { CommissionPanel } from "@/components/app/CommissionPanel";
 import { salaryRecovery } from "@/lib/commission";
 import { SearchSelect } from "@/components/app/SearchSelect";
@@ -44,6 +45,7 @@ function DriverLedger() {
           <div className="text-sm text-muted-foreground">Joined {formatDate(d.joining_date)} · Agreed salary {d.salary_amount ? `${formatINR(d.salary_amount)} (${d.salary_frequency})` : "not set"}</div>
           <Salary driver={d} />
           <CommissionPanel driverId={d.id} />
+          <DriverTransactions driverId={d.id} />
           <h3 className="font-semibold">Ledger</h3>
           <LedgerTable accountType="driver" accountId={d.id} title={`driver-${d.name}`} />
           <Trips driverId={d.id} />

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -17,6 +17,7 @@ import { useAccounts, useDrivers, useVehicles, useTransporters, nameOf, PAY_MODE
 import { TransporterSelect } from "./TransporterSelect";
 import { TripLrSection } from "./TripLrSection";
 import { blankTripLr, isBlankTripLr, tripLrPayload, validateTripLrs, type TripLrDraft } from "@/lib/trip-lrs";
+import { DriverRows, driverRowsPayload, type DriverRow } from "./DriverTransactions";
 import { formatINR, todayIST } from "@/lib/format";
 
 export type Stop = { id?: string; location: string; stop_type: string; status: string; planned_arrival?: string; actual_arrival?: string; notes?: string };
@@ -36,13 +37,15 @@ function askReason(): string | null {
   return r && r.trim() ? r.trim() : null;
 }
 
-export function TripForm({ initial, initialExpenses, initialAdvances }: { initial?: TripValues; initialExpenses?: any[]; initialAdvances?: any[] }) {
+export function TripForm({ initial, initialExpenses, initialAdvances, initialDriverTransactions }: { initial?: TripValues; initialExpenses?: any[]; initialAdvances?: any[]; initialDriverTransactions?: any[] }) {
   const nav = useNavigate();
   const qc = useQueryClient();
   const vehicles = useVehicles(); const drivers = useDrivers(); const transporters = useTransporters(); const accounts = useAccounts();
   // Rows keep their saved ids (or a browser-made id for new rows), so saving again - or retrying a failed request - updates the same records instead of duplicating them.
   const [exp, setExp] = useState<ExpenseForm>(() => expensesToForm(initialExpenses, ""));
   const [adv, setAdv] = useState<AdvanceRow[]>(() => advancesToForm(initialAdvances));
+  const saving = useRef(false);
+  const [driverRows, setDriverRows] = useState<DriverRow[]>((initialDriverTransactions ?? []).map(r => ({ ...r, saved: true, amount: String(r.amount) })));
   const [clientId] = useState(() => newId());
   // journey_type / direction / status are no longer shown in the form, but save_trip resets them to defaults when they are missing,
   // so an edited trip sends back its saved values unchanged (and a new trip gets the same defaults as before).
@@ -53,7 +56,7 @@ export function TripForm({ initial, initialExpenses, initialAdvances }: { initia
   const [err, setErr] = useState<string | null>(null);
   const set = (k: string, val: unknown) => setV({ ...v, [k]: val });
   async function save() {
-    if (busy) return;
+    if (busy || saving.current) return;
     setErr(null);
     if (v.vehicle_mode === "market" && !v.market_vehicle_number?.trim()) return setErr("Enter the market truck's vehicle number");
     if (v.commission_enabled && !v.transporter_id) return setErr("Choose the transporter who owes commission");
@@ -61,17 +64,19 @@ export function TripForm({ initial, initialExpenses, initialAdvances }: { initia
     const expErr = validateExpenses(exp); if (expErr) return setErr(expErr);
     const advErr = validateAdvances(adv, v.driver_id); if (advErr) return setErr(advErr);
     const lrErr = validateTripLrs(lrDrafts); if (lrErr) return setErr(lrErr);
-    setBusy(true);
+    let driverPayload;
+    try { driverPayload = driverRowsPayload(driverRows, v.driver_id); } catch(e) { return setErr(errorMessage(e)); }
+    saving.current = true; setBusy(true);
     let tripId = "";
     try {
       // Stops are left exactly as stored: the form no longer edits them, so the key is not sent (save_trip only touches stops when it is present).
       const { stops: _stops, ...rest } = v;
-      const payload = { ...rest, client_id: initial?.id ? undefined : clientId, expenses: expensesPayload(exp, v.trip_date), advances: advancesPayload(adv, v.driver_id) };
+      const payload = { ...rest, client_id: initial?.id ? undefined : clientId, expenses: expensesPayload(exp, v.trip_date), advances: advancesPayload(adv, v.driver_id), driver_transactions: driverPayload };
       const { data, error } = await supabase.rpc("save_trip", { p: payload as never });
       if (error) throw error;
       tripId = data as string;
       setV((previous) => ({ ...previous, id: tripId }));
-    } catch (e) { setErr(errorMessage(e)); setBusy(false); return; }
+    } catch (e) { setErr(errorMessage(e)); saving.current = false; setBusy(false); return; }
 
     // Step 2: LR / Bilty rows and links. The trip is already saved (and a second Save updates the same trip, because the trip id is reused).
     // Each LR remembers its id once saved, so a retry updates it instead of creating a second LR.
@@ -102,12 +107,12 @@ export function TripForm({ initial, initialExpenses, initialAdvances }: { initia
       setLrDrafts(work);
       qc.invalidateQueries();
       setErr(`The trip was saved, but part of the LR / Bilty step failed. ${errorMessage(e)} Fix it and press Save again: the trip and any LR already saved are updated, never duplicated.`);
-      setBusy(false);
+      saving.current = false; setBusy(false);
       return;
     }
     toast.success("Trip saved");
     qc.invalidateQueries();
-    setBusy(false);
+    saving.current = false; setBusy(false);
     nav({ to: "/trips/$id", params: { id: tripId } });
   }
 
@@ -117,6 +122,12 @@ export function TripForm({ initial, initialExpenses, initialAdvances }: { initia
   const expTotal = expenseTotal(exp);
   const advTotal = advanceTotal(adv);
 
+  const expenseAccountFields = (r: ExpenseRow, upd: (p: Partial<ExpenseRow>) => void) => <div className="grid gap-2 sm:grid-cols-2">
+    <Field label="Paid From Account"><select className={selectCls} value={r.account_id || ""} disabled={!!r.cancelReason} onChange={e => upd({ account_id: e.target.value })}><option value="">Choose account…</option>{accounts.data?.filter(a => a.is_active || a.id === r.account_id).map(a => <option key={a.id} value={a.id}>{a.display_name}</option>)}</select></Field>
+    <Field label="Payment status"><select className={selectCls} value={r.payment_status || "paid"} disabled={!!r.cancelReason} onChange={e => upd({ payment_status: e.target.value })}><option value="paid">Paid</option><option value="pending">Pending / unpaid</option></select></Field>
+    <Field label="Method"><select className={selectCls} value={r.payment_method || "cash"} disabled={!!r.cancelReason} onChange={e => upd({ payment_method: e.target.value })}>{PAY_MODES.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}</select></Field>
+    <Field label="Reference"><Input value={r.reference || ""} disabled={!!r.cancelReason} onChange={e => upd({ reference: e.target.value })} /></Field>
+  </div>;
   return (
     <div className="space-y-4">
       <Section n={1} title="Trip details">
@@ -168,6 +179,7 @@ export function TripForm({ initial, initialExpenses, initialAdvances }: { initia
                   <Input type="number" inputMode="decimal" min="0" step="0.01" placeholder="₹ amount" value={r.amount} disabled={!!r.cancelReason} onChange={(e) => upd({ amount: e.target.value })} />
                 </Field>
                 <Input aria-label={`${x.category} note`} placeholder="Note (optional)" value={r.notes} disabled={!!r.cancelReason} onChange={(e) => upd({ notes: e.target.value })} />
+                {expenseAccountFields(r, upd)}
                 {r.saved && (r.cancelReason
                   ? <div className="flex items-center justify-between gap-2 text-xs text-destructive"><span>Will be cancelled when you save: {r.cancelReason}</span><Button type="button" variant="ghost" size="sm" onClick={() => upd({ cancelReason: undefined })}><Undo2 className="mr-1 h-4 w-4" />Undo</Button></div>
                   : <Button type="button" variant="ghost" size="sm" className="text-destructive" onClick={() => { const reason = askReason(); if (reason) upd({ cancelReason: reason }); }}><Ban className="mr-1 h-4 w-4" />Cancel this expense</Button>)}
@@ -196,6 +208,7 @@ export function TripForm({ initial, initialExpenses, initialAdvances }: { initia
                       ? <Button type="button" variant="ghost" size="icon" aria-label="Undo cancel" onClick={() => upd({ cancelReason: undefined })}><Undo2 className="h-4 w-4" /></Button>
                       : <Button type="button" variant="ghost" size="icon" aria-label="Cancel this saved expense" className="text-destructive" onClick={() => { const reason = askReason(); if (reason) upd({ cancelReason: reason }); }}><Ban className="h-4 w-4" /></Button>}
                 </div>
+                <div className="sm:col-span-12">{expenseAccountFields(r, upd)}</div>
                 {off && <p className="text-xs text-destructive sm:col-span-12">Will be cancelled when you save: {r.cancelReason}</p>}
               </div>
             );
@@ -240,6 +253,7 @@ export function TripForm({ initial, initialExpenses, initialAdvances }: { initia
           <p className="text-sm">Driver advance entered: <b><Money value={advTotal} /></b></p>
         </div>
       </Section>
+      <Section title="Driver Expenses & party payments"><DriverRows rows={driverRows} setRows={setDriverRows} driverId={v.driver_id} date={v.trip_date} /></Section>
       <Section title="Transporter commission (optional)" defaultOpen={!!v.commission_enabled}>
         <label className="flex items-center gap-2 text-sm"><Switch checked={!!v.commission_enabled} onCheckedChange={(enabled) => set("commission_enabled", enabled)} />Commission applicable?</label>
         {v.commission_enabled && <div className="mt-3 grid gap-3 sm:grid-cols-3">
