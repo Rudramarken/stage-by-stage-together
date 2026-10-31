@@ -204,6 +204,13 @@
       "when": 1793452288472,
       "tag": "0028_driver_transactions_and_transporter_direction",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1793452316545,
+      "tag": "0029_trip_expense_pending_status",
+      "breakpoints": true
     }
   ]
 }
