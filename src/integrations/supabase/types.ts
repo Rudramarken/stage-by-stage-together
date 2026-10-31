@@ -2582,6 +2582,7 @@ export type Database = {
       }
       save_account_transfer: { Args: { p: Json }; Returns: string }
       save_driver_transaction: { Args: { p: Json }; Returns: string }
+      save_driver_transactions: { Args: { p: Json }; Returns: string[] }
       save_lr: { Args: { p: Json }; Returns: string }
       save_party_manual_entry: {
         Args: {
