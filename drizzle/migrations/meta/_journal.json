@@ -218,6 +218,13 @@
       "when": 1793452548381,
       "tag": "0030_atomic_driver_entries_and_safe_retries",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1793452923529,
+      "tag": "0031_repair_trip_advance_save_after_pending_support",
+      "breakpoints": true
     }
   ]
 }
