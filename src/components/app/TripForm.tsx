@@ -252,8 +252,9 @@ export function TripForm({ initial, initialExpenses, initialAdvances, initialDri
           <Button type="button" variant="outline" size="sm" onClick={() => setAdv([...adv, blankAdvance(v.trip_date ?? todayIST())])}><Plus className="mr-1 h-4 w-4" />Add driver advance</Button>
           <p className="text-sm">Driver advance entered: <b><Money value={advTotal} /></b></p>
         </div>
+        <h3 className="mb-3 mt-5 font-semibold">Driver Expenses & party payments</h3>
+        <DriverRows rows={driverRows} setRows={setDriverRows} driverId={v.driver_id} date={v.trip_date} />
       </Section>
-      <Section title="Driver Expenses & party payments"><DriverRows rows={driverRows} setRows={setDriverRows} driverId={v.driver_id} date={v.trip_date} /></Section>
       <Section title="Transporter commission (optional)" defaultOpen={!!v.commission_enabled}>
         <label className="flex items-center gap-2 text-sm"><Switch checked={!!v.commission_enabled} onCheckedChange={(enabled) => set("commission_enabled", enabled)} />Commission applicable?</label>
         {v.commission_enabled && <div className="mt-3 grid gap-3 sm:grid-cols-3">

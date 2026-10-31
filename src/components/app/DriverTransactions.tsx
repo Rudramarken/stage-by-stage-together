@@ -38,7 +38,7 @@ export function DriverRows({ rows, setRows, driverId, date }: { rows: DriverRow[
   </div>;
 }
 export function driverRowsPayload(rows: DriverRow[], driverId?: string) {
-  return rows.map(r => r.cancel ? { id: r.id, cancel: true, cancel_reason: r.cancel_reason } : driverTransactionSchema.parse({ ...r, driver_id: r.driver_id || driverId, party_id: r.party_id || null, trip_id: r.trip_id || null, account_id: r.kind === "expense" ? r.account_id || null : null }));
+  return rows.map(r => r.cancel ? { id: r.id, cancel: true, cancel_reason: r.cancel_reason } : driverTransactionSchema.parse({ ...r, reference: r.reference || "", notes: r.notes || "", payment_method: r.payment_method || "cash", driver_id: r.driver_id || driverId, party_id: r.party_id || null, trip_id: r.trip_id || null, account_id: r.kind === "expense" ? r.account_id || null : null }));
 }
 
 export function DriverTransactions({ driverId, tripId }: { driverId?: string; tripId?: string }) {
@@ -48,7 +48,7 @@ export function DriverTransactions({ driverId, tripId }: { driverId?: string; tr
   async function save() {
     if (!rows || guard.current) return;
     guard.current = true; setBusy(true); setErr("");
-    try { for (const r of driverRowsPayload(rows, driverId)) { const { error } = await supabase.rpc("save_driver_transaction", { p: { ...r, trip_id: rows.find(x => x.id === r.id)?.trip_id || tripId || null } as never }); if (error) throw error; } await qc.invalidateQueries(); setRows(null); }
+    try { const p = driverRowsPayload(rows, driverId).map(r => ({ ...r, trip_id: rows.find(x => x.id === r.id)?.trip_id || tripId || null })); const { error } = await supabase.rpc("save_driver_transactions", { p: p as never }); if (error) throw error; await qc.invalidateQueries(); setRows(null); }
     catch(e) { setErr(errorMessage(e)); } finally { guard.current = false; setBusy(false); }
   }
   if (q.isPending) return <LoadingState />;
@@ -56,6 +56,6 @@ export function DriverTransactions({ driverId, tripId }: { driverId?: string; tr
   return <div className="space-y-3">
     <Button variant="outline" onClick={() => { setErr(""); setRows([]); }}>Add driver entry</Button>
     {q.data.map(r => <div key={r.id} className="flex flex-wrap items-center justify-between gap-3 border-b py-2 text-sm"><div>{formatDate(r.entry_date)} · {r.kind === "expense" ? "Driver Expenses" : `Received directly from ${nameOf(parties.data, r.party_id)}`} · <Money value={r.amount} />{r.account_id && <> · {nameOf(accounts.data, r.account_id, "display_name")}</>} · {r.reference}{r.is_cancelled && <span className="text-destructive"> · Cancelled: {r.cancel_reason}</span>}</div>{!r.is_cancelled && <Button variant="outline" size="sm" onClick={() => { setErr(""); setRows([{ ...r, amount: String(r.amount), saved: true }]); }}>Edit / cancel</Button>}</div>)}
-    <Dialog open={rows !== null} onOpenChange={o => { if (!o && !busy) setRows(null); }}><DialogContent className="max-w-3xl"><DialogHeader><DialogTitle>Driver entries</DialogTitle></DialogHeader>{rows && <DriverRows rows={rows} setRows={setRows} driverId={driverId} date={todayIST()} />}{err && <p role="alert" className="text-destructive">{err}</p>}<Button disabled={busy || !rows?.length} onClick={save}>{busy ? "Saving…" : "Save driver entries"}</Button></DialogContent></Dialog>
+    <Dialog open={rows !== null} onOpenChange={o => { if (!o && !busy) setRows(null); }}><DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto"><DialogHeader><DialogTitle>Driver entries</DialogTitle></DialogHeader>{rows && <DriverRows rows={rows} setRows={setRows} driverId={driverId} date={todayIST()} />}{err && <p role="alert" className="text-destructive">{err}</p>}<Button disabled={busy || !rows?.length} onClick={save}>{busy ? "Saving…" : "Save driver entries"}</Button></DialogContent></Dialog>
   </div>;
 }

@@ -71,9 +71,9 @@ export function summarizeTrip(legs: SummaryLeg[]): TripFinancials {
   if (!hasFreight) missing.push("Customer freight (no active LR with freight is linked to this trip)");
 
   const needsPayable = activeLegs.some((l) => l.trip.vehicle_mode === "market" || !!l.trip.transporter_id) || active.some((x) => !!x.transporter_id);
-  if (hasFreight && needsPayable && !(payable > 0)) missing.push("Transporter freight payable (a market truck / transporter is used but no payable is recorded)");
+  if (hasFreight && needsPayable && !active.some(x => num(x.freight_payable) > 0)) missing.push("Transporter freight payable (a market truck / transporter is used but no payable is recorded)");
 
-  const expenseRecords = gokul.length;
+  const expenseRecords = gokul.length + activeLegs.flatMap(l => l.driverTransactions ?? []).filter(r => !r.is_cancelled && r.kind === "expense").length;
   if (hasFreight && expenseRecords === 0) missing.push("Trip expenses (none recorded - they are not assumed to be zero)");
 
   if (activeLegs.some((l) => l.trip.status === "draft" || l.trip.status === "booked" || l.trip.status === "in_transit")) notes.push("The trip is not delivered/completed yet, so more entries may still be added.");

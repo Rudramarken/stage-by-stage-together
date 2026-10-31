@@ -5,6 +5,11 @@ const D = "2026-10-28";
 const saved = (o: Record<string, unknown>) => ({ trip_id: "T", scope: "trip", is_cancelled: false, ...o });
 
 describe("trip expenses form state", () => {
+  it("persists individual paid accounts and unpaid status through edit and reload", () => {
+    const f = expensesToForm([saved({ id: "E1", category: "TOLL TAX", amount: 100, account_id: "bank", payment_method: "neft", payment_status: "paid", reference: "TEST" }), saved({ id: "E2", category: "Parking", amount: 80, account_id: null, payment_status: "pending" })], D);
+    expect(expensesPayload(f, D)[0]).toMatchObject({ id: "E1", account_id: "bank", payment_method: "neft", payment_status: "paid", reference: "TEST" });
+    expect(expensesPayload(f, D)[1]).toMatchObject({ id: "E2", account_id: "", payment_status: "pending" });
+  });
   it("always offers the four fixed categories, even for a trip with no expenses", () => {
     const f = expensesToForm([], D);
     expect(Object.values(f.fixed).map((r) => r.category)).toEqual(["TOLL TAX", "CNG", "FOOD", "POLICE"]);
