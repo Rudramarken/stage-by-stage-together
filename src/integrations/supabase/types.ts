@@ -552,6 +552,102 @@ export type Database = {
           },
         ]
       }
+      driver_transactions: {
+        Row: {
+          account_id: string | null
+          amount: number
+          business_id: string
+          cancel_reason: string | null
+          created_at: string
+          created_by: string | null
+          driver_id: string
+          entry_date: string
+          id: string
+          is_cancelled: boolean
+          kind: string
+          notes: string | null
+          party_id: string | null
+          payment_method: string | null
+          reference: string | null
+          trip_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_id?: string | null
+          amount: number
+          business_id: string
+          cancel_reason?: string | null
+          created_at?: string
+          created_by?: string | null
+          driver_id: string
+          entry_date: string
+          id?: string
+          is_cancelled?: boolean
+          kind: string
+          notes?: string | null
+          party_id?: string | null
+          payment_method?: string | null
+          reference?: string | null
+          trip_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          business_id?: string
+          cancel_reason?: string | null
+          created_at?: string
+          created_by?: string | null
+          driver_id?: string
+          entry_date?: string
+          id?: string
+          is_cancelled?: boolean
+          kind?: string
+          notes?: string | null
+          party_id?: string | null
+          payment_method?: string | null
+          reference?: string | null
+          trip_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_transactions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "payment_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_transactions_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_transactions_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_transactions_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "parties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_transactions_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       drivers: {
         Row: {
           address: string | null
@@ -1027,6 +1123,7 @@ export type Database = {
           transporter_additions: number | null
           transporter_additions_reason: string | null
           transporter_freight_date: string | null
+          transporter_freight_direction: string
           transporter_id: string | null
           transporter_rate: number | null
           transporter_rate_unit: string | null
@@ -1086,6 +1183,7 @@ export type Database = {
           transporter_additions?: number | null
           transporter_additions_reason?: string | null
           transporter_freight_date?: string | null
+          transporter_freight_direction?: string
           transporter_id?: string | null
           transporter_rate?: number | null
           transporter_rate_unit?: string | null
@@ -1145,6 +1243,7 @@ export type Database = {
           transporter_additions?: number | null
           transporter_additions_reason?: string | null
           transporter_freight_date?: string | null
+          transporter_freight_direction?: string
           transporter_id?: string | null
           transporter_rate?: number | null
           transporter_rate_unit?: string | null
@@ -2482,6 +2581,7 @@ export type Database = {
         Returns: undefined
       }
       save_account_transfer: { Args: { p: Json }; Returns: string }
+      save_driver_transaction: { Args: { p: Json }; Returns: string }
       save_lr: { Args: { p: Json }; Returns: string }
       save_party_manual_entry: {
         Args: {
