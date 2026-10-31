@@ -29,3 +29,7 @@
 - Shared controls, navigation and MobileCards own touch sizing and focus treatment; list filters have explicit accessible names. Why: accessibility and phone layouts remain consistent across transport screens.
 - Database changes are applied only through the migration tool (journaled in drizzle/migrations); hand-written SQL meant for manual runs lives in drizzle/manual-archive and is never run again. Why: unjournaled files were silently never applied, causing missing tables/columns.
 - New public functions get EXECUTE for authenticated/service_role only (default privileges revoke PUBLIC/anon); only setup_available is callable signed out. Why: signed-out visitors must not reach internal functions.
+
+- Driver direct-party receipts and expense reimbursements use driver_transactions with stable IDs, atomic trip saves and source-key ledger upserts; party receipts never enter account_movements. Why: distinguish third-party funds, driver liabilities and actual company outflows.
+- Transporter freight direction is explicit and defaults to the historical payable convention; never reclassify past LRs automatically. Why: support receivables without rewriting existing balances.
+- Account activity reports read the same paginated account_movements model as statements. Why: transfers and receipts reconcile consistently.

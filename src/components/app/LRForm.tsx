@@ -17,7 +17,7 @@ import { TransporterSelect } from "./TransporterSelect";
 import { LRDocuments } from "./LRDocuments";
 import { calcFreight, validateFreight, RATE_UNIT_LABEL, type RateUnit, type WeightUnit } from "@/lib/freight";
 import { formatINR, todayIST } from "@/lib/format";
-import { PartyFreightFields, type PartyFreightValues } from "./PartyFreightFields";
+import { freightPatch, PartyFreightFields, type PartyFreightValues } from "./PartyFreightFields";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 type Exp = Record<string, any>;
@@ -51,7 +51,7 @@ export function LRForm({ initial }: { initial: LRValues }) {
   const inflight = useRef(false);
   const savedId = useRef<string | null>(null);
   // LRs saved before party-wise freight keep their single-party posting and their original Customer freight block. New LRs (and LRs already saved party-wise) enter freight against each consignor/consignee.
-  const legacy = !!initial.id && !initial.parties.some((p) => p.freight_amount !== "" && p.freight_amount != null);
+  const legacy = !!initial.id && Number(initial.final_freight) > 0 && !initial.parties.some((p) => p.freight_amount !== "" && p.freight_amount != null);
   const set = (k: string, val: unknown) => setV((p) => ({ ...p, [k]: val }));
   const setP = (i: number, patch: Partial<LP>) => setV((p) => ({ ...p, parties: p.parties.map((x, j) => (j === i ? { ...x, ...patch } : x)) }));
   const setE = (i: number, k: number, patch: Exp) => setP(i, { expenses: v.parties[i].expenses.map((e, j) => (j === k ? { ...e, ...patch } : e)) });
@@ -244,14 +244,15 @@ export function LRForm({ initial }: { initial: LRValues }) {
       </Section>
       )}
 
-      <Section n={5} title="Transporter / freight payable">
+      <Section n={5} title="Transporter freight">
         <div className="grid gap-4 sm:grid-cols-4">
           <Field label="Transporter" hint="Pick a party or type a new name to add it once">
             <TransporterSelect value={v.transporter_id} onChange={(x) => set("transporter_id", x)} /></Field>
+          <Field label="Transporter freight direction"><select className={selectCls} value={v.transporter_freight_direction || "payable"} onChange={e => set("transporter_freight_direction", e.target.value)}><option value="payable">Payable — Gokul owes transporter</option><option value="receivable">Receivable — transporter owes Gokul</option></select></Field>
           <Field label="Transporter freight date"><Input type="date" value={v.transporter_freight_date ?? ""} onChange={(e) => set("transporter_freight_date", e.target.value)} /></Field>
           {!v.transporter_rate_unit && <>
-            <Field label="Transporter weight (kg)"><Input type="number" min="0" step="0.01" value={v.transporter_weight ?? ""} onChange={(e) => set("transporter_weight", e.target.value)} /></Field>
-            <Field label="Transporter rate (₹)"><Input type="number" min="0" step="0.01" value={v.transporter_rate ?? ""} onChange={(e) => set("transporter_rate", e.target.value)} /></Field>
+            <Field label="Transporter weight (kg)"><Input type="number" min="0" step="0.01" value={v.transporter_weight ?? ""} onChange={(e) => { const p = freightPatch({ weight: v.transporter_weight, rate: v.transporter_rate }, { weight: e.target.value }); setV(x => ({ ...x, transporter_weight: e.target.value, ...(p.freight_amount !== undefined ? { freight_payable: p.freight_amount } : {}) })); }} /></Field>
+            <Field label="Transporter rate (₹)"><Input type="number" min="0" step="0.01" value={v.transporter_rate ?? ""} onChange={(e) => { const p = freightPatch({ weight: v.transporter_weight, rate: v.transporter_rate }, { rate: e.target.value }); setV(x => ({ ...x, transporter_rate: e.target.value, ...(p.freight_amount !== undefined ? { freight_payable: p.freight_amount } : {}) })); }} /></Field>
           </>}
           <Field label="Vehicle number" hint="Pick one of Gokul's trucks or type any market vehicle number">
             <Input list="lr-own-vehicles" value={v.vehicle_number ?? ""} onChange={(e) => set("vehicle_number", e.target.value)} placeholder={trip ? "Taken from the linked trip if left empty" : "Not Assigned if left empty"} />
@@ -264,7 +265,7 @@ export function LRForm({ initial }: { initial: LRValues }) {
           <div className="sm:col-span-1"><Field label="Reason for add"><Input value={v.transporter_additions_reason ?? ""} onChange={(e) => set("transporter_additions_reason", e.target.value)} /></Field></div>
           <Field label="Shortage (−) from transporter freight (₹)" hint="Material shortage charges to cut"><Input type="number" min="0" step="0.01" value={v.transporter_shortage ?? ""} onChange={(e) => setTAdj({ transporter_shortage: e.target.value })} /></Field>
           <div className="sm:col-span-1"><Field label="Reason for shortage"><Input value={v.transporter_shortage_reason ?? ""} onChange={(e) => set("transporter_shortage_reason", e.target.value)} /></Field></div>
-          <Field label="Freight payable to transporter (₹)" hint="Final amount after add / shortage. This does NOT record a payment"><Input type="number" min="0" value={v.freight_payable ?? ""} onChange={(e) => set("freight_payable", e.target.value)} /></Field>
+          <Field label={v.transporter_freight_direction === "receivable" ? "Freight receivable from transporter (₹)" : "Freight payable to transporter (₹)"} hint="Final amount after add / shortage. This does NOT record a payment"><Input type="number" min="0" value={v.freight_payable ?? ""} onChange={(e) => set("freight_payable", e.target.value)} /></Field>
         </div>
         {tCalc && <p className="mt-2 text-sm">{tUnit === "fixed" ? `Fixed freight to transporter ${formatINR(tRate ?? 0)} (not multiplied by weight)` : `${tWeight ?? 0} ${v.transporter_weight_unit || "kg"} × ${formatINR(tRate ?? 0)} ${RATE_UNIT_LABEL[tUnit as RateUnit].toLowerCase()} = ${formatINR(tCalc.base)}`}</p>}
         {(Number(v.transporter_additions || 0) > 0 || Number(v.transporter_shortage || 0) > 0) && <p className="mt-2 text-sm">Base {formatINR(r2(Number(v.freight_payable || 0) - Number(v.transporter_additions || 0) + Number(v.transporter_shortage || 0)))} + add {formatINR(Number(v.transporter_additions || 0))} − shortage {formatINR(Number(v.transporter_shortage || 0))} = <b>{formatINR(Number(v.freight_payable || 0))}</b></p>}
