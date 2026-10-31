@@ -45,8 +45,8 @@ function Reports() {
         for (const o of orderBy) q = q.order(o);
         return q.range(from, to);
       });
-      const [trips, lrs, exps, advs, pays, bal, sal, salp, commissions, receipts, movements] = await Promise.all([
-        all("trips", "*, trip_stops(location, seq), lrs(final_freight, freight_payable, status)"),
+      const [trips, lrs, exps, advs, pays, bal, sal, salp, commissions, receipts, movements, driverTx] = await Promise.all([
+        all("trips", "*, trip_stops(location, seq), lrs(final_freight, freight_payable, status, transporter_freight_direction)"),
         all("lrs", "*, trips(trip_number, trip_stops(location, seq)), lr_parties(role, parties(name))"),
         all("expenses", "*", ["id"], (q) => q.eq("is_cancelled", false)),
         all("advances", "*", ["id"], (q) => q.eq("is_cancelled", false)),
@@ -57,8 +57,9 @@ function Reports() {
         all("commission_balances", "*"),
         all("commission_receipts", "*", ["id"], (q) => q.eq("is_reversed", false)),
         all("account_movements", "*", ["source_table", "source_id", "account_id"]),
+        all("driver_transactions", "*", ["id"], q => q.eq("is_cancelled", false)),
       ]);
-      return { trips: trips as any[], lrs: lrs as any[], exps: exps, advs: advs, pays: pays, bal: bal, sal: sal, salp: salp, commissions: commissions, receipts: receipts, movements };
+      return { trips: trips as any[], lrs: lrs as any[], exps: [...exps, ...driverTx.filter(r => r.kind === "expense").map(r => ({ ...r, scope: "trip", category: "Driver Expenses", expense_date: r.entry_date, paid_to: "Driver", payment_status: r.account_id ? "paid" : "pending", responsible: "gokul" }))], advs: advs, pays: pays, bal: bal, sal: sal, salp: salp, commissions: commissions, receipts: receipts, movements };
     },
   });
 
@@ -71,11 +72,11 @@ function Reports() {
     const pn = (l: any, role: string) => l.lr_parties.filter((p: any) => p.role === role).map((p: any) => p.parties?.name).join(", ");
     const group = <T,>(arr: T[], k: (x: T) => string, v: (x: T) => number) => { const m = new Map<string, number>(); for (const x of arr) m.set(k(x), (m.get(k(x)) ?? 0) + v(x)); return [...m.entries()]; };
     switch (rep) {
-      case "trip_register": return { cols: [{ label: "Trip" }, { label: "Date" }, { label: "Route" }, { label: "Vehicle" }, { label: "Transporter" }, { label: "Driver" }, { label: "Status" }, { label: "Freight billed", money: true, total: true }, { label: "Freight payable", money: true, total: true }],
+      case "trip_register": return { cols: [{ label: "Trip" }, { label: "Date" }, { label: "Route" }, { label: "Vehicle" }, { label: "Transporter" }, { label: "Driver" }, { label: "Status" }, { label: "Freight billed", money: true, total: true }, { label: "Net transporter freight (+ payable / − receivable)", money: true, total: true }],
         rows: D.trips.filter((t) => inR(t.trip_date)).map((t) => [t.trip_number, formatDate(t.trip_date), routeOf(t.trip_stops), t.vehicle_mode === "own" ? nameOf(vehicles.data, t.vehicle_id, "registration_number") : t.market_vehicle_number ?? "", nameOf(transporters.data, t.transporter_id), nameOf(drivers.data, t.driver_id) || t.driver_name || "", TRIP_STATUS[t.status]?.label,
-          t.lrs.filter((l: any) => l.status === "active").reduce((s: number, l: any) => s + Number(l.final_freight), 0), t.lrs.filter((l: any) => l.status === "active").reduce((s: number, l: any) => s + Number(l.freight_payable), 0)]) };
-      case "lr_register": return { cols: [{ label: "LR" }, { label: "Date" }, { label: "Trip" }, { label: "Consignor" }, { label: "Consignee" }, { label: "Type" }, { label: "Weight" }, { label: "Base", money: true, total: true }, { label: "Additions", money: true, total: true }, { label: "Deductions", money: true, total: true }, { label: "Final freight (billed)", money: true, total: true }],
-        rows: lrs.map((l) => [l.lr_number, formatDate(l.lr_date), l.trips?.trip_number ?? "", pn(l, "consignor"), pn(l, "consignee"), FREIGHT_TYPE[l.freight_type], l.weight ? `${l.weight} ${l.weight_unit}` : "", Number(l.base_freight), Number(l.additions_total), Number(l.deductions_total), Number(l.final_freight)]) };
+          t.lrs.filter((l: any) => l.status === "active").reduce((s: number, l: any) => s + Number(l.final_freight), 0), t.lrs.filter((l: any) => l.status === "active").reduce((s: number, l: any) => s + (l.transporter_freight_direction === "receivable" ? -1 : 1) * Number(l.freight_payable), 0)]) };
+      case "lr_register": return { cols: [{ label: "LR" }, { label: "Date" }, { label: "Trip" }, { label: "Consignor" }, { label: "Consignee" }, { label: "Type" }, { label: "Weight" }, { label: "Base", money: true, total: true }, { label: "Additions", money: true, total: true }, { label: "Deductions", money: true, total: true }, { label: "Final freight (billed)", money: true, total: true }, { label: "Net transporter freight (+ payable / − receivable)", money: true, total: true }],
+        rows: lrs.map((l) => [l.lr_number, formatDate(l.lr_date), l.trips?.trip_number ?? "", pn(l, "consignor"), pn(l, "consignee"), FREIGHT_TYPE[l.freight_type], l.weight ? `${l.weight} ${l.weight_unit}` : "", Number(l.base_freight), Number(l.additions_total), Number(l.deductions_total), Number(l.final_freight), (l.transporter_freight_direction === "receivable" ? -1 : 1) * Number(l.freight_payable)]) };
       case "freight_summary": return { cols: [{ label: "Billed party" }, { label: "LRs" }, { label: "Freight billed", money: true, total: true }],
         rows: (() => { const m = new Map<string, [number, number]>(); for (const l of lrs) { const k = l.freight_type === "paid" ? pn(l, "consignor").split(",")[0] : l.freight_type === "to_pay" ? pn(l, "consignee").split(",")[0] : nameOf(parties.data, l.billing_party_id) || pn(l, "consignor").split(",")[0]; const x = m.get(k) ?? [0, 0]; m.set(k, [x[0] + 1, x[1] + Number(l.final_freight)]); } return [...m.entries()].map(([k, [n, a]]) => [k, n, a]); })() };
       case "trip_expenses": return { cols: [{ label: "Date" }, { label: "Trip" }, { label: "Category" }, { label: "Paid to" }, { label: "Method" }, { label: "Paid From Account" }, { label: "Status" }, { label: "Incurred", money: true, total: true }],

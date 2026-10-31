@@ -32,7 +32,7 @@ export function TripLrSection({ tripId, drafts, setDrafts, linkIds, setLinkIds, 
     enabled: !!tripId,
     queryFn: async () => {
       if (!tripId) return [];
-      const { data, error } = await supabase.from("lrs").select("id, lr_number, lr_date, transporter_id, transporters(name), status, final_freight, freight_payable, lr_parties(role, seq, parties(name))").eq("trip_id", tripId).order("lr_number");
+      const { data, error } = await supabase.from("lrs").select("id, lr_number, lr_date, transporter_id, transporters(name), status, final_freight, freight_payable, transporter_freight_direction, lr_parties(role, seq, parties(name))").eq("trip_id", tripId).order("lr_number");
       if (error) throw error;
       return data as any[];
     },
@@ -83,12 +83,12 @@ export function TripLrSection({ tripId, drafts, setDrafts, linkIds, setLinkIds, 
           <p className="text-sm font-medium">LR / Bilties already on this trip</p>
           {linked.isPending ? <LoadingState /> : linked.isError ? <ErrorState error={linked.error} onRetry={() => linked.refetch()} /> : linked.data.length === 0 ? <p className="text-sm text-muted-foreground">None yet.</p> : (
             <div className="overflow-x-auto rounded border"><table className="w-full text-sm">
-              <thead><tr className="border-b bg-muted/40 text-left"><th className="p-2">LR / Bilty</th><th className="p-2">Date</th><th className="p-2">Transporter</th><th className="p-2">Consignor(s)</th><th className="p-2">Consignee(s)</th><th className="p-2 text-right">Freight</th><th className="p-2 text-right">Payable to transporter</th><th className="p-2" /></tr></thead>
+              <thead><tr className="border-b bg-muted/40 text-left"><th className="p-2">LR / Bilty</th><th className="p-2">Date</th><th className="p-2">Transporter</th><th className="p-2">Consignor(s)</th><th className="p-2">Consignee(s)</th><th className="p-2 text-right">Freight</th><th className="p-2 text-right">Transporter freight</th><th className="p-2" /></tr></thead>
               <tbody>{linked.data.map((l) => (
                 <tr key={l.id} className={`border-b last:border-0 ${l.status === "cancelled" ? "opacity-50" : ""}`}>
                   <td className="p-2 font-medium">{l.lr_number}</td><td className="p-2 whitespace-nowrap">{formatDate(l.lr_date)}</td><td className="p-2">{l.transporters?.name || "—"}</td>
                   <td className="p-2">{names(l, "consignor")}</td><td className="p-2">{names(l, "consignee")}</td>
-                  <td className="p-2 text-right"><Money value={l.final_freight} /></td><td className="p-2 text-right"><Money value={l.freight_payable} /></td>
+                  <td className="p-2 text-right"><Money value={l.final_freight} /></td><td className="p-2 text-right"><Money value={l.freight_payable} /> {l.transporter_freight_direction === "receivable" ? "Receivable" : "Payable"}</td>
                   <td className="p-2"><Link to="/lr/$id/edit" params={{ id: l.id }} className="text-info hover:underline">Edit LR</Link></td>
                 </tr>))}</tbody>
             </table></div>

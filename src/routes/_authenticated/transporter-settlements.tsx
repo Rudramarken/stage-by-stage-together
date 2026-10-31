@@ -29,6 +29,7 @@ export const Route = createFileRoute("/_authenticated/transporter-settlements")(
 
 function statusOf(payable: number, settled: number) {
   const rem = payable - settled;
+  if (rem < -0.004) return { label: "Receivable", tone: "success" };
   if (payable <= 0) return { label: "No freight", tone: "muted" };
   if (rem <= 0.004) return { label: "Paid", tone: "success" };
   if (settled > 0) return { label: "Partially Paid", tone: "warning" };
@@ -76,7 +77,7 @@ export function SettlementsPanel({ embedded = false }: { embedded?: boolean }) {
     queryKey: ["settlements", tid],
     enabled: !!tid,
     queryFn: async () => {
-      const { data, error } = await supabase.from("lrs").select("id, lr_number, lr_date, trip_id, trips(trip_number), vehicle_number, freight_payable, direct_payment_enabled, direct_payment_amount, final_freight, status, payment_allocations(amount, target, payments(is_reversed))").eq("transporter_id", tid).order("lr_date");
+      const { data, error } = await supabase.from("lrs").select("id, lr_number, lr_date, trip_id, trips(trip_number), vehicle_number, freight_payable, transporter_freight_direction, direct_payment_enabled, direct_payment_amount, final_freight, status, payment_allocations(amount, target, payments(is_reversed))").eq("transporter_id", tid).order("lr_date");
       if (error) throw error;
       return data as any[];
     },
@@ -111,7 +112,7 @@ export function SettlementsPanel({ embedded = false }: { embedded?: boolean }) {
           </div>
           <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
             <Box k={`Opening balance${t?.opening_date ? " (" + formatDate(t.opening_date) + ")" : ""}`} v={tb.opening} note={tb.opening > 0 ? "Payable" : tb.opening < 0 ? "Receivable" : undefined} />
-            <Box k="Freight payable (LRs)" v={tb.freight} />
+            <Box k="Net freight (+ payable / − receivable)" v={tb.freight} />
             <Box k="Manual adjustments (+ payable / - payable)" v={tb.adjustments} />
             <Box k="Advances, payments & direct" v={tb.paid} />
             <Box k="Remaining" v={tb.remaining} tone="warning" note={remainingLabel(tb.remaining).text.replace(/^₹[\d,.]+ /, "")} />
@@ -126,16 +127,16 @@ export function SettlementsPanel({ embedded = false }: { embedded?: boolean }) {
           <p className="text-xs text-muted-foreground">Commission is tracked separately and is never added to the freight payable. Record commission receipts on the Commission screen.</p>
           {detail.isPending ? <LoadingState /> : detail.isError ? <ErrorState error={detail.error} onRetry={() => detail.refetch()} /> : (
             <div className="overflow-x-auto rounded-lg border bg-card"><Table>
-              <TableHeader><TableRow><TableHead>LR</TableHead><TableHead>Date</TableHead><TableHead>Trip</TableHead><TableHead>Vehicle</TableHead><TableHead className="text-right">Freight payable</TableHead><TableHead className="text-right">Paid directly by consignee</TableHead><TableHead className="text-right">Payments allocated</TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>LR</TableHead><TableHead>Date</TableHead><TableHead>Trip</TableHead><TableHead>Vehicle</TableHead><TableHead className="text-right">Net freight (+ payable / − receivable)</TableHead><TableHead className="text-right">Paid directly by consignee</TableHead><TableHead className="text-right">Payments allocated</TableHead></TableRow></TableHeader>
               <TableBody>{detail.data.filter((l) => l.status === "active").map((l) => {
                 const alloc = l.payment_allocations.filter((a: any) => a.target === "payable" && !a.payments?.is_reversed).reduce((s: number, a: any) => s + Number(a.amount), 0);
                 return (<TableRow key={l.id}><TableCell><Link to="/lr/$id" params={{ id: l.id }} className="text-info hover:underline">{l.lr_number}</Link></TableCell><TableCell>{formatDate(l.lr_date)}</TableCell>
                   <TableCell>{l.trip_id ? <Link to="/trips/$id" params={{ id: l.trip_id }} className="hover:underline">{l.trips?.trip_number}</Link> : "—"}</TableCell><TableCell>{l.vehicle_number ?? "—"}</TableCell>
-                  <TableCell className="text-right"><Money value={l.freight_payable} /></TableCell>
+                  <TableCell className="text-right"><Money value={(l.transporter_freight_direction === "receivable" ? -1 : 1) * Number(l.freight_payable)} /></TableCell>
                   <TableCell className="text-right"><Money value={l.direct_payment_enabled ? Math.min(Number(l.direct_payment_amount), Number(l.freight_payable)) : 0} /></TableCell>
                   <TableCell className="text-right"><Money value={alloc} /></TableCell></TableRow>);
               })}</TableBody>
-              <TableFooter><TableRow><TableCell colSpan={4}>Total</TableCell><TableCell className="text-right"><Money value={detail.data.filter((l) => l.status === "active").reduce((s, l) => s + Number(l.freight_payable), 0)} /></TableCell><TableCell colSpan={2} /></TableRow></TableFooter>
+              <TableFooter><TableRow><TableCell colSpan={4}>Total</TableCell><TableCell className="text-right"><Money value={detail.data.filter((l) => l.status === "active").reduce((s, l) => s + (l.transporter_freight_direction === "receivable" ? -1 : 1) * Number(l.freight_payable), 0)} /></TableCell><TableCell colSpan={2} /></TableRow></TableFooter>
             </Table></div>
           )}
           <PaymentsList transporterId={tid} />

@@ -21,7 +21,7 @@ function useCancel(table: "expenses" | "advances", key: unknown[]) {
       const { error } = await supabase.from(table).update({ is_cancelled: true, cancel_reason: reason } as never).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("Cancelled"); qc.invalidateQueries({ queryKey: key }); qc.invalidateQueries({ queryKey: ["ledger"] }); },
+    onSuccess: () => { toast.success("Cancelled"); qc.invalidateQueries(); },
     onError: (e) => toast.error(errorMessage(e)),
   });
 }
@@ -48,12 +48,12 @@ export function TripExpenses({ tripId }: { tripId: string }) {
   const save = useMutation({
     mutationFn: async (e: Record<string, any>) => {
       if (!(Number(e.amount) > 0)) throw new Error("Amount must be greater than 0");
-      const row = { scope: "trip", trip_id: tripId, category: e.category, amount: Number(e.amount), expense_date: e.expense_date, paid_to: e.paid_to || null,
+      const row = { scope: "trip", trip_id: tripId, category: e.category, payment_status: e.payment_status || "paid", amount: Number(e.amount), expense_date: e.expense_date, paid_to: e.paid_to || null,
         paid_by: e.paid_by || null, payment_method: e.payment_method || null, account_id: e.account_id || null, reference: e.reference || null, notes: e.notes || null, responsible: "gokul" };
-      const r = e.id ? await supabase.from("expenses").update(row as never).eq("id", e.id).select().single() : await supabase.from("expenses").insert(row as never).select().single();
+      const r = e.creating ? await supabase.from("expenses").upsert({ ...row, id: e.id } as never).select().single() : await supabase.from("expenses").update(row as never).eq("id", e.id).select().single();
       if (r.error) throw r.error;
     },
-    onSuccess: () => { toast.success("Expense saved"); setEdit(null); qc.invalidateQueries({ queryKey: key }); qc.invalidateQueries({ queryKey: ["trip-summary", tripId] }); },
+    onSuccess: () => { toast.success("Expense saved"); setEdit(null); qc.invalidateQueries(); },
     onError: (e) => setErr(errorMessage(e)),
   });
   const cancel = useCancel("expenses", key);
@@ -63,7 +63,7 @@ export function TripExpenses({ tripId }: { tripId: string }) {
   const total = active.reduce((s, x) => s + Number(x.amount), 0);
   return (
     <div>
-      <div className="mb-2 flex justify-end"><Button size="sm" onClick={() => { setErr(null); setEdit({ category: "Diesel/Fuel", expense_date: todayIST(), payment_method: "cash" }); }}><Plus className="mr-1 h-4 w-4" />Add expense</Button></div>
+      <div className="mb-2 flex justify-end"><Button size="sm" onClick={() => { setErr(null); setEdit({ id: crypto.randomUUID(), creating: true, payment_status: "paid", category: "Diesel/Fuel", expense_date: todayIST(), payment_method: "cash" }); }}><Plus className="mr-1 h-4 w-4" />Add expense</Button></div>
       {q.data.length === 0 ? <p className="text-sm text-muted-foreground">No trip expenses yet.</p> : (
         <div className="overflow-x-auto rounded border">
           <Table>
@@ -71,7 +71,7 @@ export function TripExpenses({ tripId }: { tripId: string }) {
             <TableBody>{q.data.map((x) => (
               <TableRow key={x.id} className={x.is_cancelled ? "opacity-50" : ""}>
                 <TableCell>{formatDate(x.expense_date)}</TableCell><TableCell>{x.category}{x.is_cancelled && <StatusBadge tone="danger">Cancelled</StatusBadge>}</TableCell>
-                <TableCell>{x.paid_to ?? "—"}</TableCell><TableCell>{x.payment_method ?? "—"}{x.account_id ? ` · ${nameOf(accounts.data, x.account_id, "display_name")}` : ""}</TableCell>
+                <TableCell>{x.paid_to ?? "—"}</TableCell><TableCell>{x.payment_method ?? "—"} · {x.payment_status}{x.account_id ? ` · ${nameOf(accounts.data, x.account_id, "display_name")}` : ""}</TableCell>
                 <TableCell className="text-right"><Money value={x.amount} /></TableCell>
                 <TableCell className="whitespace-nowrap text-right">{!x.is_cancelled && <>
                   <Button variant="ghost" size="sm" onClick={() => { setErr(null); setEdit(x); }}><Pencil className="h-4 w-4" /></Button>
@@ -82,7 +82,7 @@ export function TripExpenses({ tripId }: { tripId: string }) {
         </div>
       )}
       <Dialog open={!!edit} onOpenChange={(o) => !o && !save.isPending && setEdit(null)}>
-        <DialogContent><DialogHeader><DialogTitle>{edit?.id ? "Edit" : "Add"} trip expense</DialogTitle></DialogHeader>
+        <DialogContent><DialogHeader><DialogTitle>{edit?.creating ? "Add" : "Edit"} trip expense</DialogTitle></DialogHeader>
           {edit && <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Category" required><select className={selectCls} value={edit.category} onChange={(e) => setEdit({ ...edit, category: e.target.value })}>{EXPENSE_CATEGORIES.map((c) => <option key={c}>{c}</option>)}</select></Field>
             <Field label="Amount (₹)" required><Input type="number" min="0" step="0.01" value={edit.amount ?? ""} onChange={(e) => setEdit({ ...edit, amount: e.target.value })} /></Field>
@@ -90,7 +90,8 @@ export function TripExpenses({ tripId }: { tripId: string }) {
             <Field label="Paid to"><Input value={edit.paid_to ?? ""} onChange={(e) => setEdit({ ...edit, paid_to: e.target.value })} /></Field>
             <Field label="Paid by"><Input value={edit.paid_by ?? ""} onChange={(e) => setEdit({ ...edit, paid_by: e.target.value })} /></Field>
             <Field label="Payment method"><select className={selectCls} value={edit.payment_method ?? ""} onChange={(e) => setEdit({ ...edit, payment_method: e.target.value })}>{PAY_MODES.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}</select></Field>
-            <Field label="Cash / bank account"><select className={selectCls} value={edit.account_id ?? ""} onChange={(e) => setEdit({ ...edit, account_id: e.target.value })}><option value="">—</option>{accounts.data?.filter((a) => a.is_active).map((a) => <option key={a.id} value={a.id}>{a.display_name}</option>)}</select></Field>
+            <Field label="Payment status"><select className={selectCls} value={edit.payment_status || "paid"} onChange={e => setEdit({ ...edit, payment_status: e.target.value })}><option value="paid">Paid</option><option value="pending">Pending / unpaid</option></select></Field>
+            <Field label="Paid From Account"><select className={selectCls} value={edit.account_id ?? ""} onChange={(e) => setEdit({ ...edit, account_id: e.target.value })}><option value="">—</option>{accounts.data?.filter((a) => a.is_active).map((a) => <option key={a.id} value={a.id}>{a.display_name}</option>)}</select></Field>
             <Field label="Reference"><Input value={edit.reference ?? ""} onChange={(e) => setEdit({ ...edit, reference: e.target.value })} /></Field>
             <div className="sm:col-span-2"><Field label="Notes"><Input value={edit.notes ?? ""} onChange={(e) => setEdit({ ...edit, notes: e.target.value })} /></Field></div>
             {err && <p className="rounded bg-destructive/10 p-2 text-sm text-destructive sm:col-span-2">{err}</p>}
@@ -126,10 +127,10 @@ export function TripAdvances({ tripId, defaultDriverId, defaultTransporterId }: 
         transporter_id: e.recipient_type === "transporter" ? e.transporter_id : null, party_id: ["truck_owner", "other"].includes(e.recipient_type) ? e.party_id || null : null,
         other_name: e.other_name || null, advance_date: e.advance_date, amount: Number(e.amount), payment_method: e.payment_method || null,
         account_id: e.account_id || null, reference: e.reference || null, notes: e.notes || null };
-      const r = e.id ? await supabase.from("advances").update(row as never).eq("id", e.id).select().single() : await supabase.from("advances").insert(row as never).select().single();
+      const r = e.creating ? await supabase.from("advances").upsert({ ...row, id: e.id } as never).select().single() : await supabase.from("advances").update(row as never).eq("id", e.id).select().single();
       if (r.error) throw r.error;
     },
-    onSuccess: () => { toast.success("Advance saved"); setEdit(null); qc.invalidateQueries({ queryKey: key }); qc.invalidateQueries({ queryKey: ["ledger"] }); },
+    onSuccess: () => { toast.success("Advance saved"); setEdit(null); qc.invalidateQueries(); },
     onError: (e) => setErr(errorMessage(e)),
   });
   const cancel = useCancel("advances", key);
@@ -139,7 +140,7 @@ export function TripAdvances({ tripId, defaultDriverId, defaultTransporterId }: 
   const total = q.data.filter((x) => !x.is_cancelled).reduce((s, x) => s + Number(x.amount), 0);
   return (
     <div>
-      <div className="mb-2 flex justify-end"><Button size="sm" onClick={() => { setErr(null); setEdit({ recipient_type: defaultDriverId ? "driver" : "transporter", driver_id: defaultDriverId, transporter_id: defaultTransporterId, advance_date: todayIST(), payment_method: "cash" }); }}><Plus className="mr-1 h-4 w-4" />Add advance</Button></div>
+      <div className="mb-2 flex justify-end"><Button size="sm" onClick={() => { setErr(null); setEdit({ id: crypto.randomUUID(), creating: true, recipient_type: defaultDriverId ? "driver" : "transporter", driver_id: defaultDriverId, transporter_id: defaultTransporterId, advance_date: todayIST(), payment_method: "cash" }); }}><Plus className="mr-1 h-4 w-4" />Add advance</Button></div>
       {q.data.length === 0 ? <p className="text-sm text-muted-foreground">No advances yet.</p> : (
         <div className="overflow-x-auto rounded border"><Table>
           <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Given to</TableHead><TableHead>Method</TableHead><TableHead className="text-right">Amount</TableHead><TableHead /></TableRow></TableHeader>
@@ -156,7 +157,7 @@ export function TripAdvances({ tripId, defaultDriverId, defaultTransporterId }: 
         </Table></div>
       )}
       <Dialog open={!!edit} onOpenChange={(o) => !o && !save.isPending && setEdit(null)}>
-        <DialogContent><DialogHeader><DialogTitle>{edit?.id ? "Edit" : "Add"} advance</DialogTitle></DialogHeader>
+        <DialogContent><DialogHeader><DialogTitle>{edit?.creating ? "Add" : "Edit"} advance</DialogTitle></DialogHeader>
           {edit && <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Given to" required><select className={selectCls} value={edit.recipient_type} onChange={(e) => setEdit({ ...edit, recipient_type: e.target.value })}>
               <option value="driver">Driver</option><option value="transporter">Transporter</option><option value="truck_owner">Truck Owner</option><option value="other">Other</option></select></Field>

@@ -68,6 +68,7 @@ async function loadFamily(id: string) {
 }
 
 function summarize(legs: LegData[]) {
+  legs = legs.filter(l => l.trip.status !== "cancelled");
   const active = legs.flatMap((l) => l.lrs.filter((x) => x.status !== "cancelled"));
   const sum = (a: any[], f: (x: any) => number) => a.reduce((s, x) => s + f(x), 0);
   const exp = legs.flatMap((l) => l.expenses);
@@ -77,7 +78,7 @@ function summarize(legs: LegData[]) {
     directPaid: sum(active, (x) => (x.direct_payment_enabled ? Math.min(Number(x.direct_payment_amount), Number(x.final_freight)) : 0)),
     freightPayable: sum(active.filter(x => x.transporter_freight_direction !== "receivable"), (x) => Number(x.freight_payable)),
     transporterReceivable: sum(active.filter(x => x.transporter_freight_direction === "receivable"), (x) => Number(x.freight_payable)),
-    driverExpenses: sum(legs.flatMap(l => l.driverTransactions).filter(x => x.kind === "expense"), x => Number(x.amount)),
+    driverExpenses: sum(legs.flatMap(l => l.driverTransactions).filter(x => !x.is_cancelled && x.kind === "expense"), x => Number(x.amount)),
     tripExpenses: sum(exp.filter((e) => e.scope === "trip"), (e) => Number(e.amount)),
     consignorExpenses: sum(exp.filter((e) => e.scope === "consignor"), (e) => Number(e.amount)),
     consignorCharged: sum(exp.filter((e) => e.scope === "consignor" && e.responsible === "party"), (e) => Number(e.amount)),
