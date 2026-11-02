@@ -253,6 +253,13 @@
       "when": 1793629032823,
       "tag": "0035_fix_journey_payable_edit_alias",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1793629230740,
+      "tag": "0036_fix_trip_percentage_commission_trigger_boundary",
+      "breakpoints": true
     }
   ]
 }
