@@ -1,4 +1,5 @@
 # Gokul Cargo Movers — roadmap
+- [ ] Final master brief: independent trip main/return entries without automatic LR registration, consignor payables, full database/accounting audit and TEST verification report.
 - [x] Client feedback accounting changes and TEST verification completed; 126 tests passed, 34 schema checks passed, TEST effects reversed; remaining role/export/standalone LR checks documented in COMPLETE_CLIENT_FEEDBACK_AUDIT.md; publication pending request
 - [x] Uploaded accounting repair: manual credit/debit/edit/reload/reversal and bank creation/opening/receipt verified; 109 tests passed; test effects reversed and masters archived; current controls missing from published bundles (publication pending explicit request)
 - [x] Accounts: visible bank creation, validated opening-balance edits, signed-in create/edit/reload and receipt/reversal verified; 106 tests passed; test receipt reversed and test account/party archived
