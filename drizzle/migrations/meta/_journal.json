@@ -225,6 +225,13 @@
       "when": 1793452923529,
       "tag": "0031_repair_trip_advance_save_after_pending_support",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1793627823920,
+      "tag": "0032_independent_trip_journeys_and_consignor_payables",
+      "breakpoints": true
     }
   ]
 }

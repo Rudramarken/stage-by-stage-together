@@ -714,6 +714,7 @@ export type Database = {
           business_id: string
           cancel_reason: string | null
           category: string
+          consignor_payable: boolean
           created_at: string
           created_by: string | null
           expense_date: string
@@ -724,6 +725,7 @@ export type Database = {
           notes: string | null
           paid_by: string | null
           paid_to: string | null
+          payable_party_id: string | null
           payment_method: string | null
           payment_status: string
           reference: string | null
@@ -739,6 +741,7 @@ export type Database = {
           business_id: string
           cancel_reason?: string | null
           category: string
+          consignor_payable?: boolean
           created_at?: string
           created_by?: string | null
           expense_date?: string
@@ -749,6 +752,7 @@ export type Database = {
           notes?: string | null
           paid_by?: string | null
           paid_to?: string | null
+          payable_party_id?: string | null
           payment_method?: string | null
           payment_status?: string
           reference?: string | null
@@ -764,6 +768,7 @@ export type Database = {
           business_id?: string
           cancel_reason?: string | null
           category?: string
+          consignor_payable?: boolean
           created_at?: string
           created_by?: string | null
           expense_date?: string
@@ -774,6 +779,7 @@ export type Database = {
           notes?: string | null
           paid_by?: string | null
           paid_to?: string | null
+          payable_party_id?: string | null
           payment_method?: string | null
           payment_status?: string
           reference?: string | null
@@ -810,6 +816,13 @@ export type Database = {
             columns: ["lr_party_id"]
             isOneToOne: false
             referencedRelation: "lr_parties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_payable_party_id_fkey"
+            columns: ["payable_party_id"]
+            isOneToOne: false
+            referencedRelation: "parties"
             referencedColumns: ["id"]
           },
           {
@@ -2072,6 +2085,113 @@ export type Database = {
           },
         ]
       }
+      trip_journey_entries: {
+        Row: {
+          addition: number | null
+          business_id: string
+          cancel_reason: string | null
+          created_at: string
+          created_by: string | null
+          delivery_point: string | null
+          expenses: Json
+          freight_amount: number
+          freight_date: string
+          goods_description: string | null
+          id: string
+          is_cancelled: boolean
+          journey: string
+          loading_point: string | null
+          party_id: string | null
+          rate: number | null
+          role: string
+          seq: number
+          shortage: number | null
+          transporter_id: string | null
+          trip_id: string
+          updated_at: string
+          weight: number | null
+        }
+        Insert: {
+          addition?: number | null
+          business_id: string
+          cancel_reason?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivery_point?: string | null
+          expenses?: Json
+          freight_amount?: number
+          freight_date: string
+          goods_description?: string | null
+          id?: string
+          is_cancelled?: boolean
+          journey: string
+          loading_point?: string | null
+          party_id?: string | null
+          rate?: number | null
+          role: string
+          seq?: number
+          shortage?: number | null
+          transporter_id?: string | null
+          trip_id: string
+          updated_at?: string
+          weight?: number | null
+        }
+        Update: {
+          addition?: number | null
+          business_id?: string
+          cancel_reason?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivery_point?: string | null
+          expenses?: Json
+          freight_amount?: number
+          freight_date?: string
+          goods_description?: string | null
+          id?: string
+          is_cancelled?: boolean
+          journey?: string
+          loading_point?: string | null
+          party_id?: string | null
+          rate?: number | null
+          role?: string
+          seq?: number
+          shortage?: number | null
+          transporter_id?: string | null
+          trip_id?: string
+          updated_at?: string
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_journey_entries_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_journey_entries_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "parties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_journey_entries_transporter_id_fkey"
+            columns: ["transporter_id"]
+            isOneToOne: false
+            referencedRelation: "transporters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_journey_entries_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trip_stops: {
         Row: {
           actual_arrival: string | null
@@ -2610,6 +2730,7 @@ export type Database = {
         Returns: string
       }
       save_trip: { Args: { p: Json }; Returns: string }
+      save_trip_journeys: { Args: { p: Json }; Returns: string }
       set_party_opening: {
         Args: {
           p_amount: number
