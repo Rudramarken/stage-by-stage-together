@@ -8,6 +8,8 @@ import { LoadingState, ErrorState } from "@/components/app/states";
 import { Input } from "@/components/ui/input";
 import { selectCls } from "@/components/app/Section";
 import { TRIP_STATUS, PAYMENT_TYPE, useParties, useTransporters, nameOf } from "@/lib/lookups";
+import { paymentIsIncoming } from "@/lib/payment-direction";
+import { fetchAllRows } from "@/lib/accounts";
 import { formatDate, todayIST } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -17,10 +19,10 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 
 function rangeFor(kind: string, cf: string, ct: string): [string, string] {
   const t = todayIST();
-  const d = new Date(t + "T00:00:00");
+  const d = new Date(t + "T00:00:00Z");
   const iso = (x: Date) => x.toISOString().slice(0, 10);
   if (kind === "today") return [t, t];
-  if (kind === "week") { const s = new Date(d); s.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return [iso(s), t]; }
+  if (kind === "week") { const s = new Date(d); s.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7)); return [iso(s), t]; }
   if (kind === "month") return [t.slice(0, 8) + "01", t];
   return [cf || "1900-01-01", ct || "2999-12-31"];
 }
@@ -33,7 +35,7 @@ function Dashboard() {
   const q = useQuery({
     queryKey: ["dashboard", from, to],
     queryFn: async () => {
-      const [trips, lrs, pays, exps, bal, com, receipts] = await Promise.all([
+      const [trips, lrs, pays, exps, bal, com, receipts, journeys, driverTx] = await Promise.all([
         supabase.from("trips").select("id, trip_number, trip_date, status, trip_stops(location, seq)").gte("trip_date", from).lte("trip_date", to).order("trip_date", { ascending: false }),
         supabase.from("lrs").select("final_freight").eq("status", "active").gte("lr_date", from).lte("lr_date", to),
         supabase.from("payments").select("*").eq("is_reversed", false).gte("payment_date", from).lte("payment_date", to).order("payment_date", { ascending: false }),
@@ -41,20 +43,24 @@ function Dashboard() {
         supabase.from("account_balances").select("account_type, balance"),
         supabase.from("commission_balances").select("pending_amount"),
         supabase.from("commission_receipts").select("amount, salary_payment_id").eq("is_reversed", false).gte("receipt_date", from).lte("receipt_date", to),
+        fetchAllRows<any>((a, b) => supabase.from("trip_journey_entries").select("role,freight_amount,freight_date,expenses").eq("is_cancelled", false).order("id").range(a, b)),
+        fetchAllRows<any>((a, b) => supabase.from("driver_transactions").select("amount").eq("kind", "expense").eq("is_cancelled", false).gte("entry_date", from).lte("entry_date", to).order("id").range(a, b)),
       ]);
       for (const r of [trips, lrs, pays, exps, bal, com, receipts]) if (r.error) throw r.error;
-      const isIn = (t: string) => ["customer_receipt", "third_party_receipt", "advance_received"].includes(t);
-      const b = bal.data!.map((x) => ({ ...x, balance: Number(x.balance) }));
+      const isIn = paymentIsIncoming;
+      const b = (bal.data ?? []).map((x) => ({ ...x, balance: Number(x.balance) }));
       return {
-        trips: trips.data!,
-        freight: lrs.data!.reduce((s, l) => s + Number(l.final_freight), 0),
+        trips: (trips.data ?? []),
+        freight: (lrs.data ?? []).reduce((s, l) => s + Number(l.final_freight), 0) + journeys.filter(e => e.freight_date >= from && e.freight_date <= to).reduce((s, e) => s + Number(e.freight_amount), 0),
         receipts: (pays.data ?? []).filter((p) => isIn(p.payment_type)).reduce((s, p) => s + Number(p.amount), 0) + (receipts.data ?? []).filter((r) => !r.salary_payment_id).reduce((s, r) => s + Number(r.amount), 0),
-        expenses: exps.data!.reduce((s, e) => s + Number(e.amount), 0),
+        expenses: (exps.data ?? []).reduce((s, e) => s + Number(e.amount), 0) + driverTx.reduce((s, e) => s + Number(e.amount), 0) + journeys.flatMap(e => e.expenses ?? []).filter(e => e.expense_date >= from && e.expense_date <= to).reduce((s, e) => s + Number(e.amount), 0),
         receivable: b.filter((x) => x.account_type === "party" && x.balance > 0).reduce((s, x) => s + x.balance, 0),
         transporterPayable: b.filter((x) => x.account_type === "transporter" && x.balance < 0).reduce((s, x) => s - x.balance, 0),
+        transporterReceivable: b.filter(x => x.account_type === "transporter" && x.balance > 0).reduce((s, x) => s + x.balance, 0),
+        partyPayable: b.filter(x => x.account_type === "party" && x.balance < 0).reduce((s, x) => s - x.balance, 0),
         commission: (com.data ?? []).reduce((s, c) => s + Number(c.pending_amount), 0),
         commissionReceived: (receipts.data ?? []).reduce((s, r) => s + Number(r.amount), 0),
-        payments: pays.data!.slice(0, 8),
+        payments: (pays.data ?? []).slice(0, 8),
       };
     },
   });
@@ -74,6 +80,8 @@ function Dashboard() {
             <Stat k="Trip expenses incurred (period)" m={q.data.expenses} />
             <Stat k="Outstanding receivable (now)" m={q.data.receivable} tone="success" />
             <Stat k="Transporter payable (now)" m={q.data.transporterPayable} tone="warning" />
+            <Stat k="Transporter receivable (now)" m={q.data.transporterReceivable} tone="success" />
+            <Stat k="Party / consignor payable (now)" m={q.data.partyPayable} tone="warning" />
             <Stat k="Pending commission (not income)" m={q.data.commission} tone="warning" />
             <Stat k="Commission received (period)" m={q.data.commissionReceived} tone="success" />
           </div>

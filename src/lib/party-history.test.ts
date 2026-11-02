@@ -15,6 +15,11 @@ describe("resolveAccounts", () => {
 });
 
 describe("assembleHistory", () => {
+  it("retains a trip source link for an independent journey receivable of 2000", () => {
+    const raw: Raw = { parties: [], transporters: [{ id: "t", name: "Transporter" }], ledger: [{ account: "transporter", accountId: "t", name: "Transporter", rows: [{ id: "line", entry_date: "2026-11-02", debit: 2000, credit: 0, source_table: "trip_journey_entries", source_id: "j" }] }], lrs: new Map(), lrParties: new Map(), trips: new Map([["trip", { trip_number: "TRP-TEST" }]]), payments: new Map(), allocations: new Map(), lrExpenses: new Map(), tripExpenses: new Map(), tripDriverAdvances: new Map(), commissions: [], driverNames: new Map(), journeyEntries: new Map([["j", { trip_id: "trip", journey: "return" }]]) };
+    const tx = assembleHistory(raw).tx[0];
+    expect(tx.tripId).toBe("trip"); expect(tx.tripNo).toBe("TRP-TEST"); expect(tx.debit).toBe(2000); expect(tx.lrId).toBeNull();
+  });
   const lr = { id: "L1", lr_number: "LR-1", lr_date: "2026-04-05", trip_id: "T1", loading_point: "Delhi", delivery_point: "Pune", final_freight: 3000, freight_payable: 2500, transporter_id: "t1", billing_party_id: "p1", delivery_status: "pending", status: "active" };
   const raw: Raw = {
     parties: [{ id: "p1", name: "ABC" }], transporters: [{ id: "t1", name: "ABC" }],

@@ -12,7 +12,7 @@
 ## Architecture rules
 - Accounts cards use a validated authenticated save function with a stable creation UUID; opening edits update the account row, never post a ledger event. Why: retries cannot duplicate accounts or opening balances, and permanent cash identities and RLS remain authoritative.
 - Transporter manual lists and balance reads paginate persisted rows; successful manual saves refresh queries and reveal all-history ledger lines. Why: API row limits and prior date filters must not hide saved adjustments or understate totals.
-- Trip party freight details live on existing LR party rows and transporter LR columns; final entered freight remains the sole posting amount. Why: preserve established accounting without inferring rate units or duplicating ledger events.
+- Trip Section 3 uses trip_journey_entries via atomic save_trip_journeys; standalone/explicitly linked LRs retain lr_parties and LR transporter columns, with no copying between documents. Why: independent main/return freight postings must never auto-register Bilties or overwrite historical LR accounting.
 - Every business table has `business_id` stamped by the `stamp_business_id` trigger from the caller's membership; never send it from the browser. Why: data isolation can't depend on client input.
 - RLS uses `is_business_member()` / `has_business_role()` security-definer helpers. Why: avoids recursive policies.
 - Ledger lines are written only via `post_ledger()` (upsert on source_table+source_id+line_kind). Why: saving twice or editing never duplicates money.

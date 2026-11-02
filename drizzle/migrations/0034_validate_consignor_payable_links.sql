@@ -1,0 +1,6 @@
+CREATE OR REPLACE FUNCTION public.consignor_payable_guard() RETURNS trigger LANGUAGE plpgsql SET search_path=public AS $$ BEGIN IF NEW.consignor_payable THEN IF NOT EXISTS(SELECT 1 FROM public.lr_parties WHERE id=NEW.lr_party_id AND lr_id=NEW.lr_id AND business_id=NEW.business_id AND role='consignor' AND party_id=NEW.payable_party_id) THEN RAISE EXCEPTION 'Consignor payable must belong to this LR consignor'; END IF; END IF; RETURN NEW; END $$;
+CREATE TRIGGER bb_consignor_payable_guard BEFORE INSERT OR UPDATE ON public.expenses FOR EACH ROW EXECUTE FUNCTION public.consignor_payable_guard();
+CREATE OR REPLACE FUNCTION public.journey_expense_identity_guard() RETURNS trigger LANGUAGE plpgsql SET search_path=public AS $$ BEGIN IF EXISTS(SELECT 1 FROM jsonb_array_elements(NEW.expenses) x GROUP BY x->>'id' HAVING count(*)>1) THEN RAISE EXCEPTION 'Consignor expense identity was submitted twice'; END IF; RETURN NEW; END $$;
+CREATE TRIGGER bb_journey_expense_identity BEFORE INSERT OR UPDATE ON public.trip_journey_entries FOR EACH ROW EXECUTE FUNCTION public.journey_expense_identity_guard();
+REVOKE ALL ON FUNCTION public.consignor_payable_guard(),public.journey_expense_identity_guard() FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.consignor_payable_guard(),public.journey_expense_identity_guard() TO authenticated,service_role;

@@ -8,7 +8,7 @@ export function TripProfit({ legs, label }: { legs: SummaryLeg[]; label: string 
   const badge = s.state === "calculated" ? { tone: "success", text: "Calculated from recorded entries" } : s.state === "provisional" ? { tone: "warning", text: "Provisional" } : { tone: "danger", text: "Incomplete" };
   const money = (v: number | null, missingText = "Not available") => (v == null ? <span className="text-muted-foreground">{missingText}</span> : <Money value={v} />);
   const rows: [string, ReactNode][] = [
-    ["Customer freight (billed on active LRs)", money(s.customerFreight)],
+    ["Party freight (active LRs and trip journeys)", money(s.customerFreight)],
     [s.transporterPayable != null && s.transporterPayable < 0 ? "+ Net transporter freight receivable" : "− Net transporter freight payable", money(s.transporterPayable == null ? null : Math.abs(s.transporterPayable))],
     ["+ Commission earned (counted once; not the same as received)", <Money key="c" value={s.commissionEarned} />],
     ["− Trip expenses borne by Gokul", s.expenseRecords === 0 ? <span className="text-muted-foreground">Not recorded</span> : <Money key="e" value={s.operatingExpenses} />],

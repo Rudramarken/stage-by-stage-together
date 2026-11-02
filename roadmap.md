@@ -1,4 +1,5 @@
 # Gokul Cargo Movers — roadmap
+- [x] Final master implementation: independent main/return journeys, no automatic Bilty creation, consignor payables, migrations 0032–0034 applied, 136 tests and 35 schema reads passed; TEST effects reversed; verification limits documented in COMPLETE_CLIENT_FEEDBACK_AUDIT.md.
 - [x] Client feedback accounting changes and TEST verification completed; 126 tests passed, 34 schema checks passed, TEST effects reversed; remaining role/export/standalone LR checks documented in COMPLETE_CLIENT_FEEDBACK_AUDIT.md; publication pending request
 - [x] Uploaded accounting repair: manual credit/debit/edit/reload/reversal and bank creation/opening/receipt verified; 109 tests passed; test effects reversed and masters archived; current controls missing from published bundles (publication pending explicit request)
 - [x] Accounts: visible bank creation, validated opening-balance edits, signed-in create/edit/reload and receipt/reversal verified; 106 tests passed; test receipt reversed and test account/party archived
