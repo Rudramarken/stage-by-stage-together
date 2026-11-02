@@ -8,6 +8,7 @@ import { LoadingState, ErrorState } from "@/components/app/states";
 import { Input } from "@/components/ui/input";
 import { selectCls } from "@/components/app/Section";
 import { TRIP_STATUS, PAYMENT_TYPE, useParties, useTransporters, nameOf } from "@/lib/lookups";
+import { paymentIsIncoming } from "@/lib/payment-direction";
 import { formatDate, todayIST } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -17,10 +18,10 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 
 function rangeFor(kind: string, cf: string, ct: string): [string, string] {
   const t = todayIST();
-  const d = new Date(t + "T00:00:00");
+  const d = new Date(t + "T00:00:00Z");
   const iso = (x: Date) => x.toISOString().slice(0, 10);
   if (kind === "today") return [t, t];
-  if (kind === "week") { const s = new Date(d); s.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return [iso(s), t]; }
+  if (kind === "week") { const s = new Date(d); s.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7)); return [iso(s), t]; }
   if (kind === "month") return [t.slice(0, 8) + "01", t];
   return [cf || "1900-01-01", ct || "2999-12-31"];
 }
@@ -43,18 +44,18 @@ function Dashboard() {
         supabase.from("commission_receipts").select("amount, salary_payment_id").eq("is_reversed", false).gte("receipt_date", from).lte("receipt_date", to),
       ]);
       for (const r of [trips, lrs, pays, exps, bal, com, receipts]) if (r.error) throw r.error;
-      const isIn = (t: string) => ["customer_receipt", "third_party_receipt", "advance_received"].includes(t);
-      const b = bal.data!.map((x) => ({ ...x, balance: Number(x.balance) }));
+      const isIn = paymentIsIncoming;
+      const b = (bal.data ?? []).map((x) => ({ ...x, balance: Number(x.balance) }));
       return {
-        trips: trips.data!,
-        freight: lrs.data!.reduce((s, l) => s + Number(l.final_freight), 0),
+        trips: (trips.data ?? []),
+        freight: (lrs.data ?? []).reduce((s, l) => s + Number(l.final_freight), 0),
         receipts: (pays.data ?? []).filter((p) => isIn(p.payment_type)).reduce((s, p) => s + Number(p.amount), 0) + (receipts.data ?? []).filter((r) => !r.salary_payment_id).reduce((s, r) => s + Number(r.amount), 0),
-        expenses: exps.data!.reduce((s, e) => s + Number(e.amount), 0),
+        expenses: (exps.data ?? []).reduce((s, e) => s + Number(e.amount), 0),
         receivable: b.filter((x) => x.account_type === "party" && x.balance > 0).reduce((s, x) => s + x.balance, 0),
         transporterPayable: b.filter((x) => x.account_type === "transporter" && x.balance < 0).reduce((s, x) => s - x.balance, 0),
         commission: (com.data ?? []).reduce((s, c) => s + Number(c.pending_amount), 0),
         commissionReceived: (receipts.data ?? []).reduce((s, r) => s + Number(r.amount), 0),
-        payments: pays.data!.slice(0, 8),
+        payments: (pays.data ?? []).slice(0, 8),
       };
     },
   });

@@ -1,3 +1,4 @@
+import { journeyTotals } from "./trip-journeys";
 // Pure trip financial summary (no network, no React) so it can be unit-tested. It reads only records already loaded from the database.
 // It deliberately follows the same rules as calcLrProfit() in lr-summary.ts so the LR page and the Trip page can never disagree.
 
@@ -8,6 +9,7 @@ const sum = <T,>(a: T[], f: (x: T) => number) => r2(a.reduce((s, x) => s + f(x),
 export type SummaryLeg = {
   trip: { status?: string | null; vehicle_mode?: string | null; transporter_id?: string | null; commission_enabled?: boolean | null; commission_amount?: number | string | null };
   lrs: any[];
+  journeyEntries?: any[];
   /** Non-cancelled expenses of this leg (trip-scope and LR-scope), already de-duplicated. */
   expenses: any[];
   /** Non-cancelled advances of this leg. */
@@ -50,8 +52,10 @@ export function summarizeTrip(legs: SummaryLeg[]): TripFinancials {
   const payments = activeLegs.flatMap((l) => l.payments ?? []).filter((p) => !p.is_reversed);
   const commissions = activeLegs.flatMap((l) => l.commissions).filter((c) => !c.is_cancelled);
 
-  const freight = sum(active, (x) => num(x.final_freight));
-  const payable = sum(active, (x) => x.transporter_freight_direction === "receivable" ? -num(x.freight_payable) : num(x.freight_payable));
+  const journeys = activeLegs.flatMap(l => l.journeyEntries ?? []);
+  const jt = journeyTotals(journeys);
+  const freight = r2(sum(active, (x) => num(x.final_freight)) + jt.partyFreight);
+  const payable = r2(sum(active, (x) => x.transporter_freight_direction === "receivable" ? -num(x.freight_payable) : num(x.freight_payable)) - jt.transporterReceivable);
   const directPaid = sum(active, (x) => (x.direct_payment_enabled ? Math.min(num(x.direct_payment_amount), num(x.final_freight)) : 0));
 
   // Commission counted once. LR-level commission is already inside (freight - payable) when the consignee paid the driver directly.
@@ -61,19 +65,19 @@ export function summarizeTrip(legs: SummaryLeg[]): TripFinancials {
 
   const gokul = expenses.filter((e) => e.responsible === "gokul");
   const driverExpenses = sum(activeLegs.flatMap(l => l.driverTransactions ?? []).filter(r => !r.is_cancelled && r.kind === "expense"), r => num(r.amount));
-  const tripExpenses = r2(sum(gokul.filter((e) => e.scope === "trip"), (e) => num(e.amount)) + driverExpenses);
+  const tripExpenses = r2(sum(gokul.filter((e) => e.scope === "trip"), (e) => num(e.amount)) + driverExpenses + jt.consignorPayable);
   const lrExpensesGokul = sum(gokul.filter((e) => e.scope !== "trip"), (e) => num(e.amount));
   const expensesChargedToParty = sum(expenses.filter((e) => e.responsible === "party"), (e) => num(e.amount));
 
   const missing: string[] = [];
   const notes: string[] = [];
-  const hasFreight = active.length > 0 && (freight > 0 || payable < 0);
+  const hasFreight = (active.length > 0 || journeys.some(e => !e.is_cancelled)) && (freight > 0 || payable < 0);
   if (!hasFreight) missing.push("Customer freight (no active LR with freight is linked to this trip)");
 
   const needsPayable = activeLegs.some((l) => l.trip.vehicle_mode === "market" || !!l.trip.transporter_id) || active.some((x) => !!x.transporter_id);
-  if (hasFreight && needsPayable && !active.some(x => num(x.freight_payable) > 0)) missing.push("Transporter freight payable (a market truck / transporter is used but no payable is recorded)");
+  if (hasFreight && needsPayable && !active.some(x => num(x.freight_payable) > 0) && jt.transporterReceivable === 0) missing.push("Transporter freight payable (a market truck / transporter is used but no payable is recorded)");
 
-  const expenseRecords = gokul.length + activeLegs.flatMap(l => l.driverTransactions ?? []).filter(r => !r.is_cancelled && r.kind === "expense").length;
+  const expenseRecords = journeys.filter(e => !e.is_cancelled).flatMap(e => e.expenses ?? []).length + gokul.length + activeLegs.flatMap(l => l.driverTransactions ?? []).filter(r => !r.is_cancelled && r.kind === "expense").length;
   if (hasFreight && expenseRecords === 0) missing.push("Trip expenses (none recorded - they are not assumed to be zero)");
 
   if (activeLegs.some((l) => l.trip.status === "draft" || l.trip.status === "booked" || l.trip.status === "in_transit")) notes.push("The trip is not delivered/completed yet, so more entries may still be added.");

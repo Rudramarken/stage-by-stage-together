@@ -14,6 +14,8 @@ import { Section, selectCls } from "@/components/app/Section";
 import { TripExpenses, TripAdvances } from "@/components/app/MoneyEditors";
 import { CommissionPanel } from "@/components/app/CommissionPanel";
 import { DriverTransactions } from "@/components/app/DriverTransactions";
+import { TripJourneyDetails } from "@/components/app/TripJourneys";
+import { journeyTotals } from "@/lib/trip-journeys";
 import { TripProfit } from "@/components/app/TripProfit";
 import { TripDocuments } from "@/components/app/TripDocuments";
 import { Button } from "@/components/ui/button";
@@ -26,13 +28,13 @@ export const Route = createFileRoute("/_authenticated/trips/$id/")({
   component: TripDetail,
 });
 
-type LegData = { trip: any; lrs: any[]; expenses: any[]; advances: any[]; commissions: any[]; payments: any[]; driverTransactions: any[] };
+type LegData = { trip: any; lrs: any[]; expenses: any[]; advances: any[]; commissions: any[]; payments: any[]; driverTransactions: any[]; journeyEntries: any[] };
 
 async function loadFamily(id: string) {
   const { data: t, error } = await supabase.from("trips").select("id, parent_trip_id").eq("id", id).single();
   if (error) throw error;
   const root = t.parent_trip_id ?? t.id;
-  const { data: trips, error: e2 } = await supabase.from("trips").select("*, trip_stops(*)").or(`id.eq.${root},parent_trip_id.eq.${root}`).order("created_at");
+  const { data: trips, error: e2 } = await supabase.from("trips").select("*, trip_stops(*), trip_journey_entries(*)").or(`id.eq.${root},parent_trip_id.eq.${root}`).order("created_at");
   if (e2) throw e2;
   const ids = trips.map((x) => x.id);
   const [lrs, exps, advs, pays, dt] = await Promise.all([
@@ -57,6 +59,7 @@ async function loadFamily(id: string) {
     return {
       trip: { ...tr, trip_stops: [...tr.trip_stops].sort((a: any, b: any) => a.seq - b.seq) },
       lrs: legLrs,
+      journeyEntries: tr.trip_journey_entries ?? [],
       driverTransactions: (dt.data ?? []).filter(r => r.trip_id === tr.id),
       expenses: [...allExp.values()].filter((e) => (e.scope === "trip" && e.trip_id === tr.id) || (e.lr_id && legLrIds.has(e.lr_id))),
       advances: (advs.data ?? []).filter((a) => a.trip_id === tr.id),
@@ -71,16 +74,17 @@ function summarize(legs: LegData[]) {
   legs = legs.filter(l => l.trip.status !== "cancelled");
   const active = legs.flatMap((l) => l.lrs.filter((x) => x.status !== "cancelled"));
   const sum = (a: any[], f: (x: any) => number) => a.reduce((s, x) => s + f(x), 0);
+  const jt = journeyTotals(legs.flatMap(l => l.journeyEntries));
   const exp = legs.flatMap((l) => l.expenses);
   const adv = legs.flatMap((l) => l.advances);
   return {
-    freightReceivable: sum(active, (x) => Number(x.final_freight)),
+    freightReceivable: sum(active, (x) => Number(x.final_freight)) + jt.partyFreight,
     directPaid: sum(active, (x) => (x.direct_payment_enabled ? Math.min(Number(x.direct_payment_amount), Number(x.final_freight)) : 0)),
     freightPayable: sum(active.filter(x => x.transporter_freight_direction !== "receivable"), (x) => Number(x.freight_payable)),
-    transporterReceivable: sum(active.filter(x => x.transporter_freight_direction === "receivable"), (x) => Number(x.freight_payable)),
+    transporterReceivable: sum(active.filter(x => x.transporter_freight_direction === "receivable"), (x) => Number(x.freight_payable)) + jt.transporterReceivable,
     driverExpenses: sum(legs.flatMap(l => l.driverTransactions).filter(x => !x.is_cancelled && x.kind === "expense"), x => Number(x.amount)),
     tripExpenses: sum(exp.filter((e) => e.scope === "trip"), (e) => Number(e.amount)),
-    consignorExpenses: sum(exp.filter((e) => e.scope === "consignor"), (e) => Number(e.amount)),
+    consignorExpenses: sum(exp.filter((e) => e.scope === "consignor"), (e) => Number(e.amount)) + jt.consignorPayable,
     consignorCharged: sum(exp.filter((e) => e.scope === "consignor" && e.responsible === "party"), (e) => Number(e.amount)),
     consigneeExpenses: sum(exp.filter((e) => e.scope === "consignee"), (e) => Number(e.amount)),
     consigneeCharged: sum(exp.filter((e) => e.scope === "consignee" && e.responsible === "party"), (e) => Number(e.amount)),
@@ -188,6 +192,8 @@ function TripDetail() {
               {" "}· {l.trip.leg_label || (l.trip.parent_trip_id ? "Leg" : "Outward / first leg")} · {l.trip.trip_stops.map((s: any) => s.location).join(" → ")} · {l.lrs.length} LR(s)</li>))}</ul>
         </div>
       )}
+
+      <Section title="Consignor, Consignee & Transporter journeys"><TripJourneyDetails entries={leg.journeyEntries} /></Section>
 
       <Section title="Stop-by-stop">
         <div className="space-y-3">

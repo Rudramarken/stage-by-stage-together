@@ -86,7 +86,7 @@ function LRDetail() {
                   <p className="text-xs">{[p.goods_description, p.weight && `${p.weight} ${lr.weight_unit === "unit" ? "Unit" : lr.weight_unit}`].filter(Boolean).join(" · ")}</p>
                   <p className="text-xs text-muted-foreground">{[p.loading_point && `From ${p.loading_point}`, p.delivery_point && `To ${p.delivery_point}`].filter(Boolean).join(" · ")}</p>
                   {p.freight_amount != null && <p className="text-xs">Freight: {formatINR(p.freight_amount)}</p>}
-                  {expenses.filter((e) => e.lr_party_id === p.id).map((e) => <p key={e.id} className="text-xs">Expense: {e.category} {formatINR(e.amount)} — {e.responsible === "party" ? "charged to party" : "Gokul's own"} ({e.payment_status})</p>)}
+                  {expenses.filter((e) => e.lr_party_id === p.id).map((e) => <p key={e.id} className="text-xs">Expense: {e.category} {formatINR(e.amount)} — {e.consignor_payable ? "payable to consignor" : e.responsible === "party" ? "charged to party" : "Gokul's own"} ({e.payment_status})</p>)}
                 </div>))}
             </div>))}
         </div>

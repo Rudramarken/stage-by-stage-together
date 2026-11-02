@@ -33,18 +33,19 @@ function TripsList() {
     queryKey: ["trips"],
     queryFn: async () => {
       // Read in pages of 1000 so older trips are not silently dropped from the list and the CSV (stable order: date, created, id).
-      return fetchAllRows<any>((a, b) => supabase.from("trips").select("*, trip_stops(location, seq), lrs(id, lr_number, lr_parties(party_id, parties(name)))").order("trip_date", { ascending: false }).order("created_at", { ascending: false }).order("id").range(a, b) as any);
+      return fetchAllRows<any>((a, b) => supabase.from("trips").select("*, trip_stops(location, seq), lrs(id, lr_number, lr_parties(party_id, parties(name))), trip_journey_entries(*, parties(name), transporters(name))").order("trip_date", { ascending: false }).order("created_at", { ascending: false }).order("id").range(a, b) as any);
     },
   });
   const rows = useMemo(() => (q.data ?? []).filter((t: any) => {
     if (f.status && t.status !== f.status) return false;
     if (f.from && t.trip_date < f.from) return false;
     if (f.to && t.trip_date > f.to) return false;
-    if (f.transporter && t.transporter_id !== f.transporter) return false;
+    if (f.transporter && t.transporter_id !== f.transporter && !(t.trip_journey_entries ?? []).some((e: any) => !e.is_cancelled && e.transporter_id === f.transporter)) return false;
     if (f.driver && t.driver_id !== f.driver) return false;
     const s = f.search.trim().toLowerCase();
     if (!s) return true;
     const hay = [t.trip_number, t.market_vehicle_number, t.driver_name, nameOf(vehicles.data, t.vehicle_id, "registration_number"), ...t.trip_stops.map((x: any) => x.location),
+      ...(t.trip_journey_entries ?? []).filter((e: any) => !e.is_cancelled).flatMap((e: any) => [e.parties?.name, e.transporters?.name, e.loading_point, e.delivery_point]),
       ...t.lrs.flatMap((l: any) => [l.lr_number, ...l.lr_parties.map((p: any) => p.parties?.name)])].join(" ").toLowerCase();
     return hay.includes(s);
   }), [q.data, f, vehicles.data]);

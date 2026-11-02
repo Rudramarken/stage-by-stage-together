@@ -14,6 +14,8 @@ import { useAccounts, useParties, useTransporters, createTransporterInline, PAYM
 import { accountLabel } from "@/lib/accounts";
 import { todayIST } from "@/lib/format";
 
+import { paymentIsIncoming } from "@/lib/payment-direction";
+
 const BANK_MODES = PAY_MODES.filter((m) => m.value !== "cash");
 
 export function PaymentDialog({ open, onOpenChange, initial, thirdParty }: { open: boolean; onOpenChange: (o: boolean) => void; initial?: Record<string, any> | null; thirdParty?: boolean }) {
@@ -47,7 +49,7 @@ export function PaymentDialog({ open, onOpenChange, initial, thirdParty }: { ope
   }, [open, initial?.id]);
   const set = (k: string, val: unknown) => setV((p) => ({ ...p, [k]: val }));
   const isTransporterPay = v.payment_type === "transporter_payment" || v.payment_type === "transporter_receipt" || v.payment_type === "advance_paid";
-  const isReceipt = v.payment_type?.includes("receipt") || v.payment_type === "advance_received";
+  const isReceipt = paymentIsIncoming(v.payment_type);
   const selected = accounts.data?.find((a) => a.id === v.account_id);
   const pickAccount = (id: string) => {
     const a = accounts.data?.find((x) => x.id === id);
@@ -94,8 +96,9 @@ export function PaymentDialog({ open, onOpenChange, initial, thirdParty }: { ope
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader><DialogTitle>{v.id ? "Edit" : "New"} {thirdParty ? "third-party payment" : "payment / receipt"}</DialogTitle></DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">
-          {!thirdParty && <Field label="Type" required><select className={selectCls} value={v.payment_type} onChange={(e) => set("payment_type", e.target.value)}>
-            {Object.entries(PAYMENT_TYPE).filter(([k]) => k !== "third_party_receipt").map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>}
+          {!thirdParty && <Field label="Money direction"><select className={selectCls} value={isReceipt ? "in" : "out"} onChange={e => setV(p => ({ ...p, payment_type: e.target.value === "in" ? "customer_receipt" : "advance_paid", transporter_id: "", party_id: "", lr_id: "", allocate_amount: "" }))}><option value="in">Money Received / Deposit</option><option value="out">Money Paid / Payment</option></select></Field>}
+          {!thirdParty && <Field label="Type" required><select className={selectCls} value={v.payment_type} onChange={(e) => setV(p => ({ ...p, payment_type: e.target.value, transporter_id: "", party_id: "", allocate_amount: "" }))}>
+            {Object.entries(PAYMENT_TYPE).filter(([k]) => k !== "third_party_receipt" && paymentIsIncoming(k) === isReceipt).map(([k, l]) => <option key={k} value={k}>{k === "advance_paid" ? "Party / Consignor Payment or Advance" : l}</option>)}</select></Field>}
           {isTransporterPay && <Field label="Transporter" hint="Or choose a party below">
             <SearchSelect value={v.transporter_id} onChange={(x) => set("transporter_id", x)} options={(transporters.data ?? []).map((t) => ({ value: t.id, label: t.name }))}
               onCreate={async (t) => { const id = await createTransporterInline(t); qc.invalidateQueries({ queryKey: ["transporters"] }); return id; }} createLabel="Add transporter" /></Field>}

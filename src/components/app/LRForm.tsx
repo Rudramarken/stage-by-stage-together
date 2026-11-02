@@ -12,7 +12,7 @@ import { Field, Money } from "./ui";
 import { Section, selectCls } from "./Section";
 import { SearchSelect } from "./SearchSelect";
 import { errorMessage } from "./states";
-import { useParties, useDrivers, useTransporters, useVehicles, createPartyInline, EXPENSE_CATEGORIES, PAY_MODES } from "@/lib/lookups";
+import { useAccounts, useParties, useDrivers, useTransporters, useVehicles, createPartyInline, EXPENSE_CATEGORIES, PAY_MODES } from "@/lib/lookups";
 import { TransporterSelect } from "./TransporterSelect";
 import { LRDocuments } from "./LRDocuments";
 import { calcFreight, validateFreight, RATE_UNIT_LABEL, type RateUnit, type WeightUnit } from "@/lib/freight";
@@ -36,6 +36,7 @@ export function LRForm({ initial }: { initial: LRValues }) {
   const nav = useNavigate();
   const qc = useQueryClient();
   const parties = useParties(); const drivers = useDrivers(); const transporters = useTransporters(); const ownVehicles = useVehicles();
+  const accounts = useAccounts();
   const trips = useQuery({
     queryKey: ["trips-pick"],
     queryFn: async () => {
@@ -152,7 +153,7 @@ export function LRForm({ initial }: { initial: LRValues }) {
           </div>
           <div className="mt-3 rounded bg-muted/50 p-3">
             <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2"><p className="min-w-0 text-sm font-medium">{role === "consignor" ? "Consignor" : "Consignee"} expenses</p>
-              <Button type="button" size="sm" variant="outline" onClick={() => setP(i, { expenses: [...p.expenses, { category: "Loading/Unloading", expense_date: todayIST(), responsible: "gokul", payment_status: "paid", payment_method: "cash" }] })}><Plus className="mr-1 h-3 w-3" />Add expense</Button></div>
+              <Button type="button" size="sm" variant="outline" onClick={() => setP(i, { expenses: [...p.expenses, { category: "Loading/Unloading", expense_date: todayIST(), responsible: "gokul", consignor_payable: role === "consignor", payment_status: role === "consignor" ? "pending" : "paid", payment_method: "cash" }] })}><Plus className="mr-1 h-3 w-3" />Add expense</Button></div>
             {p.expenses.map((e, k) => (
               <div key={k} className="mb-2 grid items-end gap-2 border-b pb-2 sm:grid-cols-8">
                 <Field label="Category"><select className={selectCls} value={e.category} onChange={(ev) => setE(i, k, { category: ev.target.value })}>{EXPENSE_CATEGORIES.map((c) => <option key={c}>{c}</option>)}</select></Field>
@@ -160,10 +161,11 @@ export function LRForm({ initial }: { initial: LRValues }) {
                 <Field label="Date"><Input type="date" value={e.expense_date ?? ""} onChange={(ev) => setE(i, k, { expense_date: ev.target.value })} /></Field>
                 <Field label="Paid by"><Input value={e.paid_by ?? ""} onChange={(ev) => setE(i, k, { paid_by: ev.target.value })} placeholder="Gokul" /></Field>
                 <Field label="Paid to"><Input value={e.paid_to ?? ""} onChange={(ev) => setE(i, k, { paid_to: ev.target.value })} /></Field>
-                <Field label="Responsible"><select className={selectCls} value={e.responsible} onChange={(ev) => setE(i, k, { responsible: ev.target.value })}><option value="gokul">Gokul (own expense)</option><option value="party">This party (adds to their bill)</option></select></Field>
-                <Field label="Status"><select className={selectCls} value={e.payment_status} onChange={(ev) => setE(i, k, { payment_status: ev.target.value })}><option value="paid">Paid</option><option value="pending">Pending</option></select></Field>
+                <Field label="Accounting"><select className={selectCls} value={e.consignor_payable ? "payable" : e.responsible} onChange={(ev) => setE(i, k, { responsible: ev.target.value === "party" ? "party" : "gokul", consignor_payable: ev.target.value === "payable", ...(ev.target.value === "payable" ? { payment_status: "pending", account_id: "" } : {}) })}>{role === "consignor" && <option value="payable">Payable to this consignor</option>}<option value="gokul">Gokul (own expense)</option><option value="party">This party (adds to their bill)</option></select></Field>
+                <Field label="Status"><select disabled={!!e.consignor_payable} className={selectCls} value={e.payment_status} onChange={(ev) => setE(i, k, { payment_status: ev.target.value })}><option value="paid">Paid</option><option value="pending">Pending</option></select></Field>
                 <Button type="button" variant="ghost" size="icon" aria-label={`Remove ${role} expense ${k + 1}`} onClick={() => setP(i, { expenses: p.expenses.filter((_, j) => j !== k) })}><Trash2 className="h-4 w-4" /></Button>
                 <div className="sm:col-span-4"><Field label="Method"><select className={selectCls} value={e.payment_method ?? ""} onChange={(ev) => setE(i, k, { payment_method: ev.target.value })}>{PAY_MODES.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}</select></Field></div>
+                {!e.consignor_payable && <div className="sm:col-span-4"><Field label="Paid From Account"><select className={selectCls} value={e.account_id ?? ""} onChange={ev => setE(i, k, { account_id: ev.target.value })}><option value="">Choose account…</option>{accounts.data?.filter(a => a.is_active || a.id === e.account_id).map(a => <option key={a.id} value={a.id}>{a.display_name}</option>)}</select></Field></div>}
                 <div className="sm:col-span-4"><Field label="Notes"><Input value={e.notes ?? ""} onChange={(ev) => setE(i, k, { notes: ev.target.value })} /></Field></div>
               </div>
             ))}
