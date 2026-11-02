@@ -1,89 +1,98 @@
-# Complete Client Feedback Audit — Gokul Cargo Movers
+# Complete Client Feedback Audit — Final Master Implementation
 
-Date: 31-10-2026. Existing application retained. Changes are in preview; publication was not requested.
+Date: 02-11-2026. Existing Gokul Cargo Movers application retained. Frontend changes are in preview, not published. Database changes have been applied to the shared live database.
 
-## Issues, causes and changes
+## Issues found and root causes
 
-1. **Bank entries and opening balances:** existing card controls, authenticated account saves and bank transaction paths work. Verified rather than replacing account identities. Existing Cash, Cash Received by Narinder and real banks remain separate. Opening edits update the account, not an additional ledger event.
-2. **Manual party entries:** existing save/reversal functions and paginated ledger reads work. Verified a visible manual entry, stable-ID edit and reload. Manual adjustments deliberately do not create company cash movements.
-3. **Independent LR transporters:** new LR drafts already have independent transporter state. Saved-trip LR list now loads and displays each actual transporter. Existing LRs retain the full Edit LR action rather than being overwritten by a trip save.
-4. **Automatic freight:** Weight × Rate works in trip party/transporter controls; saved LR transporter weight/rate controls were missing equivalent automatic filling. Added calculation while retaining manually editable freight. Existing shortage/addition rules and final entered freight posting remain authoritative.
-5. **Transporter-only receivable:** prior transporter freight field represented only payable. Added explicit payable/receivable direction, defaulting to historical payable. Receivable posts transporter debit; party freight may be blank. Updated trip/LR profit and settlement labels, without reclassifying historical LRs.
-6. **Incoming/outgoing payments:** existing transporter receipt type works. Reports omitted incoming transporter receipts and some account movement sources. Account reports now read the same paginated account_movements source as statements, including transfers and reimbursements.
-7. **Trip/LR separation:** trip-only expense, advance and driver-entry arrays stay trip-linked; existing linked LRs are not resubmitted on a trip edit. Explicit new LRs and links still work.
-8. **Party-to-driver receipts:** missing entry surface and persisted source. Added driver_transactions, identifying driver, party, amount, date, method, reference and notes. Party credit and driver debit represent funds held by the driver; no company account movement.
-9. **Driver Expenses:** added separate entries inside Driver Advance section and on trip/driver details. Expense credits driver liability; selected reimbursement account adds an offsetting driver debit and one company outflow. Unreimbursed expense remains due to driver. Driver costs affect trip profit; advances do not.
-10. **Trip expense accounts:** fixed and extra expense form rows lacked individual account choices. Added account, method, reference and paid/pending status. Saved detail editor retains these fields; pending expenses have no account outflow. Stable IDs preserve edit/retry identity.
-11. **Regression found during verification:** the pending-expense migration also altered advance SQL, causing “INSERT has more expressions than target columns.” Repaired only the advance section; retested trip save and repeated edits successfully.
-12. **Retry safety:** driver entry dialog now saves its list atomically. Repeated cancellation returns the same saved result rather than failing after a successful cancellation.
-13. **Display:** DD-MM-YYYY restored through shared date formatting, preserving Asia/Kolkata and INR grouping.
+1. **Trip/Bilty separation:** Section 3 explicitly called save_lr for trip drafts. This was the actual source of automatic Bilty registration; trip-expense separation alone did not resolve it. Section 3 now persists independent trip_journey_entries through atomic save_trip_journeys. It never calls save_lr. Existing linked Bilties remain independently editable, and explicit link actions remain available.
+2. **Return Journey:** the previous return-leg action opened another trip, rather than offering a complete independent return section inside the current form. Added Add Return Journey with the same consignor, consignee and transporter controls and independent dates, freight, weight, rate, shortage, addition, locations and consignor expenses. Existing separate linked-leg functionality remains available.
+3. **Trip dates:** removed the top Trip Date input. Each Section 3 row has its own date. The existing trip_date remains stored for compatibility; new trips retain the creation-day default, existing trips retain their historical date.
+4. **Transporter freight:** independent trip entries now post transporter receivable debits from their own stable source IDs. No artificial party freight or driver is required. Historical LR payable directions were not reclassified.
+5. **Consignor payables:** existing expenses charged to a party posted debits, and own expenses posted no party line. Added explicit consignor_payable/payable_party_id classification for LR expenses and consignor payable rows inside trip journeys. These post party credits. Existing party-charge debits keep their original meaning. Payables remain pending; actual outgoing payments are separate transactions and debit the party, reducing payable.
+6. **Explicit linking copied driver:** commission_source_before inherited a trip driver into an LR with empty driver fields. Removed that copying while preserving commission transporter validation. Verified explicit linking retains independent LR fields.
+7. **Incoming/outgoing choices:** added Money Received / Deposit versus Money Paid / Payment selection. Types are filtered by shared accounting direction. Party/Consignor Payment uses the established advance_paid outgoing path, with separately visible payment history, not a new financial source.
+8. **Reports:** independent trip sources were absent from summaries and histories. Added trip journey reporting, party payable and transporter receivable reports, journey-aware trip summaries, monthly totals and party history source links. Fixed freight-by-party reporting to use each persisted party share instead of attributing all freight to the first party.
+9. **Dashboard:** transporter receipts were omitted from receipt totals; fixed with the shared direction predicate. Added transporter receivable and party payable figures, journey freight and driver expense totals. Corrected week-date arithmetic to UTC date-only calculation rather than local-midnight conversion.
+10. **Safety:** added journey business immutability, business-owned party/transporter/trip references, stable row identities, cancellation reason checks, duplicate expense-ID rejection, LR-consignor ownership checks, RLS and explicit grants. Journey cancellation retains offsetting original-source ledger history. Saved journey payables cannot be silently removed by omission.
+11. **Existing accounts/direct-driver/expense/manual paths:** inspected and verified rather than rebuilding. Cash, Cash Received by Narinder and the existing real banks remain separate and intact.
 
-## Changed application files
+## Files modified or created
 
-- src/components/app/DriverTransactions.tsx
+- src/components/app/TripJourneys.tsx (new)
 - src/components/app/TripForm.tsx
 - src/components/app/TripLrSection.tsx
 - src/components/app/LRForm.tsx
-- src/components/app/MoneyEditors.tsx
+- src/components/app/PaymentDialog.tsx
 - src/components/app/TripProfit.tsx
 - src/routes/_authenticated/trips.$id.edit.tsx
 - src/routes/_authenticated/trips.$id.index.tsx
+- src/routes/_authenticated/trips.index.tsx
 - src/routes/_authenticated/lr.$id.index.tsx
-- src/routes/_authenticated/driver-ledger.tsx
-- src/routes/_authenticated/transporter-settlements.tsx
 - src/routes/_authenticated/reports.tsx
-- src/lib/driver-transactions.ts and tests
-- src/lib/payment-direction.ts and tests
-- src/lib/trip-expenses.ts and tests
-- src/lib/trip-lrs.ts
-- src/lib/trip-summary.ts and tests
-- src/lib/lr-summary.ts
-- src/lib/transporter-ledger.ts and tests
-- src/lib/format.ts and tests
+- src/routes/_authenticated/dashboard.tsx
+- src/lib/trip-journeys.ts and trip-journeys.test.ts (new)
+- src/lib/freight-report.ts and freight-report.test.ts (new)
+- src/lib/trip-summary.ts and trip-summary.test.ts
+- src/lib/transporter-ledger.ts and transporter-ledger.test.ts
+- src/lib/party-history.ts and party-history.test.ts
 - src/lib/schema-smoke.ts
-- Generated database types, AGENTS.md, roadmap.md and project requirements memory.
+- Generated src/integrations/supabase/types.ts
+- AGENTS.md, roadmap.md, this report and the three tool-generated migration sets.
 
 ## Database changes actually applied
 
-- 0028_driver_transactions_and_transporter_direction.sql: additive direction column, driver source records, business RLS/grants, validation/posting/audit triggers, save function, atomic trip integration, cancellation and account movement support.
-- 0029_trip_expense_pending_status.sql: persist expense status. Its advance-side regression was corrected below.
-- 0030_atomic_driver_entries_and_safe_retries.sql: batch save function and idempotent cancellation retries.
-- 0031_repair_trip_advance_save_after_pending_support.sql: remove invalid expense-status references from advance insert/update only, with replacement guards.
+- 0032_independent_trip_journeys_and_consignor_payables.sql: new trip_journey_entries with business RLS, grants, ownership/validation/posting/audit/cancellation triggers; save_trip_journeys; additive expenses.consignor_payable and expenses.payable_party_id; save_lr update extension; payable credit posting.
+- 0033_journey_identity_and_link_independence.sql: journey business identity guard, no LR-driver copying on explicit linking, journey-aware percentage commission refresh.
+- 0034_validate_consignor_payable_links.sql: require payable to match its actual LR consignor; reject duplicate journey expense identities.
 
-The earlier failed migration attempt applied nothing. Successful migrations were not blindly rerun. New functions deny PUBLIC/anon execution and grant authenticated/service_role access. Existing grants, business stamping and source-key ledger upserts remain in place.
+All three tool calls reported applied successfully. Follow-up live reads confirmed the new table/columns and working functions; migration history now contains 35 applied records. Earlier migrations were not blindly rerun or rewritten. The actual schema already contains favourites, party_manual_entries and lr_parties.freight_amount. This application uses lrs/lr_parties, not lr_bilties or a consignee_party lookup. All 33 public base tables have RLS enabled. Global ledger duplicate source-key count is zero.
 
 ## Tests actually performed
 
-**Automated:** 126/126 tests across 24 files passed. Latest harness build/type validation reports build OK; the earlier temporary missing batch-function type error is superseded by successful validation after generated types refreshed.
+### Automated
 
-**Signed-in Chromium against real saved TEST records:**
+136 tests passed across 26 files. Added concrete tests for transporter-only freight, independent main/return amounts, consignor payable totals, no shortage/addition double counting, journey cancellation summaries, source traceability and independent party freight reports. Latest automatic application validation says build OK. No manual build/typecheck was run.
 
-- Created TEST CLIENT BANK through Add Bank Account with opening ₹10,000; edited to ₹12,000, refreshed and verified persisted opening and retained transactions.
-- Saved TEST trips TRP-0013 and TRP-0014. An early verification wait was too short and resulted in a second independent TEST trip; both were tracked and reversed, not mistaken for a same-ID duplicate.
-- Two LRs in each trip use different TEST transporters: A ₹2,000, B ₹3,000, with receivable direction and zero party freight. Verified each LR's own transporter debit once, no cross-transporter amount.
-- Auto-fill 196.70 × 170 = ₹33,439; manual override to ₹2,000 was saved.
-- Direct TEST SWAROOPNAGAR payment ₹15,000 to TEST SANJAY produced driver debit and party credit exactly once per saved TEST receipt, with no company account movement. Real named parties/drivers were not modified.
-- Separate ₹500 cash driver advance and ₹200 unreimbursed driver expense. Edited expense to ₹250 and saved trip twice; IDs and record counts remained stable.
-- Toll ₹100 bank, CNG ₹50 cash and Food ₹30 pending. Confirmed each paid expense has one selected-account movement and pending Food none. Edited Toll to ₹125; reopening retained account and method.
-- Trip reopening loaded both actual LR transporters. Repeated trip saves did not create new LRs or overwrite LR-specific freight.
-- ₹700 transporter receipt and ₹80 transporter payment through payment dialog: correct bank in/out direction and transporter credit/debit. Visible bank statement showed both transactions and expense withdrawals.
-- Manual party debit ₹100 through UI, then authoritative stable-ID credit edit to ₹125 twice; one original ledger row, edited description visible after reload. Manual edit dialog itself was not exercised.
-- Driver expense reimbursement edited in visible driver dialog; exactly one ₹250 bank outflow.
-- All 34 schema-smoke sources/column lists returned without errors through authenticated app client, covering favourites, party manual entries and lr_parties.freight_amount. App uses lrs/lr_parties, not a lr_bilties/consignee_party lookup.
-- Anonymous driver table read returned zero rows; anonymous driver batch save was denied.
-- Driver ledger, party ledger, account statement and account report screenshots inspected. Date display was DD-MM-YYYY.
+### Signed-in application and persisted TEST records
 
-## Cleanup and history preservation
+| Scenario | Actual result |
+| --- | --- |
+| Save trip with transporter-only main/return entries | PASS. TRP-0015 saved from visible form with A ₹2,000, B ₹3,000; two stable journey rows and zero automatically created LRs. |
+| Weight × Rate | PASS. 196.70 × 170 visibly auto-filled ₹33,439. Manual override ₹2,000 persisted. |
+| Edit/reopen return journey | PASS. Main ₹2,000 and return ₹3,000 reloaded independently; edited return ₹3,100 without another source line. |
+| Trip consignor payable | PASS. Added ₹2,000 and Delhi→Pune through visible form; details loaded the independent trip payable. |
+| Explicit two LR records with different transporters | PASS through authenticated app client. LR-0035 A ₹2,000 and LR-0036 B ₹3,000. Linked explicitly; trip re-save retained LR records unchanged. |
+| LR payable and edit | PASS. LR-0035 Loading ₹2,000 posted one party credit; visible LR details showed payable to consignor. Visible Edit LR save retained it and the transporter. |
+| Partial and full payable payments | PASS through authenticated save path. ₹500 reduced ₹2,000 payable to ₹1,500; ₹1,500 settled to zero. Both payments and original payable retained. Same payment IDs resubmitted without duplication. |
+| Direct party-to-driver | PASS through authenticated save path. TEST SWAROOPNAGAR→TEST SANJAY ₹15,000 posted driver debit and party credit, no account movement. Edited same transaction to ₹15,100; cancelled with reason; both balances returned to zero. |
+| Driver advance and separate expense | PASS through atomic trip save. ₹500 advance and ₹200 expense gave net driver receivable ₹300; records kept separate and repeat saves stable. |
+| Individual trip-expense accounts | PASS. Toll ₹100 TEST bank, CNG ₹50 Cash, Food ₹30 pending. Exactly three account movements including driver advance; no Food/unreimbursed-driver-expense movement. |
+| Manual party entry | PASS. ₹100 saved, same record edited to ₹125. Visible manual history loaded it; final reversal retained offsetting history. |
+| Incoming transporter receipt/bank | PASS. ₹700 incoming increased TEST bank; payments ₹2,000 and Toll ₹100 reduced it: ₹10,000 + ₹700 − ₹2,000 − ₹100 = ₹8,600. |
+| Existing bank opening edit | PASS through visible Edit account & opening balance. TEST bank opening changed to ₹12,000; refresh showed ₹10,600 current balance and retained transactions. |
+| Bank statement readback | PASS. Visible statement showed ₹12,000 opening, ₹700 deposits, ₹2,100 withdrawals and ₹10,600 closing. |
+| Money direction selector | PASS visible modal showed Money Paid / Payment, outgoing Party / Consignor Payment or Advance and Paid from account selector. |
+| Journey reports | PASS visible report loaded persisted main/return records. |
+| Schema smoke | PASS. All 35 app source/column lists read through authenticated client without error. |
+| Business identity attack | PASS. Attempted changing a TEST journey business UUID was rejected. |
+| Anonymous access | PASS. No journey rows returned; anonymous save_trip_journeys denied. |
+| Phone/tablet/laptop widths | PASS. Trip edit page width ≤ viewport at 390×844, 802×677 and 1280×1800; screenshots inspected. |
+| Main application route smoke | PASS. 18 signed-in main pages opened without observed crash/missing-table text. This is page-load smoke, not full CRUD verification of each module. |
+| Final ledger UI | PASS. Party and driver ledgers showed originals, edits and reasoned reversals with closing Settled ₹0. |
 
-Cancelled TRP-0013 and TRP-0014 with TEST audit reason; linked TEST LRs, driver transactions, trip expenses and advances cancelled through existing workflow. Reversed both TEST payments and manual entry with reason. Archived TEST driver, parties, transporters and bank. Cleared only the TEST bank opening balance.
+Tests used clearly named TEST masters only. Some transactional scenarios were driven through the authenticated browser app client, not by typing every field; they are not claimed as full visible-form tests. Early browser script failures were selector ambiguities or timing errors; tracked TEST masters were reused, not recreated on retries.
 
-Verified aggregate TEST driver, party and transporter ledger effects equal zero and TEST bank has no active account movements. Financial audit/reversal records remain intentionally retained, not hard-deleted. No real master or financial record was edited; only reversible TEST movements temporarily used existing Cash. No real opening balances or owner roles changed.
+## Cleanup and historical data safety
 
-## Limits and remaining verification
+Cancelled TRP-0015 and its three journey rows, LR-0035/0036, advances, expenses and driver entries through existing reasoned cancellation. Reversed the two payable payments, transporter receipt and manual adjustment. Archived TEST party, driver, both transporters and TEST bank. Cleared only the TEST bank opening. Verified all four TEST party/driver/transporter ledger effects equal zero and no active TEST account movements remain. Financial history and audit entries remain intentionally retained. Real owner roles, real bank openings and historical records were not changed by testing. Test document numbers consumed: TRP-0015 and LR-0035/0036.
 
-- No database action is required from the user. A restricted diagnostic function could not be called through the read-only query tool; equivalent application schema checks passed without widening grants.
-- Staff-role and cross-business denial, concurrent multi-user stress, full export row-count checks and exhaustive auth-provider/settings verification were not performed in this pass.
-- Every module was not exercised end to end; evidence above is limited to the requested accounting flows, schema checks and regression suite.
-- Saved LR standalone auto-calculation control was updated, but its complete edit/save/reopen flow was not independently retested; trip auto-calculation and saved trip edit flows were tested.
-- Existing LRs on trip edits show their transporter and are edited using Edit LR; they do not become inline trip drafts. This preserves unrelated LR data.
-- Publish remains pending an explicit user request; these frontend changes are not claimed live.
+## Verification limits / remaining issues
+
+- Full application-wide manual CRUD, salary-recovery scenarios, multiple simultaneous users, all auth-provider settings and staff/cross-business sessions were not exercised. No claim that every module is exhaustively bug-free.
+- Earlier genuine expenses/advances without paid-from account remain. The existing statement warns about unassigned historical outflows; no account was guessed or historical record rewritten. Owner must identify the actual paying accounts to reconcile those records.
+- Explicit trip/LR links are intentionally independent postings. If the same real freight is manually entered both as a trip journey and again as an LR charge, both genuine sources will post. Avoid double-entering the same obligation; linking never copies or silently deduplicates independent financial documents.
+- Journey percentage commission refresh is implemented but was not independently exercised with a live percentage-commission receipt in this pass.
+- Independent journey sources are shown in dedicated journey reports, trip summaries, party history and monthly totals. Legacy LR-only route freight reporting intentionally remains LR-based.
+- Incoming/outgoing save functions were tested; not every modal type was filled and submitted through visible controls in this pass.
+- All saved journey payables currently require cancellation of the journey row with reason to remove them; individual omission is blocked to preserve history.
+- Publication was not requested and was not performed. No manual database action is required.
