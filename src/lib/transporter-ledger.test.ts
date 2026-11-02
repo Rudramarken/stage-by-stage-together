@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import { summarizeTransporterLines } from "./transporter-ledger";
 
 describe("transporter manual accounting", () => {
+  it("trip journey freight is receivable, and reasoned reversal offsets it", () => {
+    expect(summarizeTransporterLines([{ line_kind: "journey_freight", debit: 2000, credit: 0 }]).freight).toBe(-2000);
+    expect(summarizeTransporterLines([{ line_kind: "journey_freight", debit: 2000, credit: 0 }, { line_kind: "journey_freight_reversal", debit: 0, credit: 2000 }]).remaining).toBe(0);
+  });
   it("transporter freight receivable is not labelled an advance paid", () => {
     const s = summarizeTransporterLines([{ line_kind: "freight_payable", debit: 2000, credit: 0 }]);
     expect(s.freight).toBe(-2000); expect(s.paid).toBe(0); expect(s.remaining).toBe(-2000);

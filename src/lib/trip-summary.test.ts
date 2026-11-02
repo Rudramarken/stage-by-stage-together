@@ -6,6 +6,14 @@ const exp = (o: Record<string, unknown>) => ({ scope: "trip", responsible: "goku
 const leg = (o: Partial<SummaryLeg> = {}): SummaryLeg => ({ trip: { status: "completed", vehicle_mode: "market", transporter_id: "T" }, lrs: [lr()], expenses: [exp({ amount: 1000 })], advances: [], commissions: [], ...o });
 
 describe("trip financial summary", () => {
+  it("counts independent main and return receipts and consignor payables once without LRs", () => {
+    const s = summarizeTrip([leg({ lrs: [], expenses: [], journeyEntries: [
+      { role: "transporter", journey: "main", freight_amount: 2000 },
+      { role: "transporter", journey: "return", freight_amount: 3000 },
+      { role: "consignor", freight_amount: 0, expenses: [{ amount: 2000 }] },
+    ] })]);
+    expect(s.transporterPayable).toBe(-5000); expect(s.operatingExpenses).toBe(2000); expect(s.profit).toBe(3000); expect(s.activeLrCount).toBe(0);
+  });
   it("transporter-only receivable is income; driver expenses are costs, not advances", () => {
     const s = summarizeTrip([leg({ lrs: [lr({ final_freight: 0, freight_payable: 2000, transporter_freight_direction: "receivable" })], expenses: [], driverTransactions: [{ kind: "expense", amount: 300 }, { kind: "party_receipt", amount: 15000 }], advances: [{ recipient_type: "driver", amount: 500 }] })]);
     expect(s.transporterPayable).toBe(-2000); expect(s.operatingExpenses).toBe(300); expect(s.driverAdvances).toBe(500); expect(s.profit).toBe(1700); expect(s.state).toBe("calculated");
