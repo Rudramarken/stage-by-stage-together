@@ -88,6 +88,35 @@ Cancelled TRP-0015 and its three journey rows, LR-0035/0036, advances, expenses 
 
 ## Verification limits / remaining issues
 
+### Follow-up TEST pass — 02-11-2026
+
+The requested main/return trip **TRP-0016** and separate Bilties **LR-0037 / LR-0038** were created through visible forms using `TEST FINAL CHECK 0211` masters. Initial save created four journey rows and zero automatic Bilties. Separate Bilties were subsequently linked through the visible trip edit form; their fields and amounts remained independent.
+
+| Follow-up check | Verified result |
+| --- | --- |
+| Main transporter A / return transporter B | ₹2,100 / ₹3,200 posted once; return later changed to ₹3,300, still one original source posting. |
+| Independent Bilty transporter amounts | A ₹610 and B ₹720 each posted once, separate from journey charges. |
+| Journey consignor payables | A ₹310 and B ₹420 each posted once as credits. |
+| Independent Bilty consignor payables | A ₹71 and B ₹82 each posted once as credits. Final eight-amount assertion passed before cleanup. |
+| Reopen / repeated trip save | Passed after repairing the payable-edit trigger ambiguity described below. |
+| Trip percentage commission | 10% of ₹5,300 produced ₹530; changing return freight produced ₹540. Transporter-owned commission, no driver posting. |
+| Visible commission receipt | ₹40 saved through the visible modal. |
+| Concurrent commission retries | Two same-request calls returned one receipt. Two competing ₹300 receipts allowed one and rejected the other. Final received ₹390, pending ₹150 (includes two distinct ₹25 TEST retry scenarios). This exercised concurrent authenticated calls, not different human-user sessions. |
+| All six payment types | Customer receipt, advance received, transporter receipt, consignor payment, transporter payment and third-party receipt submitted through visible controls using ₹10 TEST amounts. Third-party receipt correctly rejected when no receivable existed; succeeded after an explicit TEST receivable was recorded. |
+| Confirmed salary advance recovery | Visible salary form started with recovery unchecked; explicit confirmation settled ₹1,000 salary as ₹800 bank payment + ₹200 advance recovery, ₹0 transporter commission recovery. Further salary overpayment rejected. |
+| Private documents | TEST PNG uploaded to LR and trip, reloaded, fetched through a signed private link and removed. Retry-created LR TEST attachments were all removed during cleanup. |
+| Consignor ledger exports | Both TEST consignor ledgers rendered payable lines; downloaded CSV contained the same payable history. |
+| Filtered trip export / print | CSV filtered to TEST trip contained TRP-0016. Print button called printing; print-media screenshot reviewed. Physical printing/system print dialog not tested. |
+| Cleanup | All commission receipts, modal payments and TEST receivable adjustments reversed with reason. Salary payment reversed; TEST salary accrual cancelled through authenticated update because generic removal does not support salary-entry cancellation. Trip cancellation reversed journeys, linked Bilties, their expenses and the advance. Five TEST counterpart ledgers verified exactly zero, no active TEST bank movements; TEST masters archived. History retained. |
+
+**Repairs applied during verification:**
+- `0035_fix_journey_payable_edit_alias.sql`: removed collision between a PL/pgSQL variable and JSON payable alias that rejected repeated saves of journey payables.
+- `0036_fix_trip_percentage_commission_trigger_boundary.sql` and `0037_isolate_lr_transporter_lookup_from_trip_commission.sql`: separated LR-only field access from the shared trip commission trigger; trip commission previously failed with `record "new" has no field "trip_id"`.
+- Added a saved-payable identity regression test; the actual database edit and percentage scenarios were also exercised above.
+- Final automated verification: **137/137 tests passed across 26 files**; latest automatic application validation reported **build OK**.
+
+**Still blocked or intentionally unchanged:** only two Owner memberships and one business exist. Staff/admin, second-business and separate simultaneous-user sessions were not fabricated or tested; real Owner roles remain unchanged. Hosted auth-provider settings could not be read with the available settings tool and remain unverified. Historical outflows without paying accounts still need the owner's actual account identification (28 paid expense records currently unassigned); no real entries were rewritten. Full manual CRUD of every master and module, legacy driver-owned salary commission recovery, and every report/export combination remain unverified, not passed. New transporter commission was explicitly confirmed not to enter driver salary recovery. Publication remains unrequested.
+
 - Full application-wide manual CRUD, salary-recovery scenarios, multiple simultaneous users, all auth-provider settings and staff/cross-business sessions were not exercised. No claim that every module is exhaustively bug-free.
 - Earlier genuine expenses/advances without paid-from account remain. The existing statement warns about unassigned historical outflows; no account was guessed or historical record rewritten. Owner must identify the actual paying accounts to reconcile those records.
 - Explicit trip/LR links are intentionally independent postings. If the same real freight is manually entered both as a trip journey and again as an LR charge, both genuine sources will post. Avoid double-entering the same obligation; linking never copies or silently deduplicates independent financial documents.

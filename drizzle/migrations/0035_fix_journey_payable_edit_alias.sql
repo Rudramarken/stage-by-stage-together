@@ -1,0 +1,3 @@
+DO $$ DECLARE definition text; BEGIN definition:=pg_get_functiondef('public.trip_journey_guard()'::regprocedure); IF position('jsonb_array_elements(NEW.expenses) x WHERE x->>' IN definition)=0 THEN RAISE EXCEPTION 'Expected journey payable guard not found'; END IF; definition:=replace(definition,'jsonb_array_elements(NEW.expenses) x WHERE x->>','jsonb_array_elements(NEW.expenses) AS payable_item(value) WHERE payable_item.value->>'); EXECUTE definition; END $$;
+REVOKE ALL ON FUNCTION public.trip_journey_guard() FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.trip_journey_guard() TO authenticated,service_role;

@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { blankJourneyEntry, journeyEntriesPayload, journeyEntriesToForm, journeyTotals, validateJourneyEntries } from "./trip-journeys";
 describe("independent trip journeys", () => {
+  it("preserves the same payable identity when a saved journey is reopened and edited", () => {
+    const entry = { ...blankJourneyEntry("return", "consignor"), party_id: "test-party", expenses: [{ id: "test-payable", category: "Loading", amount: "420", expense_date: "2026-11-02", notes: "TEST" }] };
+    const reopened = journeyEntriesToForm([entry]);
+    reopened[0].expenses[0].amount = "425";
+    const payload = journeyEntriesPayload(reopened);
+    expect(payload[0].id).toBe(entry.id);
+    expect(payload[0].expenses).toEqual([{ id: "test-payable", category: "Loading", amount: "425", expense_date: "2026-11-02", notes: "TEST" }]);
+    expect(journeyTotals(payload).consignorPayable).toBe(425);
+  });
   it("accepts transporter-only freight without artificial parties or LR creation", () => {
     const e = { ...blankJourneyEntry("main", "transporter"), transporter_id: "t1", freight_amount: "2000" };
     expect(validateJourneyEntries([e])).toBeNull();
