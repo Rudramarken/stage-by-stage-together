@@ -50,3 +50,5 @@ SCHEMA_COLUMNS.vehicles.push("driver_id");
 
 SCHEMA_COLUMNS.lrs.push("transporter_freight_direction");
 SCHEMA_COLUMNS.driver_transactions = ["id", "business_id", "trip_id", "driver_id", "party_id", "kind", "amount", "entry_date", "payment_method", "account_id", "reference", "notes", "is_cancelled", "cancel_reason"];
+SCHEMA_COLUMNS.expenses.push("consignor_payable", "payable_party_id");
+SCHEMA_COLUMNS.trip_journey_entries = ["id", "business_id", "trip_id", "journey", "role", "seq", "party_id", "transporter_id", "weight", "rate", "freight_amount", "shortage", "addition", "freight_date", "goods_description", "loading_point", "delivery_point", "expenses", "is_cancelled", "cancel_reason"];

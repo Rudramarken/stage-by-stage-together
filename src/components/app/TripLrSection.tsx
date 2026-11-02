@@ -21,9 +21,9 @@ import { TransporterSelect } from "./TransporterSelect";
  * - New LR rows are saved through the existing save_lr() with this trip, so freight/payable post once, from the LR.
  * Vehicle, transporter and driver stay in the "Vehicle, transporter & driver" section above and are used by these LRs.
  */
-export function TripLrSection({ tripId, drafts, setDrafts, linkIds, setLinkIds, transporterName, vehicleLabel }: {
+export function TripLrSection({ tripId, drafts, setDrafts, linkIds, setLinkIds, transporterName, vehicleLabel, linkOnly = false }: {
   tripId?: string; drafts: TripLrDraft[]; setDrafts: (d: TripLrDraft[]) => void; linkIds: string[]; setLinkIds: (ids: string[]) => void;
-  transporterName: string; vehicleLabel: string;
+  transporterName: string; vehicleLabel: string; linkOnly?: boolean;
 }) {
   const qc = useQueryClient();
   const parties = useParties();
@@ -112,7 +112,7 @@ export function TripLrSection({ tripId, drafts, setDrafts, linkIds, setLinkIds, 
         {linkIds.length > 0 && <p className="text-xs text-muted-foreground">Linked when you save the trip. The LR keeps its own amounts.</p>}
       </div>
 
-      <div className="space-y-3">
+      {!linkOnly && <div className="space-y-3">
         <p className="text-sm font-medium">New LR / Bilty entered here</p>
         {drafts.map((d, i) => (
           <div key={d.key} className="space-y-3 rounded-md border p-3">
@@ -141,7 +141,7 @@ export function TripLrSection({ tripId, drafts, setDrafts, linkIds, setLinkIds, 
           </div>
         ))}
         <Button type="button" variant="outline" size="sm" onClick={() => setDrafts([...drafts, blankTripLr()])}><Plus className="mr-1 h-4 w-4" />Add LR / Bilty</Button>
-      </div>
+      </div>}
     </div>
   );
 }

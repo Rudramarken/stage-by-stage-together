@@ -16,7 +16,9 @@ import { errorMessage } from "./states";
 import { useAccounts, useDrivers, useVehicles, useTransporters, nameOf, PAY_MODES } from "@/lib/lookups";
 import { TransporterSelect } from "./TransporterSelect";
 import { TripLrSection } from "./TripLrSection";
-import { blankTripLr, isBlankTripLr, tripLrPayload, validateTripLrs, type TripLrDraft } from "@/lib/trip-lrs";
+import { TripJourneys } from "./TripJourneys";
+import { blankJourney, journeyEntriesPayload, journeyEntriesToForm, journeyTotals, validateJourneyEntries, type JourneyEntry } from "@/lib/trip-journeys";
+import type { TripLrDraft } from "@/lib/trip-lrs";
 import { DriverRows, driverRowsPayload, type DriverRow } from "./DriverTransactions";
 import { formatINR, todayIST } from "@/lib/format";
 
@@ -50,7 +52,8 @@ export function TripForm({ initial, initialExpenses, initialAdvances, initialDri
   // journey_type / direction / status are no longer shown in the form, but save_trip resets them to defaults when they are missing,
   // so an edited trip sends back its saved values unchanged (and a new trip gets the same defaults as before).
   const [v, setV] = useState<TripValues>(initial ?? { trip_date: todayIST(), journey_type: "single", direction: "up", status: "booked", vehicle_mode: "own", stops: [] });
-  const [lrDrafts, setLrDrafts] = useState<TripLrDraft[]>(() => [blankTripLr()]);
+  const [lrDrafts, setLrDrafts] = useState<TripLrDraft[]>([]);
+  const [entries, setEntries] = useState<JourneyEntry[]>(() => initial?.trip_journey_entries?.length ? journeyEntriesToForm(initial.trip_journey_entries) : blankJourney("main"));
   const [linkIds, setLinkIds] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -63,39 +66,25 @@ export function TripForm({ initial, initialExpenses, initialAdvances, initialDri
     if (initial?.commission_enabled && !v.commission_enabled && !v.commission_cancel_reason?.trim()) return setErr("Enter a reason for turning commission off");
     const expErr = validateExpenses(exp); if (expErr) return setErr(expErr);
     const advErr = validateAdvances(adv, v.driver_id); if (advErr) return setErr(advErr);
-    const lrErr = validateTripLrs(lrDrafts); if (lrErr) return setErr(lrErr);
+    const journeyErr = validateJourneyEntries(entries); if (journeyErr) return setErr(journeyErr);
     let driverPayload;
     try { driverPayload = driverRowsPayload(driverRows, v.driver_id); } catch(e) { return setErr(errorMessage(e)); }
     saving.current = true; setBusy(true);
     let tripId = "";
     try {
       // Stops are left exactly as stored: the form no longer edits them, so the key is not sent (save_trip only touches stops when it is present).
-      const { stops: _stops, ...rest } = v;
-      const payload = { ...rest, client_id: initial?.id ? undefined : clientId, expenses: expensesPayload(exp, v.trip_date), advances: advancesPayload(adv, v.driver_id), driver_transactions: driverPayload };
-      const { data, error } = await supabase.rpc("save_trip", { p: payload as never });
+      const { stops: _stops, trip_journey_entries: _entries, ...rest } = v;
+      const payload = { ...rest, client_id: initial?.id ? undefined : clientId, journey_entries: journeyEntriesPayload(entries), expenses: expensesPayload(exp, v.trip_date), advances: advancesPayload(adv, v.driver_id), driver_transactions: driverPayload };
+      const { data, error } = await supabase.rpc("save_trip_journeys", { p: payload as never });
       if (error) throw error;
       tripId = data as string;
       setV((previous) => ({ ...previous, id: tripId }));
+      setEntries(previous => previous.map(e => ({ ...e, saved: true })));
     } catch (e) { setErr(errorMessage(e)); saving.current = false; setBusy(false); return; }
 
     // Step 2: LR / Bilty rows and links. The trip is already saved (and a second Save updates the same trip, because the trip id is reused).
     // Each LR remembers its id once saved, so a retry updates it instead of creating a second LR.
-    const work = lrDrafts.map((d) => ({ ...d }));
     try {
-      const tripRef = { id: tripId, trip_date: v.trip_date as string, transporter_id: v.transporter_id as string | null };
-      for (let i = 0; i < work.length; i++) {
-        if (isBlankTripLr(work[i])) continue;
-        const { data, error } = await supabase.rpc("save_lr", { p: tripLrPayload(work[i], tripRef) as never });
-        if (error) throw new Error(`LR / Bilty ${i + 1} was not saved: ${errorMessage(error)}`);
-        const savedLrId = data as string;
-        work[i].savedId = savedLrId;
-        const savedParties = await supabase.from("lr_parties").select("id,role,seq").eq("lr_id", savedLrId).order("seq");
-        if (savedParties.error) throw savedParties.error;
-        for (const side of ["consignors", "consignees"] as const) {
-          const ids = savedParties.data.filter((p) => p.role === (side === "consignors" ? "consignor" : "consignee"));
-          work[i][side] = work[i][side].map((p, j) => ({ ...p, id: ids[j]?.id }));
-        }
-      }
       const remaining = [...linkIds];
       for (const id of linkIds) {
         const { error } = await supabase.from("lrs").update({ trip_id: tripId } as never).eq("id", id);
@@ -104,7 +93,6 @@ export function TripForm({ initial, initialExpenses, initialAdvances, initialDri
         setLinkIds([...remaining]);
       }
     } catch (e) {
-      setLrDrafts(work);
       qc.invalidateQueries();
       setErr(`The trip was saved, but part of the LR / Bilty step failed. ${errorMessage(e)} Fix it and press Save again: the trip and any LR already saved are updated, never duplicated.`);
       saving.current = false; setBusy(false);
@@ -118,7 +106,8 @@ export function TripForm({ initial, initialExpenses, initialAdvances, initialDri
 
   const vehicleLabel = v.vehicle_mode === "own" ? vehicles.data?.find((x) => x.id === v.vehicle_id)?.registration_number ?? "" : (v.market_vehicle_number ?? "");
   const transporterName = transporters.data?.find((x) => x.id === v.transporter_id)?.name ?? "";
-  const lrCount = lrDrafts.filter((d) => !isBlankTripLr(d)).length + linkIds.length;
+  const lrCount = linkIds.length;
+  const journeySummary = journeyTotals(entries);
   const expTotal = expenseTotal(exp);
   const advTotal = advanceTotal(adv);
 
@@ -132,7 +121,6 @@ export function TripForm({ initial, initialExpenses, initialAdvances, initialDri
     <div className="space-y-4">
       <Section n={1} title="Trip details">
         <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="Trip date" required><Input type="date" value={v.trip_date ?? ""} onChange={(e) => set("trip_date", e.target.value)} /></Field>
           {v.parent_trip_id && <Field label="Leg label" hint="e.g. Return leg, Leg 2"><Input value={v.leg_label ?? ""} onChange={(e) => set("leg_label", e.target.value)} /></Field>}
           <div className="sm:col-span-3"><Field label="Notes"><Textarea value={v.notes ?? ""} onChange={(e) => set("notes", e.target.value)} /></Field></div>
         </div>
@@ -163,9 +151,10 @@ export function TripForm({ initial, initialExpenses, initialAdvances, initialDri
         </div>
       </Section>
 
-      <Section n={3} title={`Consignor, Consignee & Transporter${lrCount > 0 ? ` · ${lrCount} LR / Bilties to save` : ""}`}>
+      <Section n={3} title="Consignor, Consignee & Transporter">
         <div className="mb-4"><Field label="Transporter" hint="Type a new name to add it once"><TransporterSelect value={v.transporter_id} onChange={(x) => set("transporter_id", x)} /></Field></div>
-        <TripLrSection tripId={initial?.id} drafts={lrDrafts} setDrafts={setLrDrafts} linkIds={linkIds} setLinkIds={setLinkIds} transporterName={transporterName} vehicleLabel={vehicleLabel} />
+        <TripJourneys entries={entries} setEntries={setEntries} />
+        <TripLrSection tripId={initial?.id} drafts={lrDrafts} setDrafts={setLrDrafts} linkIds={linkIds} setLinkIds={setLinkIds} transporterName={transporterName} vehicleLabel={vehicleLabel} linkOnly />
       </Section>
       <Section n={4} title={`Trip expenses${expTotal > 0 ? ` · ${formatINR(expTotal)}` : ""}`}>
         <p className="mb-3 text-sm text-muted-foreground">Type amounts directly; a blank box records nothing. Saved amounts are updated in place when you save again, never duplicated. A saved expense is removed only by cancelling it (with a reason), so the history stays.</p>
@@ -269,7 +258,10 @@ export function TripForm({ initial, initialExpenses, initialAdvances, initialDri
       </Section>
       <Section n={6} title="Summary">
         <dl className="grid gap-2 text-sm sm:grid-cols-2">
-          <div><dt className="text-muted-foreground">LR / Bilties to save or link</dt><dd>{lrCount > 0 ? lrCount : "None"}</dd></div>
+          <div><dt className="text-muted-foreground">LR / Bilties explicitly selected to link</dt><dd>{lrCount > 0 ? lrCount : "None"}</dd></div>
+          <div><dt className="text-muted-foreground">Journey party freight</dt><dd><Money value={journeySummary.partyFreight} /></dd></div>
+          <div><dt className="text-muted-foreground">Journey transporter receivable</dt><dd><Money value={journeySummary.transporterReceivable} /></dd></div>
+          <div><dt className="text-muted-foreground">Consignor payable</dt><dd><Money value={journeySummary.consignorPayable} /></dd></div>
           <div><dt className="text-muted-foreground">Vehicle</dt><dd>{v.vehicle_mode === "own" ? vehicles.data?.find((x) => x.id === v.vehicle_id)?.registration_number ?? "—" : `${v.market_vehicle_number ?? "—"} (market truck)`}</dd></div>
           <div><dt className="text-muted-foreground">Transporter</dt><dd>{transporters.data?.find((x) => x.id === v.transporter_id)?.name ?? "—"}</dd></div>
           <div><dt className="text-muted-foreground">Driver</dt><dd>{drivers.data?.find((x) => x.id === v.driver_id)?.name ?? v.driver_name ?? "—"}</dd></div>

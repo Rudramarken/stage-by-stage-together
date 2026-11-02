@@ -16,7 +16,7 @@ function EditTrip() {
   const q = useQuery({
     queryKey: ["trip-edit", id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("trips").select("*, trip_stops(*)").eq("id", id).single();
+      const { data, error } = await supabase.from("trips").select("*, trip_stops(*), trip_journey_entries(*)").eq("id", id).single();
       if (error) throw error;
       // Saved, non-cancelled trip-scope expenses and DRIVER advances, so the form edits the same records (never creates copies).
       const [exp, adv, dt] = await Promise.all([
