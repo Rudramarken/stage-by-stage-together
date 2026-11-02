@@ -82,8 +82,7 @@ export function TripForm({ initial, initialExpenses, initialAdvances, initialDri
       setEntries(previous => previous.map(e => ({ ...e, saved: true })));
     } catch (e) { setErr(errorMessage(e)); saving.current = false; setBusy(false); return; }
 
-    // Step 2: LR / Bilty rows and links. The trip is already saved (and a second Save updates the same trip, because the trip id is reused).
-    // Each LR remembers its id once saved, so a retry updates it instead of creating a second LR.
+    // Only explicitly requested links are changed; journey data never invokes save_lr.
     try {
       const remaining = [...linkIds];
       for (const id of linkIds) {
@@ -247,7 +246,7 @@ export function TripForm({ initial, initialExpenses, initialAdvances, initialDri
       <Section title="Transporter commission (optional)" defaultOpen={!!v.commission_enabled}>
         <label className="flex items-center gap-2 text-sm"><Switch checked={!!v.commission_enabled} onCheckedChange={(enabled) => set("commission_enabled", enabled)} />Commission applicable?</label>
         {v.commission_enabled && <div className="mt-3 grid gap-3 sm:grid-cols-3">
-          <Field label="Commission type"><select className={selectCls} value={v.commission_mode ?? "fixed"} onChange={(e) => set("commission_mode", e.target.value)}><option value="fixed">Fixed ₹</option><option value="percent">% of this trip's LR freight</option></select></Field>
+          <Field label="Commission type"><select className={selectCls} value={v.commission_mode ?? "fixed"} onChange={(e) => set("commission_mode", e.target.value)}><option value="fixed">Fixed ₹</option><option value="percent">% of trip journey and LR freight</option></select></Field>
           <Field label={v.commission_mode === "percent" ? "Percent (%)" : "Amount (₹)"}><Input type="number" min="0" value={v.commission_value ?? ""} onChange={(e) => set("commission_value", e.target.value)} /></Field>
           <Field label="Date"><Input type="date" value={v.commission_date ?? ""} onChange={(e) => set("commission_date", e.target.value)} /></Field>
           <Field label="Reference"><Input value={v.commission_reference ?? ""} onChange={(e) => set("commission_reference", e.target.value)} /></Field>

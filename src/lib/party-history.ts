@@ -44,6 +44,7 @@ export type Raw = {
   lrs: Map<string, any>; lrParties: Map<string, any[]>; trips: Map<string, any>; payments: Map<string, any>;
   allocations: Map<string, number>; lrExpenses: Map<string, number>; tripExpenses: Map<string, number>; tripDriverAdvances: Map<string, number>;
   commissions: any[]; driverNames: Map<string, string>;
+  journeyEntries?: Map<string, any>; expenseSources?: Map<string, any>;
 };
 
 async function inChunks(table: string, select: string, col: string, ids: string[], extra?: (q: any) => any): Promise<any[]> {
@@ -93,7 +94,13 @@ export async function loadHistory(acc: { parties: NamedId[]; transporters: Named
   for (const r of await inChunks("lr_parties", "id, lr_id, role, seq, party_id, freight_amount, parties(name)", "lr_id", lrIds)) {
     const a = lrParties.get(r.lr_id) ?? []; a.push(r); lrParties.set(r.lr_id, a);
   }
-  const tripIds = [...new Set([...lrs.values()].map((l) => l.trip_id).concat([...payments.values()].map((p) => p.trip_id)).filter(Boolean))] as string[];
+  const journeyEntries = new Map<string, any>();
+  if (pIds.length) for (const e of await inChunks("trip_journey_entries", "*", "party_id", pIds)) journeyEntries.set(e.id, e);
+  if (tIds.length) for (const e of await inChunks("trip_journey_entries", "*", "transporter_id", tIds)) journeyEntries.set(e.id, e);
+  const expenseIds = [...new Set(ledger.flatMap(a => a.rows.filter(r => r.source_table === "expenses").map(r => r.source_id).filter(Boolean)))] as string[];
+  const expenseSources = new Map<string, any>();
+  for (const e of await inChunks("expenses", "id,lr_id,trip_id,reference", "id", expenseIds)) expenseSources.set(e.id, e);
+  const tripIds = [...new Set([...lrs.values()].map((l) => l.trip_id).concat([...payments.values()].map((p) => p.trip_id), [...journeyEntries.values()].map(e => e.trip_id)).filter(Boolean))] as string[];
   const trips = new Map<string, any>();
   for (const t of await inChunks("trips", "id, trip_number, trip_date, driver_id, driver_name, market_vehicle_number, vehicle_mode, vehicles(registration_number)", "id", tripIds)) trips.set(t.id, t);
   const driverIds = [...new Set([...lrs.values()].map((l) => l.driver_id).concat([...trips.values()].map((t) => t.driver_id)).filter(Boolean))] as string[];
@@ -115,7 +122,7 @@ export async function loadHistory(acc: { parties: NamedId[]; transporters: Named
   if (tIds.length) for (const c of await inChunks("commission_balances", COM_SEL, "transporter_id", tIds)) comMap.set(c.id, c);
   for (const c of await inChunks("commission_balances", COM_SEL, "lr_id", lrIds)) comMap.set(c.id, c);
 
-  return { parties: acc.parties, transporters: acc.transporters, ledger, lrs, lrParties, trips, payments, allocations, lrExpenses, tripExpenses, tripDriverAdvances, commissions: [...comMap.values()], driverNames };
+  return { parties: acc.parties, transporters: acc.transporters, ledger, lrs, lrParties, trips, payments, allocations, lrExpenses, tripExpenses, tripDriverAdvances, commissions: [...comMap.values()], driverNames, journeyEntries, expenseSources };
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -168,6 +175,8 @@ export function assembleHistory(raw: Raw, from?: string, to?: string): History {
       let lrId: string | null = null, tripId: string | null = null, reference = "";
       if (r.source_table === "lrs") { lrId = r.source_id ?? null; reference = raw.lrs.get(lrId ?? "")?.lr_number ?? ""; }
       else if (r.source_table === "payments") { const p = raw.payments.get(r.source_id ?? ""); lrId = p?.lr_id ?? null; tripId = p?.trip_id ?? null; reference = p?.reference || p?.txn_reference || ""; }
+      else if (r.source_table === "trip_journey_entries") { const e = raw.journeyEntries?.get(r.source_id ?? ""); tripId = e?.trip_id ?? null; reference = e ? `${e.journey} journey` : ""; }
+      else if (r.source_table === "expenses") { const e = raw.expenseSources?.get(r.source_id ?? ""); lrId = e?.lr_id ?? null; tripId = e?.trip_id ?? null; reference = e?.reference ?? ""; }
       const info = lrInfo(lrId);
       tx.push({
         key: `${a.account}-${a.accountId}-${r.id}`, date: r.entry_date, account: a.account === "party" ? "Party" : "Transporter", accountName: a.name, kind: kindLabel(r.line_kind),
