@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { useAccounts, useDrivers, useParties, useTransporters, useVehicles, nameOf, PAYMENT_TYPE, TRIP_STATUS, FREIGHT_TYPE } from "@/lib/lookups";
 import { downloadCSV, formatDate, formatINR } from "@/lib/format";
 import { journeyTotals } from "@/lib/trip-journeys";
+import { partyFreightReport } from "@/lib/freight-report";
 import { paymentIsIncoming } from "@/lib/payment-direction";
 import { accountLabel, fetchAllRows } from "@/lib/accounts";
 
@@ -83,8 +84,8 @@ function Reports() {
           (t.status === "cancelled" ? 0 : t.lrs.filter((l: any) => l.status === "active").reduce((s: number, l: any) => s + Number(l.final_freight), 0) + journeyTotals(t.trip_journey_entries ?? []).partyFreight), (t.status === "cancelled" ? 0 : t.lrs.filter((l: any) => l.status === "active").reduce((s: number, l: any) => s + (l.transporter_freight_direction === "receivable" ? -1 : 1) * Number(l.freight_payable), 0) - journeyTotals(t.trip_journey_entries ?? []).transporterReceivable)]) };
       case "lr_register": return { cols: [{ label: "LR" }, { label: "Date" }, { label: "Trip" }, { label: "Consignor" }, { label: "Consignee" }, { label: "Type" }, { label: "Weight" }, { label: "Base", money: true, total: true }, { label: "Additions", money: true, total: true }, { label: "Deductions", money: true, total: true }, { label: "Final freight (billed)", money: true, total: true }, { label: "Net transporter freight (+ payable / − receivable)", money: true, total: true }],
         rows: lrs.map((l) => [l.lr_number, formatDate(l.lr_date), l.trips?.trip_number ?? "", pn(l, "consignor"), pn(l, "consignee"), FREIGHT_TYPE[l.freight_type], l.weight ? `${l.weight} ${l.weight_unit}` : "", Number(l.base_freight), Number(l.additions_total), Number(l.deductions_total), Number(l.final_freight), (l.transporter_freight_direction === "receivable" ? -1 : 1) * Number(l.freight_payable)]) };
-      case "freight_summary": return { cols: [{ label: "Billed party" }, { label: "LRs" }, { label: "Freight billed", money: true, total: true }],
-        rows: (() => { const m = new Map<string, [number, number]>(); for (const l of lrs) { const k = l.freight_type === "paid" ? pn(l, "consignor").split(",")[0] : l.freight_type === "to_pay" ? pn(l, "consignee").split(",")[0] : nameOf(parties.data, l.billing_party_id) || pn(l, "consignor").split(",")[0]; const x = m.get(k) ?? [0, 0]; m.set(k, [x[0] + 1, x[1] + Number(l.final_freight)]); } return [...m.entries()].map(([k, [n, a]]) => [k, n, a]); })() };
+      case "freight_summary": return { cols: [{ label: "Billed party" }, { label: "LRs / Trips" }, { label: "Freight billed", money: true, total: true }],
+        rows: partyFreightReport(lrs, D.trips.filter(t => t.status !== "cancelled").flatMap(t => (t.trip_journey_entries ?? []).filter((e: any) => inR(e.freight_date))), id => nameOf(parties.data, id)) };
       case "trip_expenses": return { cols: [{ label: "Date" }, { label: "Trip" }, { label: "Category" }, { label: "Paid to" }, { label: "Method" }, { label: "Paid From Account" }, { label: "Status" }, { label: "Incurred", money: true, total: true }],
         rows: D.exps.filter((e) => e.scope === "trip" && inR(e.expense_date)).map((e) => [formatDate(e.expense_date), D.trips.find((t) => t.id === e.trip_id)?.trip_number ?? "", e.category, e.paid_to ?? "", e.payment_method ?? "", nameOf(accounts.data, e.account_id, "display_name"), e.payment_status, Number(e.amount)]) };
       case "expense_category": return { cols: [{ label: "Category" }, { label: "Incurred (all expenses)", money: true, total: true }],

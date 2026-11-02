@@ -17,7 +17,7 @@ import { useAccounts, useDrivers, useVehicles, useTransporters, nameOf, PAY_MODE
 import { TransporterSelect } from "./TransporterSelect";
 import { TripLrSection } from "./TripLrSection";
 import { TripJourneys } from "./TripJourneys";
-import { blankJourney, journeyEntriesPayload, journeyEntriesToForm, journeyTotals, validateJourneyEntries, type JourneyEntry } from "@/lib/trip-journeys";
+import { blankJourney, journeyEntriesPayload, journeyEntriesToForm, journeyEntryUsed, journeyTotals, validateJourneyEntries, type JourneyEntry } from "@/lib/trip-journeys";
 import type { TripLrDraft } from "@/lib/trip-lrs";
 import { DriverRows, driverRowsPayload, type DriverRow } from "./DriverTransactions";
 import { formatINR, todayIST } from "@/lib/format";
@@ -79,7 +79,7 @@ export function TripForm({ initial, initialExpenses, initialAdvances, initialDri
       if (error) throw error;
       tripId = data as string;
       setV((previous) => ({ ...previous, id: tripId }));
-      setEntries(previous => previous.map(e => ({ ...e, saved: true })));
+      setEntries(previous => previous.filter(e => !e.cancel_reason).map(e => ({ ...e, saved: journeyEntryUsed(e) })));
     } catch (e) { setErr(errorMessage(e)); saving.current = false; setBusy(false); return; }
 
     // Only explicitly requested links are changed; journey data never invokes save_lr.
