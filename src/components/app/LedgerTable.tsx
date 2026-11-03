@@ -48,7 +48,7 @@ export function LedgerTable({ accountType, accountId, from, to, title, accountNa
         .order("entry_date").order("created_at").order("id").range(a, b));
       const ids = (t: string) => rows.filter((r) => r.source_table === t).map((r) => r.source_id as string);
       const [lrs, pays, pme, tme, advs, exps, sal, coms, recs] = await Promise.all([
-        lookup("lrs", "lr_number", ids("lrs")),
+        lookup("lrs", "lr_number, transporter_id, transporter_shortage, transporter_shortage_reason, transporter_additions, transporter_additions_reason", ids("lrs")),
         lookup("payments", "reference, txn_reference, lr_id, trip_id", ids("payments")),
         lookup("party_manual_entries", "reference", ids("party_manual_entries")),
         lookup("transporter_manual_entries", "reference", ids("transporter_manual_entries")),
@@ -58,9 +58,20 @@ export function LedgerTable({ accountType, accountId, from, to, title, accountNa
         lookup("driver_commissions", "lr_id, trip_id, reference", ids("driver_commissions")),
         lookup("commission_receipts", "commission_id, reference", ids("commission_receipts")),
       ]);
+      const journeys = await lookup("trip_journey_entries", "trip_id, transporter_id, shortage, shortage_reason, addition, addition_reason", ids("trip_journey_entries"));
+      const driverEntries = await lookup("driver_transactions", "trip_id, reference, payment_method, notes, drivers(name), parties(name)", ids("driver_transactions"));
       const comOfReceipt = await lookup("driver_commissions", "lr_id, trip_id, reference", Array.from(recs.values()).map((r) => r.commission_id).filter(Boolean));
       return rows.map((r) => {
         let reference = "", lrId: string | null | undefined, tripId: string | null | undefined;
+        let description = r.description;
+        const source = r.source_table === "lrs" ? lrs.get(r.source_id) : r.source_table === "trip_journey_entries" ? journeys.get(r.source_id) : null;
+        if (accountType === "transporter" && source?.transporter_id === accountId) {
+          const shortage = source.transporter_shortage ?? source.shortage;
+          const addition = source.transporter_additions ?? source.addition;
+          const shortageReason = source.transporter_shortage_reason ?? source.shortage_reason;
+          const additionReason = source.transporter_additions_reason ?? source.addition_reason;
+          description = [description, Number(shortage) > 0 ? `Shortage ₹${shortage}${shortageReason ? `: ${shortageReason}` : ""}` : "", Number(addition) > 0 ? `Addition ₹${addition}${additionReason ? `: ${additionReason}` : ""}` : ""].filter(Boolean).join(" · ");
+        }
         switch (r.source_table) {
           case "lrs": reference = lrs.get(r.source_id)?.lr_number ?? ""; lrId = r.source_id; break;
           case "payments": { const p = pays.get(r.source_id); reference = p?.reference || p?.txn_reference || ""; lrId = p?.lr_id; tripId = p?.trip_id; break; }
@@ -69,10 +80,12 @@ export function LedgerTable({ accountType, accountId, from, to, title, accountNa
           case "advances": { const a = advs.get(r.source_id); reference = a?.reference ?? ""; tripId = a?.trip_id; break; }
           case "expenses": { const e = exps.get(r.source_id); reference = e?.reference ?? ""; tripId = e?.trip_id; lrId = e?.lr_id; break; }
           case "salary_payments": reference = sal.get(r.source_id)?.reference ?? ""; break;
+          case "trip_journey_entries": tripId = journeys.get(r.source_id)?.trip_id; break;
+          case "driver_transactions": { const d = driverEntries.get(r.source_id); reference = d?.reference ?? ""; tripId = d?.trip_id; description = [description, d?.drivers?.name, d?.parties?.name, d?.payment_method, d?.notes].filter(Boolean).join(" · "); break; }
           case "driver_commissions": { const c = coms.get(r.source_id); reference = c?.reference ?? ""; lrId = c?.lr_id; tripId = c?.trip_id; break; }
           case "commission_receipts": { const rc = recs.get(r.source_id); const c = rc ? comOfReceipt.get(rc.commission_id) : null; reference = rc?.reference ?? ""; lrId = c?.lr_id; tripId = c?.trip_id; break; }
         }
-        return { ...r, reference, lrId, tripId } as Row;
+        return { ...r, description, reference, lrId, tripId } as Row;
       });
     },
   });
