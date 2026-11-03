@@ -234,7 +234,7 @@ function TripDetail() {
                 <TableCell className="text-right"><Money value={l.base_freight} /></TableCell>
                 <TableCell className="text-right text-xs">+<Money value={l.additions_total} /> −<Money value={l.deductions_total} /></TableCell>
                 <TableCell className="text-right font-medium"><Money value={l.final_freight} /></TableCell>
-                <TableCell className="text-right"><Money value={l.freight_payable} /> {l.transporter_freight_direction === "receivable" ? "Receivable" : "Payable"}</TableCell>
+                <TableCell className="text-right"><p>{nameOf(transporters.data, l.transporter_id)}</p><Money value={l.freight_payable} /> {l.transporter_freight_direction === "receivable" ? "Receivable" : "Payable"}{Number(l.transporter_shortage) > 0 && <p className="text-xs">Shortage: <Money value={l.transporter_shortage} />{l.transporter_shortage_reason ? ` · ${l.transporter_shortage_reason}` : ""}</p>}{Number(l.transporter_additions) > 0 && <p className="text-xs">Addition: <Money value={l.transporter_additions} />{l.transporter_additions_reason ? ` · ${l.transporter_additions_reason}` : ""}</p>}</TableCell>
                 <TableCell><StatusBadge tone={LR_DELIVERY[l.delivery_status]?.tone}>{LR_DELIVERY[l.delivery_status]?.label}</StatusBadge></TableCell>
               </TableRow>))}</TableBody>
           </Table></div>
