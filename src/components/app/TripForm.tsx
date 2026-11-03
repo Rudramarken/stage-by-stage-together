@@ -44,7 +44,7 @@ export function TripForm({ initial, initialExpenses, initialAdvances, initialDri
   const qc = useQueryClient();
   const vehicles = useVehicles(); const drivers = useDrivers(); const transporters = useTransporters(); const accounts = useAccounts();
   // Rows keep their saved ids (or a browser-made id for new rows), so saving again - or retrying a failed request - updates the same records instead of duplicating them.
-  const [exp, setExp] = useState<ExpenseForm>(() => expensesToForm(initialExpenses, ""));
+  const [exp, setExp] = useState<ExpenseForm>(() => expensesToForm(initialExpenses, todayIST()));
   const [adv, setAdv] = useState<AdvanceRow[]>(() => advancesToForm(initialAdvances));
   const saving = useRef(false);
   const [driverRows, setDriverRows] = useState<DriverRow[]>((initialDriverTransactions ?? []).map(r => ({ ...r, saved: true, amount: String(r.amount) })));
@@ -167,6 +167,8 @@ export function TripForm({ initial, initialExpenses, initialAdvances, initialDri
                   <Input type="number" inputMode="decimal" min="0" step="0.01" placeholder="₹ amount" value={r.amount} disabled={!!r.cancelReason} onChange={(e) => upd({ amount: e.target.value })} />
                 </Field>
                 <Input aria-label={`${x.category} note`} placeholder="Note (optional)" value={r.notes} disabled={!!r.cancelReason} onChange={(e) => upd({ notes: e.target.value })} />
+                <Field label="Date"><Input aria-label={`${x.category} Date`} type="date" value={r.expense_date} disabled={!!r.cancelReason} onChange={e => upd({ expense_date: e.target.value })} /></Field>
+                <Field label="Paid to"><Input aria-label={`${x.category} Paid to`} value={r.paid_to} disabled={!!r.cancelReason} onChange={e => upd({ paid_to: e.target.value })} /></Field>
                 {expenseAccountFields(r, upd)}
                 {r.saved && (r.cancelReason
                   ? <div className="flex items-center justify-between gap-2 text-xs text-destructive"><span>Will be cancelled when you save: {r.cancelReason}</span><Button type="button" variant="ghost" size="sm" onClick={() => upd({ cancelReason: undefined })}><Undo2 className="mr-1 h-4 w-4" />Undo</Button></div>

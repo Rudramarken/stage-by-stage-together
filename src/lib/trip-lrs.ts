@@ -45,8 +45,6 @@ export function validateTripLrs(drafts: TripLrDraft[]): string | null {
     if (isBlankTripLr(d)) continue;
     n++;
     const w = `LR / Bilty ${n}: `;
-    if (Number(d.transporter_shortage) > 0 && !d.transporter_shortage_reason?.trim()) return `${w}enter a reason for transporter shortage`;
-    if (Number(d.transporter_additions) > 0 && !d.transporter_additions_reason?.trim()) return `${w}enter a reason for transporter addition`;
     for (const p of [...d.consignors, ...d.consignees, { weight: d.transporter_weight, rate: d.transporter_rate, shortage: d.transporter_shortage, addition: d.transporter_additions, freight_date: d.transporter_freight_date }]) {
       for (const f of [p.weight, p.rate, p.shortage, p.addition]) {
         if (String(f ?? "").trim() && (!Number.isFinite(Number(f)) || Number(f) < 0)) return `${w}weight, rate, shortage and addition must be numbers of 0 or more`;

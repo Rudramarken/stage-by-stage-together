@@ -33,3 +33,4 @@
 - Driver direct-party receipts and expense reimbursements use driver_transactions with stable IDs, atomic trip saves and source-key ledger upserts; party receipts never enter account_movements. Why: distinguish third-party funds, driver liabilities and actual company outflows.
 - Transporter freight direction is explicit and defaults to the historical payable convention; never reclassify past LRs automatically. Why: support receivables without rewriting existing balances.
 - Account activity reports read the same paginated account_movements model as statements. Why: transfers and receipts reconcile consistently.
+- Transporter explanatory reasons belong to their LR/journey source rows and ledger displays enrich only scoped source IDs. Why: reason edits must not create money postings or mix counterparties.
