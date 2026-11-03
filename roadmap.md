@@ -1,4 +1,5 @@
 # Gokul Cargo Movers — roadmap
+- [ ] Complete uploaded trip/ledger fixes: optional transporter reasons, direct driver receipts, transporter isolation audit, per-expense dates, TEST save/edit/cancellation checks and FINAL_FIX_REPORT.md.
 - [x] Final TEST pass: TRP-0016 + LR-0037/0038, eight once-only amounts, percentage commission, concurrent receipt safety, six visible payment types, salary advance recovery, document/export/print checks; five TEST ledgers zero and bank movements cleared. Three trigger repairs applied; details in COMPLETE_CLIENT_FEEDBACK_AUDIT.md.
 - [ ] Remaining verification: staff/admin and cross-business sessions require disposable approved accounts/second business; auth-provider settings require a hosted settings read; historical paying accounts require owner identification. Exhaustive master/module CRUD and legacy driver salary commission recovery remain unverified.
 - [x] Final master implementation: independent main/return journeys, no automatic Bilty creation, consignor payables, migrations 0032–0034 applied, 136 tests and 35 schema reads passed; TEST effects reversed; verification limits documented in COMPLETE_CLIENT_FEEDBACK_AUDIT.md.
