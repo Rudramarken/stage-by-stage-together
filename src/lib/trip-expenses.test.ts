@@ -5,6 +5,14 @@ const D = "2026-10-28";
 const saved = (o: Record<string, unknown>) => ({ trip_id: "T", scope: "trip", is_cancelled: false, ...o });
 
 describe("trip expenses form state", () => {
+  it("updates each saved fixed expense date and paid-to in place, independently of the trip date", () => {
+    const f = expensesToForm([saved({ id: "TOLL", category: "TOLL TAX", amount: 100, expense_date: "2026-11-01", paid_to: "Gate" }), saved({ id: "CNG", category: "CNG", amount: 200, expense_date: "2026-11-02", paid_to: "Pump" })], D);
+    f.fixed.toll.expense_date = "2026-11-03";
+    expect(expensesPayload(f, D)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: "TOLL", expense_date: "2026-11-03", paid_to: "Gate" }),
+      expect.objectContaining({ id: "CNG", expense_date: "2026-11-02", paid_to: "Pump" }),
+    ]));
+  });
   it("persists individual paid accounts and unpaid status through edit and reload", () => {
     const f = expensesToForm([saved({ id: "E1", category: "TOLL TAX", amount: 100, account_id: "bank", payment_method: "neft", payment_status: "paid", reference: "TEST" }), saved({ id: "E2", category: "Parking", amount: 80, account_id: null, payment_status: "pending" })], D);
     expect(expensesPayload(f, D)[0]).toMatchObject({ id: "E1", account_id: "bank", payment_method: "neft", payment_status: "paid", reference: "TEST" });
