@@ -2088,6 +2088,7 @@ export type Database = {
       trip_journey_entries: {
         Row: {
           addition: number | null
+          addition_reason: string | null
           business_id: string
           cancel_reason: string | null
           created_at: string
@@ -2106,6 +2107,7 @@ export type Database = {
           role: string
           seq: number
           shortage: number | null
+          shortage_reason: string | null
           transporter_id: string | null
           trip_id: string
           updated_at: string
@@ -2113,6 +2115,7 @@ export type Database = {
         }
         Insert: {
           addition?: number | null
+          addition_reason?: string | null
           business_id: string
           cancel_reason?: string | null
           created_at?: string
@@ -2131,6 +2134,7 @@ export type Database = {
           role: string
           seq?: number
           shortage?: number | null
+          shortage_reason?: string | null
           transporter_id?: string | null
           trip_id: string
           updated_at?: string
@@ -2138,6 +2142,7 @@ export type Database = {
         }
         Update: {
           addition?: number | null
+          addition_reason?: string | null
           business_id?: string
           cancel_reason?: string | null
           created_at?: string
@@ -2156,6 +2161,7 @@ export type Database = {
           role?: string
           seq?: number
           shortage?: number | null
+          shortage_reason?: string | null
           transporter_id?: string | null
           trip_id?: string
           updated_at?: string

@@ -267,6 +267,13 @@
       "when": 1793629341975,
       "tag": "0037_isolate_lr_transporter_lookup_from_trip_commission",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1793717394113,
+      "tag": "0038_optional_journey_transporter_reasons",
+      "breakpoints": true
     }
   ]
 }
