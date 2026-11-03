@@ -70,7 +70,7 @@ export function TripExpenses({ tripId }: { tripId: string }) {
             <TableHeader><TableRow><TableHead>Date</TableHead><TableHead>Category</TableHead><TableHead>Paid to</TableHead><TableHead>Method</TableHead><TableHead className="text-right">Amount</TableHead><TableHead /></TableRow></TableHeader>
             <TableBody>{q.data.map((x) => (
               <TableRow key={x.id} className={x.is_cancelled ? "opacity-50" : ""}>
-                <TableCell>{formatDate(x.expense_date)}</TableCell><TableCell>{x.category}{x.is_cancelled && <StatusBadge tone="danger">Cancelled</StatusBadge>}</TableCell>
+                <TableCell>{formatDate(x.expense_date)}</TableCell><TableCell>{x.category}{x.is_cancelled && <><StatusBadge tone="danger">Cancelled</StatusBadge><p className="text-xs text-destructive">{x.cancel_reason}</p></>}</TableCell>
                 <TableCell>{x.paid_to ?? "—"}</TableCell><TableCell>{x.payment_method ?? "—"} · {x.payment_status}{x.account_id ? ` · ${nameOf(accounts.data, x.account_id, "display_name")}` : ""}</TableCell>
                 <TableCell className="text-right"><Money value={x.amount} /></TableCell>
                 <TableCell className="whitespace-nowrap text-right">{!x.is_cancelled && <>

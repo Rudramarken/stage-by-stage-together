@@ -4,6 +4,10 @@ import { blankTripLr, isBlankTripLr, tripLrFreightTotal, tripLrPayload, validate
 const filled = () => { const d = blankTripLr(); d.consignors[0] = { party_id: "A", freight_amount: "1000" }; d.consignees[0] = { party_id: "B", freight_amount: "500.50" }; return d; };
 
 describe("trip LR rows", () => {
+  it("allows transporter shortage and addition without optional reasons", () => {
+    const d = filled(); d.transporter_shortage = "100"; d.transporter_additions = "200";
+    expect(validateTripLrs([d])).toBeNull();
+  });
   it("preserves six independent fields for all three parties without inventing a calculation", () => {
     const d = filled();
     Object.assign(d.consignors[0], { weight: "100", rate: "2", shortage: "3", addition: "4", freight_date: "2026-10-21" });

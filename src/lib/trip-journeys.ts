@@ -5,11 +5,12 @@ export type JourneyEntry = {
   id: string; saved?: boolean; journey: "main" | "return"; role: "consignor" | "consignee" | "transporter";
   party_id: string; transporter_id: string; weight: string; rate: string; freight_amount: string;
   shortage: string; addition: string; freight_date: string; goods_description: string;
+  shortage_reason?: string; addition_reason?: string;
   loading_point: string; delivery_point: string; expenses: JourneyExpense[]; cancel_reason?: string; is_cancelled?: boolean;
 };
 export const blankJourneyEntry = (journey: JourneyEntry["journey"], role: JourneyEntry["role"]): JourneyEntry => ({
   id: crypto.randomUUID(), journey, role, party_id: "", transporter_id: "", weight: "", rate: "", freight_amount: "",
-  shortage: "", addition: "", freight_date: todayIST(), goods_description: "", loading_point: "", delivery_point: "", expenses: [],
+  shortage: "", addition: "", shortage_reason: "", addition_reason: "", freight_date: todayIST(), goods_description: "", loading_point: "", delivery_point: "", expenses: [],
 });
 export const blankJourney = (journey: JourneyEntry["journey"]) => (["consignor", "consignee", "transporter"] as const).map(role => blankJourneyEntry(journey, role));
 export const journeyEntryUsed = (e: JourneyEntry) => !!(e.saved || e.party_id || e.transporter_id || e.goods_description || e.loading_point || e.delivery_point || e.expenses.length || [e.weight, e.rate, e.freight_amount, e.shortage, e.addition].some(v => String(v ?? "").trim()));

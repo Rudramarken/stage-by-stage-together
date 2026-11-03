@@ -101,7 +101,7 @@ export function expensesPayload(f: ExpenseForm, tripDate: string) {
     if (r.cancelReason) { if (r.saved) out.push({ id: r.id, cancel: true, cancel_reason: r.cancelReason.trim() }); return; }
     if (!r.saved && !(fixed ? r.amount.trim() !== "" : hasContent(r))) return;
     const row: Record<string, unknown> = { id: r.id, category: r.category.trim(), amount: parseAmount(r.amount), notes: r.notes.trim() };
-    if (!fixed) { row.paid_to = r.paid_to.trim(); row.expense_date = r.expense_date || tripDate; }
+    row.paid_to = r.paid_to.trim(); row.expense_date = r.expense_date || tripDate;
     row.account_id = r.account_id || ""; row.payment_method = r.payment_method || "cash"; row.payment_status = r.payment_status || "paid"; row.reference = r.reference || "";
     if (!r.saved) { row.expense_date = r.expense_date || tripDate; row.payment_method = r.payment_method || "cash"; }
     out.push(row);

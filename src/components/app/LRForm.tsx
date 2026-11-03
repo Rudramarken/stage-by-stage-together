@@ -114,8 +114,6 @@ export function LRForm({ initial }: { initial: LRValues }) {
       if (v.transporter_rate_unit !== "fixed" && !(Number(v.transporter_weight) > 0)) return setErr("Enter the weight on which freight is payable to the transporter");
     }
     if (Number(v.transporter_additions || 0) < 0 || Number(v.transporter_shortage || 0) < 0) return setErr("Transporter add / shortage cannot be negative");
-    if (Number(v.transporter_additions || 0) > 0 && !String(v.transporter_additions_reason ?? "").trim()) return setErr("Enter a reason for the amount added to the transporter freight");
-    if (Number(v.transporter_shortage || 0) > 0 && !String(v.transporter_shortage_reason ?? "").trim()) return setErr("Enter a reason for the shortage deducted from the transporter freight");
     if (v.direct_payment_enabled && !(Number(v.direct_payment_amount) > 0)) return setErr("Enter the amount the consignee paid the driver directly");
     if (v.commission_enabled && !v.transporter_id && !trip?.transporter_id) return setErr("Choose the transporter who owes the commission");
     if (initial.commission_enabled && !v.commission_enabled && !v.commission_cancel_reason?.trim()) return setErr("Enter a reason for turning commission off");

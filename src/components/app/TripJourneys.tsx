@@ -29,6 +29,10 @@ export function TripJourneys({ entries, setEntries }: { entries: JourneyEntry[];
                 {role === "transporter" ? <TransporterSelect value={e.transporter_id} onChange={id => update(e.id, { transporter_id: id })} /> : <SearchSelect value={e.party_id} onChange={id => update(e.id, { party_id: id })} options={(parties.data ?? []).filter(p => p.is_active || p.id === e.party_id).map(p => ({ value: p.id, label: p.name }))} />}
               </Field>
               <PartyFreightFields label={label} values={e} onChange={p => update(e.id, p)} />
+              {role === "transporter" && <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Shortage reason (optional)"><Input aria-label={`${label} Shortage reason`} value={e.shortage_reason ?? ""} onChange={ev => update(e.id, { shortage_reason: ev.target.value })} /></Field>
+                <Field label="Addition reason (optional)"><Input aria-label={`${label} Addition reason`} value={e.addition_reason ?? ""} onChange={ev => update(e.id, { addition_reason: ev.target.value })} /></Field>
+              </div>}
               {role === "transporter" && <p className="text-sm text-success">Freight receivable from transporter</p>}
               {role === "consignor" && <>
                 <div className="grid gap-3 sm:grid-cols-3">{(["goods_description", "loading_point", "delivery_point"] as const).map(k => <Field key={k} label={k === "goods_description" ? "Goods" : k === "loading_point" ? "Loading point" : "Delivery point"}><Input aria-label={`${label} ${k}`} value={e[k]} onChange={ev => update(e.id, { [k]: ev.target.value })} /></Field>)}</div>
@@ -57,6 +61,7 @@ export function TripJourneyDetails({ entries }: { entries: any[] }) {
       {rows.map(e => <div key={e.id} className={`border-b pb-3 text-sm ${e.is_cancelled ? "opacity-50" : ""}`}><p className="font-medium capitalize">{e.role}: {nameOf(e.role === "transporter" ? transporters.data : parties.data, e.transporter_id || e.party_id)} · {formatDate(e.freight_date)} {e.is_cancelled && `· Cancelled: ${e.cancel_reason}`}</p>
         <p>{e.goods_description} {[e.loading_point, e.delivery_point].filter(Boolean).join(" → ")}</p>
         <p>Weight: {e.weight ?? "—"} kg · Rate: <Money value={e.rate} /> · Freight: <Money value={e.freight_amount} /> · Shortage: <Money value={e.shortage} /> · Addition: <Money value={e.addition} /></p>
+        {e.shortage_reason && <p>Shortage reason: {e.shortage_reason}</p>}{e.addition_reason && <p>Addition reason: {e.addition_reason}</p>}
         {(e.expenses ?? []).map((x: any) => <p key={x.id}>Consignor payable: {x.category} · <Money value={x.amount} /> · {formatDate(x.expense_date)} · {x.notes}</p>)}
       </div>)}
       <p className="text-sm">Party freight: <Money value={totals.partyFreight} /> · Transporter receivable: <Money value={totals.transporterReceivable} /> · Consignor payable: <Money value={totals.consignorPayable} /></p>

@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { blankJourneyEntry, journeyEntriesPayload, journeyEntriesToForm, journeyTotals, validateJourneyEntries } from "./trip-journeys";
 describe("independent trip journeys", () => {
+  it("keeps optional transporter reasons on the same journey across edits", () => {
+    const e = { ...blankJourneyEntry("main", "transporter"), transporter_id: "BAWA", freight_amount: "2000", shortage: "100", addition: "200", shortage_reason: "TEST damage", addition_reason: "TEST freight difference" };
+    const reopened = journeyEntriesToForm([e]); reopened[0].shortage_reason = "TEST revised damage";
+    expect(journeyEntriesPayload(reopened)[0]).toMatchObject({ id: e.id, transporter_id: "BAWA", shortage_reason: "TEST revised damage", addition_reason: "TEST freight difference" });
+    expect(validateJourneyEntries([{ ...e, shortage_reason: "", addition_reason: "" }])).toBeNull();
+  });
   it("preserves the same payable identity when a saved journey is reopened and edited", () => {
     const entry = { ...blankJourneyEntry("return", "consignor"), party_id: "test-party", expenses: [{ id: "test-payable", category: "Loading", amount: "420", expense_date: "2026-11-02", notes: "TEST" }] };
     const reopened = journeyEntriesToForm([entry]);
